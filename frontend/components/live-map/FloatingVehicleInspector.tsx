@@ -5,6 +5,7 @@ import {
   X, Navigation, AlertTriangle, ShieldCheck, Thermometer, 
   ExternalLink, Zap, Compass, ChevronUp, Radio, ArrowUpRight
 } from "lucide-react";
+import { TelemetrySparkles } from "./TelemetrySparkles";
 
 interface FloatingInspectorProps {
   vehicle: any;
@@ -110,6 +111,9 @@ export function FloatingVehicleInspector({
           </span>
         </div>
       </div>
+
+      {/* 3.5 Rolling telemetry sparklines (15m window) */}
+      <TelemetrySparkles vehicleId={vehicle.vehicle_id} />
 
       {/* 4. Action Controls */}
       <div className="pt-2 border-t border-[#1E2638] flex items-center gap-2">
