@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BarChart3, Boxes, Bot, ClipboardList, Container, Cpu, Droplets, FlaskConical, Home, Layers, Map, Settings, Siren } from "lucide-react";
+import { Activity, BarChart3, Boxes, Bot, ClipboardList, Container, Cpu, Droplets, FlaskConical, Home, Layers, List, Map, Settings, Siren } from "lucide-react";
 import { useStore } from "@/lib/store";
 import Toasts from "./Toasts";
 import { CommandPalette } from "./CommandPalette";
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/", label: "Home", icon: Home },
   { href: "/dashboard", label: "Dashboard", icon: Activity },
   { href: "/live-map", label: "Live Map", icon: Map },
+  { href: "/shipments-live", label: "Fleet List", icon: List },
   { href: "/simulation", label: "Live Simulation", icon: FlaskConical },
   { href: "/twin", label: "Digital Twin", icon: Map },
   { href: "/shipments", label: "Shipments", icon: Container },

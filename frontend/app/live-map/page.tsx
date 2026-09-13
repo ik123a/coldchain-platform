@@ -1,31 +1,35 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
-import type { Map as MLMap, GeoJSONSource, PointLike } from "maplibre-gl";
+import type { Map as MLMap, GeoJSONSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useStore } from "@/lib/store";
 import { api, post } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, Filter, Pause, Play, Search, Truck, Zap } from "lucide-react";
+import { Bot, Maximize2, Minimize2, Pause, Play, Search, Truck, Zap } from "lucide-react";
+import { FleetTable } from "@/components/live-map/FleetTable";
 
 const RISK_COLORS: Record<string, string> = {
   LOW: "#34d399", MEDIUM: "#fbbf24", HIGH: "#f97316", CRITICAL: "#f87171",
 };
-const TRAFFIC_COLORS: Record<string, string> = {
-  LOW: "#34d39988", MODERATE: "#fbbf2488", HIGH: "#f9731688", SEVERE: "#f8717188",
-};
 
 interface VSnap {
   vehicle_id: string; lat: number; lng: number; heading: number; speed_kmh: number;
-  status: string; energy_type: string;
+  status: string; energy_type: string; type: string;
   trip: { eta_min: number; distance_remaining_km: number; destination_id: string; origin_id: string; route_progress_percent: number };
   refrigeration: { temperature: number; compressor_status: string; door_open: boolean };
   cargo: { cargo_type: string; load_percent: number; cargo_health: number; risk_level: string; risk_score: number; time_to_critical_min: number | null };
   driver: { name: string; driving_score: number };
   vehicle: { fuel_percent: number; battery_percent: number; vehicle_health: number };
+  outside_temperature: number;
 }
 
-interface Trail { lng: number; lat: number; t: number }
+/** Split a route polyline at progress% into completed (solid) + upcoming (dashed). */
+function splitRoute(geometry: [number, number][], progressPct: number) {
+  const total = geometry.length - 1;
+  const cut = Math.max(1, Math.min(total, Math.round(total * progressPct / 100)));
+  return { done: geometry.slice(0, cut + 1), todo: geometry.slice(cut) };
+}
 
 export default function LiveMapPage() {
   const { st } = useStore();
@@ -34,7 +38,7 @@ export default function LiveMapPage() {
   const prevRef = useRef<Map<string, VSnap>>(new Map());
   const nextRef = useRef<Map<string, VSnap>>(new Map());
   const lerpRef = useRef(1);
-  const trailsRef = useRef<Map<string, Trail[]>>(new Map());
+  const trailsRef = useRef<Map<string, [number, number][]>>(new Map());
   const followRef = useRef<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [following, setFollowing] = useState<string | null>(null);
@@ -44,23 +48,19 @@ export default function LiveMapPage() {
   const [decision, setDecision] = useState<any>(null);
   const [geo, setGeo] = useState<{ warehouses: any[]; destinations: any[] }>({ warehouses: [], destinations: [] });
   const [search, setSearch] = useState("");
-  const [layers, setLayers] = useState({ vehicles: true, routes: true, trails: true, incidents: true, traffic: false });
+  const [fullscreen, setFullscreen] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(true);
+  const [timelineTab, setTimelineTab] = useState<"events" | "timeline">("events");
+  const [vehicleHistory, setVehicleHistory] = useState<any[]>([]);
   const [clock, setClock] = useState(0);
 
   const vehicles = (st.fleetVehicles || []) as VSnap[];
   const fleetEvents = (st.fleetEvents || []) as any[];
-  const filtered = vehicles.filter(v => {
-    if (filter === "ALL") return true;
-    if (filter === "RISK") return ["HIGH", "CRITICAL"].includes(v.cargo.risk_level);
-    if (filter === "CRITICAL") return v.cargo.risk_level === "CRITICAL";
-    if (filter === "IN_TRANSIT") return v.status === "IN_TRANSIT";
-    if (filter === "ARRIVED") return v.status === "ARRIVED";
-    return true;
-  });
 
   useEffect(() => {
     api("/api/fleet/state").then((s: any) =>
       setGeo({ warehouses: s.warehouses, destinations: s.destinations })).catch(() => {});
+    setFullscreen(localStorage.getItem("lm-fullscreen") === "1");
   }, []);
 
   useEffect(() => {
@@ -68,12 +68,11 @@ export default function LiveMapPage() {
     prevRef.current = nextRef.current.size ? nextRef.current : new Map(vehicles.map(v => [v.vehicle_id, v]));
     nextRef.current = new Map(vehicles.map(v => [v.vehicle_id, v]));
     lerpRef.current = 0;
-    // append to trails
     const trails = trailsRef.current;
     for (const v of vehicles) {
       const t = trails.get(v.vehicle_id) || [];
-      t.push({ lng: v.lng, lat: v.lat, t: Date.now() });
-      trails.set(v.vehicle_id, t.slice(-40)); // last ~10s of movement
+      t.push([v.lng, v.lat]);
+      trails.set(v.vehicle_id, t.slice(-40));
     }
     setClock(c => c + 1);
   }, [st.fleetVehicles]);
@@ -98,7 +97,6 @@ export default function LiveMapPage() {
       zoom: 9.3,
       style: {
         version: 8,
-        glyphFont: undefined,
         sources: {
           osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
                  tileSize: 256, attribution: "© OpenStreetMap contributors" },
@@ -113,14 +111,12 @@ export default function LiveMapPage() {
     mapRef.current = map;
     map.on("load", () => {
       map.addImage("truck-icon", img);
-      // sources
       map.addSource("wh", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addSource("dest", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addSource("veh", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addSource("trail", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addSource("route", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addSource("inc", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      // warehouse markers
       map.addLayer({
         id: "wh-c", type: "circle", source: "wh",
         paint: { "circle-radius": 9, "circle-color": "#38bdf8",
@@ -128,8 +124,7 @@ export default function LiveMapPage() {
       });
       map.addLayer({
         id: "wh-l", type: "symbol", source: "wh",
-        layout: { "text-field": ["get", "label"], "text-size": 9.5, "text-offset": [0, 1.2],
-                   "text-anchor": "top" },
+        layout: { "text-field": ["get", "label"], "text-size": 9.5, "text-offset": [0, 1.2], "text-anchor": "top" },
         paint: { "text-color": "#7dd3fc", "text-halo-color": "#0b1018", "text-halo-width": 1.2 },
       });
       map.addLayer({
@@ -137,20 +132,17 @@ export default function LiveMapPage() {
         paint: { "circle-radius": 5.5, "circle-color": "#a78bfa",
                  "circle-stroke-color": "#c4b5fd", "circle-stroke-width": 1 },
       });
-      // vehicle trails
       map.addLayer({
         id: "trail-line", type: "line", source: "trail",
         paint: { "line-color": "#38bdf8", "line-width": 1.6, "line-opacity": 0.4 },
         layout: { "line-cap": "round" },
       });
-      // routes (recommended: solid; alternatives dashed)
       map.addLayer({
         id: "route-line", type: "line", source: "route",
         paint: { "line-color": ["get", "color"], "line-width": 3,
                  "line-opacity": 0.85, "line-dasharray": ["get", "dash"] },
         layout: { "line-cap": "round" },
       });
-      // incidents: pulsing circle + marker
       map.addLayer({
         id: "inc-pulse", type: "circle", source: "inc",
         paint: { "circle-radius": 18, "circle-color": "#f8717122",
@@ -160,7 +152,6 @@ export default function LiveMapPage() {
         id: "inc-core", type: "circle", source: "inc",
         paint: { "circle-radius": 6, "circle-color": "#f87171" },
       });
-      // vehicles: risk halo + rotated truck icon + label
       map.addLayer({
         id: "veh-halo", type: "circle", source: "veh",
         paint: { "circle-radius": 13, "circle-color": ["get", "riskColor"], "circle-opacity": 0.18 },
@@ -168,22 +159,16 @@ export default function LiveMapPage() {
       map.addLayer({
         id: "veh-icon", type: "symbol", source: "veh",
         layout: {
-          "icon-image": "truck-icon",
-          "icon-size": 0.65,
+          "icon-image": "truck-icon", "icon-size": 0.65,
           "icon-rotate": ["get", "heading"],
-          "icon-allow-overlap": true,
-          "icon-rotation-alignment": "map",
+          "icon-allow-overlap": true, "icon-rotation-alignment": "map",
         },
       });
       map.addLayer({
         id: "veh-label", type: "symbol", source: "veh",
-        layout: {
-          "text-field": ["get", "label"], "text-size": 9.5, "text-offset": [0, -1.7],
-          "text-allow-overlap": false,
-        },
+        layout: { "text-field": ["get", "label"], "text-size": 9.5, "text-offset": [0, -1.7] },
         paint: { "text-color": "#c9d5e4", "text-halo-color": "#0b1018", "text-halo-width": 1.4 },
       });
-      // hover/click
       map.on("click", "veh-icon", (e: any) => {
         const vid = e.features?.[0]?.properties?.vehicle_id;
         if (vid) setSelected(vid);
@@ -206,7 +191,7 @@ export default function LiveMapPage() {
     return () => { map.remove(); mapRef.current = null; };
   }, []);
 
-  // ---------- static geo layers ----------
+  // static geo
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded() || (!geo.warehouses.length && !geo.destinations.length)) return;
@@ -226,7 +211,7 @@ export default function LiveMapPage() {
     } as any);
   }, [geo, clock]);
 
-  // ---------- per-frame interpolation ----------
+  // rAF interpolation
   useEffect(() => {
     let raf = 0;
     const loop = () => {
@@ -242,28 +227,20 @@ export default function LiveMapPage() {
           feats.push({
             type: "Feature", geometry: { type: "Point", coordinates: [lng, lat] },
             properties: {
-              vehicle_id: vid,
-              heading: nxt.heading,
+              vehicle_id: vid, heading: nxt.heading,
               riskColor: RISK_COLORS[nxt.cargo?.risk_level || "LOW"],
-              label: `${vid.replace("TRUCK-", "T")} ${Math.round(nxt.speed_kmh)} ${nxt.refrigeration?.temperature}° ${nxt.cargo?.risk_level[0]}`,
+              label: `${vid.replace("TRUCK-", "T")} ${Math.round(nxt.speed_kmh)} ${nxt.refrigeration?.temperature}°`,
             },
           });
         }
-        if (layers.vehicles)
-          (map.getSource("veh") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: feats } as any);
-        // trails
-        if (layers.trails) {
-          const tfeats: any[] = [];
-          for (const [vid, pts] of trailsRef.current) {
-            if (pts.length < 2) continue;
-            tfeats.push({
-              type: "Feature",
-              geometry: { type: "LineString", coordinates: pts.map(p => [p.lng, p.lat]) },
-              properties: { vehicle_id: vid },
-            });
-          }
-          (map.getSource("trail") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: tfeats } as any);
+        (map.getSource("veh") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: feats } as any);
+        const tfeats: any[] = [];
+        for (const [vid, pts] of trailsRef.current) {
+          if (pts.length < 2) continue;
+          tfeats.push({ type: "Feature", geometry: { type: "LineString", coordinates: pts },
+                        properties: { vehicle_id: vid } });
         }
+        (map.getSource("trail") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: tfeats } as any);
         if (followRef.current) {
           const nxt = nextRef.current.get(followRef.current);
           if (nxt) map.easeTo({ center: [nxt.lng, nxt.lat], duration: 320 });
@@ -273,53 +250,59 @@ export default function LiveMapPage() {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [layers.vehicles, layers.trails]);
+  }, []);
 
-  // ---------- incident markers from events ----------
+  // incident pins
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
     const feats = fleetEvents.filter(e => e.type === "fleet.incident.created").slice(0, 10).map((e: any) => {
       const s = e.snapshot || {};
-      return {
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [s.lng || 77.1, s.lat || 28.58] },
-        properties: { vehicle_id: e.vehicle_id, severity: e.severity, cause: e.root_cause },
-      };
+      return { type: "Feature",
+               geometry: { type: "Point", coordinates: [s.lng || 77.1, s.lat || 28.58] },
+               properties: { vehicle_id: e.vehicle_id, severity: e.severity, cause: e.root_cause } };
     });
     (map.getSource("inc") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: feats } as any);
   }, [fleetEvents.length]);
 
-  // ---------- selected vehicle: route + trail refresh ----------
+  // selected vehicle: route + history
   useEffect(() => {
-    if (!selected || !selected.startsWith("TRUCK")) { setRouteData(null); return; }
-    api(`/api/fleet/vehicle/${selected}`).then((d: any) => setRouteData(d)).catch(() => {});
+    if (!selected || !selected.startsWith("TRUCK")) { setRouteData(null); setVehicleHistory([]); return; }
+    api(`/api/fleet/vehicle/${selected}`).then((d: any) => {
+      setRouteData(d);
+      setVehicleHistory(d.recent_events || []);
+    }).catch(() => {});
   }, [selected, fleetEvents.length]);
 
-  // draw route as proper GeoJSON line layer (recommended solid + old dashed)
+  // split-path rendering: solid behind, dashed ahead
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
     const feats: any[] = [];
-    if (routeData?.geometry && layers.routes) {
-      feats.push({
-        type: "Feature",
-        geometry: { type: "LineString", coordinates: routeData.geometry },
-        properties: { color: "#38bdf8", dash: [1, 0] },
-      });
+    if (routeData?.geometry) {
+      const snap = vehicles.find(v => v.vehicle_id === selected);
+      const pct = snap?.trip?.route_progress_percent ?? 50;
+      const { done, todo } = splitRoute(routeData.geometry as [number, number][], pct);
+      feats.push({ type: "Feature", geometry: { type: "LineString", coordinates: done },
+                   properties: { color: "#34d399", dash: [1, 0] } });
+      feats.push({ type: "Feature", geometry: { type: "LineString", coordinates: todo },
+                   properties: { color: "#38bdf8", dash: [2, 1.5] } });
     }
     (map.getSource("route") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: feats } as any);
-  }, [routeData, layers.routes]);
+  }, [routeData, vehicles, selected]);
 
-  // follow sync
   useEffect(() => { followRef.current = following; }, [following]);
 
-  // newest AI decision card
   useEffect(() => {
     const ev = fleetEvents.find(e => e.type === "ai.route.decision");
     if (ev) setDecision(ev);
   }, [fleetEvents.length]);
 
+  const toggleFullscreen = () => {
+    const next = !fullscreen;
+    setFullscreen(next);
+    localStorage.setItem("lm-fullscreen", next ? "1" : "0");
+  };
   const doDemo = () => post("/api/fleet/demo");
   const togglePause = async () => setPaused((await post("/api/fleet/pause")).paused);
   const selSnap = vehicles.find(v => v.vehicle_id === selected);
@@ -333,20 +316,22 @@ export default function LiveMapPage() {
     else if (w) { setSelected(w.id); mapRef.current?.flyTo({ center: [w.lng, w.lat], zoom: 11 }); }
   };
 
+  const tableSpan = fullscreen ? "hidden" : "col-span-4";
+  const mapSpan = fullscreen ? "col-span-12" : "col-span-8";
+
   return (
     <div className="fade-in h-[calc(100vh-88px)] flex flex-col gap-3">
       {/* top bar */}
       <div className="flex items-center gap-2.5 flex-wrap">
         <b className="text-[15px] flex items-center gap-2"><Truck size={16} className="text-[var(--accent)]" /> LIVE FLEET</b>
         <span className="badge badge-green">{vehicles.length} vehicles</span>
-        <span className="badge badge-cyan">{geo.warehouses.length} warehouses</span>
         <span className={`badge ${vehicles.filter(v => v.cargo.risk_level === "CRITICAL").length ? "badge-red pulse-red" : "badge-green"}`}>
           {vehicles.filter(v => ["HIGH", "CRITICAL"].includes(v.cargo.risk_level)).length} at risk
         </span>
         <span className="badge">sim {Math.round((st as any).fleetMeta?.simMinute || 0)}m · {(st as any).fleetMeta?.weather || "…"}</span>
         <div className="flex-1" />
         <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && searchGo()}
-               placeholder="search TRUCK-104 / WH-001 / hub…" className="w-52 text-[12px]" />
+               placeholder="search TRUCK-104 / WH-001…" className="w-52 text-[12px]" />
         <button onClick={searchGo} className="btn text-[11px]"><Search size={12} /></button>
         <button onClick={togglePause} className="btn text-[11px] flex items-center gap-1">
           {paused ? <><Play size={12} /> Resume</> : <><Pause size={12} /> Pause</>}
@@ -354,169 +339,168 @@ export default function LiveMapPage() {
         <button onClick={doDemo} className="btn btn-amber text-[11px] flex items-center gap-1">
           <Zap size={12} /> Run Autonomous Demo
         </button>
+        <button onClick={toggleFullscreen} className="btn text-[11px] flex items-center gap-1">
+          {fullscreen ? <><Minimize2 size={12} /> Windowed</> : <><Maximize2 size={12} /> Fullscreen</>}
+        </button>
       </div>
 
       <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
-        {/* left column */}
-        <div className="col-span-2 flex flex-col gap-3 min-h-0">
-          <div className="base-card p-3">
-            <div className="text-[11px] text-[var(--text3)] uppercase mb-2 flex items-center gap-1"><Filter size={11} /> Filter</div>
-            <div className="flex flex-wrap gap-1">
-              {["ALL", "RISK", "CRITICAL", "IN_TRANSIT", "ARRIVED"].map(f => (
-                <button key={f} onClick={() => setFilter(f)} className={`chip text-[10px] ${filter === f ? "on" : ""}`}>{f.replace("_", " ")}</button>
-              ))}
-            </div>
-            <div className="text-[11px] text-[var(--text3)] uppercase mt-3 mb-1">Layers</div>
-            <div className="flex flex-wrap gap-1">
-              {(["vehicles", "routes", "trails", "incidents"] as const).map(l => (
-                <button key={l} onClick={() => setLayers(s => ({ ...s, [l]: !(s as any)[l] }))}
-                        className={`chip text-[10px] ${(layers as any)[l] ? "on" : ""}`}>{l}</button>
-              ))}
-            </div>
-          </div>
-          <div className="base-card p-3 flex-1 overflow-y-auto scroll-thin">
-            <div className="text-[11px] text-[var(--text3)] uppercase mb-2">Active incidents</div>
-            {fleetEvents.filter(e => e.type === "fleet.incident.created").slice(0, 6).map((e: any, i: number) => (
-              <button key={i} onClick={() => { setSelected(e.vehicle_id);
-                  const v = vehicles.find(x => x.vehicle_id === e.vehicle_id);
-                  if (v) mapRef.current?.flyTo({ center: [v.lng, v.lat], zoom: 11.5 }); }}
-                className={`w-full text-left p-2 rounded-lg mb-1.5 border ${e.severity === "CRITICAL" ? "border-[var(--red)]/60 pulse-red" : "border-[var(--amber)]/50"}`}>
-                <div className="text-[11.5px] font-semibold flex justify-between">
-                  <span>{e.vehicle_id}</span>
-                  <span className={`text-[9.5px] ${e.severity === "CRITICAL" ? "text-[var(--red)]" : "text-[var(--amber)]"}`}>{e.severity}</span>
-                </div>
-                <div className="text-[10px] text-[var(--text3)]">{e.root_cause?.replace(/_/g, " ")}</div>
+        {/* table column (Tive windowed view) */}
+        <div className={`${tableSpan} base-card p-3 min-h-0`}>
+          <FleetTable vehicles={vehicles} events={fleetEvents} filter={filter} setFilter={setFilter}
+                      onSelect={(vid) => { setSelected(vid);
+                        const v = vehicles.find(x => x.vehicle_id === vid);
+                        if (v) mapRef.current?.flyTo({ center: [v.lng, v.lat], zoom: 10.5 }); }}
+                      selected={selected} />
+        </div>
+
+        {/* map + drawer column */}
+        <div className={`${mapSpan} flex flex-col gap-3 min-h-0`}>
+          <div className="base-card overflow-hidden relative flex-1 min-h-0">
+            <div ref={containerRef} className="absolute inset-0" />
+            {following && (
+              <button onClick={() => setFollowing(null)} className="absolute top-3 left-3 z-10 btn btn-primary text-[11px]">
+                FOLLOWING {following} — stop
               </button>
-            ))}
-            {!fleetEvents.some(e => e.type === "fleet.incident.created") &&
-              <div className="text-[11px] text-[var(--text3)] py-3">no incidents — inject or run the demo</div>}
-          </div>
-        </div>
-
-        {/* map */}
-        <div className="col-span-7 base-card overflow-hidden relative">
-          <div ref={containerRef} className="absolute inset-0" />
-          {following && (
-            <button onClick={() => setFollowing(null)} className="absolute top-3 left-3 z-10 btn btn-primary text-[11px]">
-              FOLLOWING {following} — stop
-            </button>
-          )}
-          <div className="absolute bottom-2 left-2 text-[9.5px] text-[var(--text3)] bg-[#0b1018cc] px-2 py-1 rounded flex gap-3">
-            <span>🚚 vehicle</span><span>🟦 warehouse</span><span>🟪 destination</span><span>⚠ incident</span>
-            <span className="text-[var(--cyan)]">SIMULATION ONLY</span>
-          </div>
-        </div>
-
-        {/* right column */}
-        <div className="col-span-3 flex flex-col gap-3 min-h-0">
-          <AnimatePresence mode="wait">
-            {selSnap ? (
-              <motion.div key={selSnap.vehicle_id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
-                          className="base-card p-3 overflow-y-auto scroll-thin">
-                <div className="flex items-center justify-between mb-2">
-                  <b className="text-[14px]">{selSnap.vehicle_id}</b>
-                  <span className={`badge ${selSnap.cargo.risk_level === "CRITICAL" ? "badge-red" : selSnap.cargo.risk_level === "HIGH" ? "badge-amber" : "badge-green"}`}>
-                    {selSnap.cargo.risk_level} RISK
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-[var(--text2)]">
-                  <Stat l="Speed" v={`${selSnap.speed_kmh} km/h`} />
-                  <Stat l="Temp" v={`${selSnap.refrigeration.temperature}°C`} hot={selSnap.refrigeration.compressor_status !== "ONLINE"} />
-                  <Stat l="ETA" v={`${selSnap.trip.eta_min} min`} />
-                  <Stat l="Remaining" v={`${selSnap.trip.distance_remaining_km} km`} />
-                  <Stat l="Progress" v={`${selSnap.trip.route_progress_percent}%`} />
-                  <Stat l="Cargo" v={`${selSnap.cargo.cargo_type.replace("_", " ")} · ${selSnap.cargo.load_percent}%`} />
-                  <Stat l="Health" v={`${selSnap.cargo.cargo_health}%`} />
-                  <Stat l="Compressor" v={selSnap.refrigeration.compressor_status} hot={selSnap.refrigeration.compressor_status !== "ONLINE"} />
-                  <Stat l="Energy" v={selSnap.energy_type === "ELECTRIC" ? `🔋 ${selSnap.vehicle.battery_percent}%` : `⛽ ${selSnap.vehicle.fuel_percent}%`} />
-                  <Stat l="Veh. health" v={`${selSnap.vehicle.vehicle_health}%`} />
-                  <Stat l="Driver" v={`${selSnap.driver.name} (${selSnap.driver.driving_score})`} />
-                  <Stat l="Route" v={`${selSnap.trip.origin_id} → ${selSnap.trip.destination_id}`} />
-                  {selSnap.cargo.time_to_critical_min != null &&
-                    <Stat l="Time to critical" v={`${selSnap.cargo.time_to_critical_min} min`} hot />}
-                </div>
-                <div className="flex gap-1.5 mt-3 flex-wrap">
-                  <button onClick={() => setFollowing(following === selSnap.vehicle_id ? null : selSnap.vehicle_id)}
-                          className="btn text-[10.5px]">{following === selSnap.vehicle_id ? "Unfollow" : "Track Vehicle"}</button>
-                  <button onClick={() => post(`/api/fleet/vehicle/${selSnap.vehicle_id}/inject`, { failure: "compressor_failure" })}
-                          className="btn btn-red text-[10.5px]">Inject Failure</button>
-                  <button onClick={async () => {
-                    const rc = await api(`/api/fleet/route-compare/${selSnap.vehicle_id}`);
-                    setDecision({ ...rc, vehicle_id: selSnap.vehicle_id, manual: true });
-                  }} className="btn btn-primary text-[10.5px]">AI Analysis</button>
-                </div>
-              </motion.div>
-            ) : selWh ? (
-              <motion.div key={selWh.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} className="base-card p-3">
-                <b className="text-[13px]">{selWh.name}</b>
-                <div className="grid grid-cols-2 gap-1 mt-2 text-[11px] text-[var(--text2)]">
-                  <Stat l="Status" v={selWh.status} />
-                  <Stat l="Free" v={`${selWh.available_capacity}/${selWh.capacity}u`} />
-                  <Stat l="Queue" v={`${selWh.queue_min} min`} />
-                  <Stat l="Docks" v={`${selWh.docks - selWh.busy_docks}/${selWh.docks}`} />
-                  <Stat l="Cargo" v={selWh.cargo_types.join(", ")} />
-                  <Stat l="Processing" v={`${selWh.proc_min} min`} />
-                </div>
-              </motion.div>
-            ) : (
-              <div className="base-card p-6 text-[12px] text-[var(--text3)] text-center">
-                Click a truck, warehouse, or incident marker
-              </div>
             )}
-          </AnimatePresence>
+            <div className="absolute bottom-2 left-2 text-[9.5px] text-[var(--text3)] bg-[#0b1018cc] px-2 py-1 rounded flex gap-3">
+              <span>━ completed</span><span className="text-[var(--cyan)]">┅ upcoming</span>
+              <span>🚚 vehicle</span><span>⚠ incident</span>
+              <span className="text-[var(--cyan)]">SIMULATION ONLY</span>
+            </div>
 
-          {/* AI decision card */}
-          <AnimatePresence>
-            {decision && (
-              <motion.div key={(decision.decision || "") + (decision.target || "") + (decision.vehicle_id || "")}
-                          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                          className="base-card p-3 border-[var(--cyan)]/40 shrink-0">
-                <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--cyan)] mb-1.5">
-                  <Bot size={13} /> AI FLEET COORDINATOR {decision.manual && <span className="badge badge-cyan text-[9px]">manual query</span>}
-                </div>
-                <div className="text-[11px] text-[var(--text2)] mb-1">
-                  <b>{decision.vehicle_id}</b> — <b className={decision.decision === "DIVERT" ? "text-[var(--amber)]" : "text-[var(--green)]"}>{decision.decision}</b>
-                  {decision.target ? ` → ${decision.target}` : ""}
-                </div>
-                <div className="text-[10.5px] text-[var(--text3)] leading-relaxed">{decision.reason}</div>
-                {(decision.candidates || []).filter((c: any) => c.compatible).slice(0, 3).map((c: any) => (
-                  <div key={c.id} className="flex justify-between text-[10px] text-[var(--text2)] mt-1 border-t border-[var(--border)] pt-1">
-                    <span>{c.name}</span>
-                    <span>ETA {c.eta_total_min}m · {c.distance_km}km · score {c.score}</span>
+            {/* floating vehicle drawer */}
+            <AnimatePresence>
+              {(selSnap || selWh) && (
+                <motion.div key={(selSnap?.vehicle_id || selWh?.id) || "x"}
+                            initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                            className="absolute top-3 right-3 z-10 w-[300px] max-h-[75%] overflow-y-auto scroll-thin base-card p-3">
+                  {selSnap ? (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <b className="text-[13.5px]">{selSnap.vehicle_id}</b>
+                        <span className={`badge ${selSnap.cargo.risk_level === "CRITICAL" ? "badge-red" : selSnap.cargo.risk_level === "HIGH" ? "badge-amber" : "badge-green"}`}>
+                          {selSnap.cargo.risk_level} RISK
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-[var(--text2)]">
+                        <Stat l="Speed" v={`${selSnap.speed_kmh} km/h`} />
+                        <Stat l="Inside" v={`${selSnap.refrigeration.temperature}°C`} hot={selSnap.refrigeration.compressor_status !== "ONLINE"} />
+                        <Stat l="Outside" v={`${selSnap.outside_temperature}°C`} />
+                        <Stat l="ETA" v={`${selSnap.trip.eta_min} min`} />
+                        <Stat l="Remaining" v={`${selSnap.trip.distance_remaining_km} km`} />
+                        <Stat l="Progress" v={`${selSnap.trip.route_progress_percent}%`} />
+                        <Stat l="Cargo" v={`${selSnap.cargo.cargo_type.replace("_", " ")} ${selSnap.cargo.load_percent}%`} />
+                        <Stat l="Health" v={`${selSnap.cargo.cargo_health}%`} />
+                        <Stat l="Compressor" v={selSnap.refrigeration.compressor_status} hot={selSnap.refrigeration.compressor_status !== "ONLINE"} />
+                        <Stat l="Energy" v={selSnap.energy_type === "ELECTRIC" ? `🔋 ${selSnap.vehicle.battery_percent}%` : `⛽ ${selSnap.vehicle.fuel_percent}%`} />
+                        <Stat l="Driver" v={`${selSnap.driver.name} (${selSnap.driver.driving_score})`} />
+                        <Stat l="Route" v={`${selSnap.trip.origin_id} → ${selSnap.trip.destination_id}`} />
+                        {selSnap.cargo.time_to_critical_min != null &&
+                          <Stat l="Time to critical" v={`${selSnap.cargo.time_to_critical_min} min`} hot />}
+                      </div>
+                      <div className="flex gap-1.5 mt-3 flex-wrap">
+                        <button onClick={() => setFollowing(following === selSnap.vehicle_id ? null : selSnap.vehicle_id)}
+                                className="btn text-[10.5px]">{following === selSnap.vehicle_id ? "Unfollow" : "Track Vehicle"}</button>
+                        <button onClick={() => post(`/api/fleet/vehicle/${selSnap.vehicle_id}/inject`, { failure: "compressor_failure" })}
+                                className="btn btn-red text-[10.5px]">Inject Failure</button>
+                        <button onClick={async () => {
+                          const rc = await api(`/api/fleet/route-compare/${selSnap.vehicle_id}`);
+                          setDecision({ ...rc, vehicle_id: selSnap.vehicle_id, manual: true });
+                        }} className="btn btn-primary text-[10.5px]">AI Analysis</button>
+                      </div>
+                    </>
+                  ) : selWh && (
+                    <>
+                      <b className="text-[13px]">{selWh.name}</b>
+                      <div className="grid grid-cols-2 gap-1 mt-2 text-[11px] text-[var(--text2)]">
+                        <Stat l="Status" v={selWh.status} />
+                        <Stat l="Free" v={`${selWh.available_capacity}/${selWh.capacity}u`} />
+                        <Stat l="Queue" v={`${selWh.queue_min} min`} />
+                        <Stat l="Docks" v={`${selWh.docks - selWh.busy_docks}/${selWh.docks}`} />
+                        <Stat l="Cargo" v={selWh.cargo_types.join(", ")} />
+                        <Stat l="Processing" v={`${selWh.proc_min} min`} />
+                      </div>
+                    </>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* timeline / events drawer */}
+          <div className="base-card p-3 shrink-0" style={{ height: showTimeline ? 132 : 40 }}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <button onClick={() => setShowTimeline(s => !s)} className="chip text-[10px]">
+                {showTimeline ? "▾" : "▸"} {showTimeline ? "hide" : "show"}
+              </button>
+              <div className="flex gap-1">
+                <button onClick={() => setTimelineTab("events")} className={`chip text-[10px] ${timelineTab === "events" ? "on" : ""}`}>Live events</button>
+                <button onClick={() => setTimelineTab("timeline")} className={`chip text-[10px] ${timelineTab === "timeline" ? "on" : ""}`}>
+                  {selected ? `${selected} timeline` : "vehicle timeline"}
+                </button>
+              </div>
+            </div>
+            {showTimeline && (
+              <div className="h-[84px] overflow-y-auto scroll-thin space-y-0.5">
+                {(timelineTab === "events"
+                  ? fleetEvents.slice(0, 30)
+                  : [...vehicleHistory].reverse().map((e: any) => ({
+                      type: "vehicle.event", payload: e.payload,
+                      ts: e.ts, vehicle_id: e.payload?.vehicle_id,
+                    }))
+                ).map((e: any, i: number) => (
+                  <div key={i} className="text-[10.5px] flex gap-2 leading-snug">
+                    <span className="text-[var(--text3)] shrink-0">
+                      {e.ts ? new Date(e.ts * (e.ts > 1e12 ? 1 : 1000)).toLocaleTimeString() : ""}
+                    </span>
+                    <span className="text-[var(--text2)]">
+                      {e.type === "vehicle.event" && (e.payload?.text || "")}
+                      {e.type === "fleet.incident.created" && `⚠ INCIDENT ${e.vehicle_id}: ${e.root_cause} (${e.severity})`}
+                      {e.type === "ai.route.decision" && `🤖 AI ${e.decision} → ${e.target} (conf ${e.confidence})`}
+                      {e.type === "vehicle.route.changed" && `🔀 ${e.vehicle_id} rerouted → ${e.new_target} · ETA ${e.eta_min}m`}
+                      {e.type === "cargo.transferred" && `📦 ${e.vehicle_id} delivered ${e.units}u to ${e.facility_id}`}
+                      {e.type === "geofence.entered" && `📍 ${e.vehicle_id} entered ${e.type === "geofence.entered" ? e.fence : ""}`}
+                      {e.type === "vehicle.failure.injected" && `⚡ ${e.vehicle_id}: ${e.failure} injected`}
+                      {e.type === "weather.changed" && `🌦 weather → ${e.weather} (ambient ${e.ambient_c}°C)`}
+                      {e.type === "traffic.changed" && `🚦 traffic ${e.segment} → ${e.level}`}
+                    </span>
                   </div>
                 ))}
-                {(decision.scored) && (
-                  <div className="text-[10px] text-[var(--text3)] mt-1.5">
-                    chosen route: {decision.scored.eta_min}m · projected temp {decision.scored.projected_temp_c}°C → risk {decision.scored.cargo_risk_after}
-                  </div>
-                )}
-                {decision.manual && <button onClick={() => setDecision(null)} className="btn text-[10px] mt-2">close</button>}
-              </motion.div>
+                {timelineTab === "timeline" && !vehicleHistory.length &&
+                  <div className="text-[11px] text-[var(--text3)]">select a vehicle to see its history</div>}
+                {timelineTab === "events" && !fleetEvents.length &&
+                  <div className="text-[11px] text-[var(--text3)]">waiting for events…</div>}
+              </div>
             )}
-          </AnimatePresence>
-
-          {/* live events */}
-          <div className="base-card p-3 flex-1 min-h-[130px] overflow-hidden flex flex-col">
-            <div className="text-[11px] text-[var(--text3)] uppercase mb-1.5">Live events</div>
-            <div className="flex-1 overflow-y-auto scroll-thin space-y-1 pr-1">
-              {fleetEvents.slice(0, 30).map((e: any, i: number) => (
-                <div key={i} className="text-[10.5px] flex gap-2 leading-snug">
-                  <span className="text-[var(--text3)] shrink-0">{e.payload?.text ? "" : ""}{e.type === "vehicle.event" ? "🚚" : e.type === "fleet.incident.created" ? "⚠" : e.type === "ai.route.decision" ? "🤖" : e.type === "vehicle.route.changed" ? "🔀" : e.type === "cargo.transferred" ? "📦" : "•"}</span>
-                  <span className="text-[var(--text2)]">
-                    {e.type === "vehicle.event" && (e.payload?.text || "")}
-                    {e.type === "fleet.incident.created" && `INCIDENT ${e.vehicle_id}: ${e.root_cause} (${e.severity})`}
-                    {e.type === "ai.route.decision" && `AI ${e.decision} → ${e.target} (conf ${e.confidence})`}
-                    {e.type === "vehicle.route.changed" && `${e.vehicle_id} rerouted → ${e.new_target} · ETA ${e.eta_min}m`}
-                    {e.type === "cargo.transferred" && `${e.vehicle_id} delivered ${e.units}u to ${e.facility_id}`}
-                    {e.type === "vehicle.failure.injected" && `${e.vehicle_id}: ${e.failure} injected`}
-                  </span>
-                </div>
-              ))}
-              {!fleetEvents.length && <div className="text-[11px] text-[var(--text3)]">waiting for events…</div>}
-            </div>
           </div>
         </div>
       </div>
+
+      {/* AI decision card — floats bottom-left over everything */}
+      <AnimatePresence>
+        {decision && (
+          <motion.div key={(decision.decision || "") + (decision.target || "") + (decision.vehicle_id || "")}
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                      className="fixed bottom-16 left-16 z-40 w-[340px] base-card p-3 border-[var(--cyan)]/40">
+            <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--cyan)] mb-1.5">
+              <Bot size={13} /> AI FLEET COORDINATOR {decision.manual && <span className="badge badge-cyan text-[9px]">manual query</span>}
+            </div>
+            <div className="text-[11px] text-[var(--text2)] mb-1">
+              <b>{decision.vehicle_id}</b> — <b className={decision.decision === "DIVERT" ? "text-[var(--amber)]" : "text-[var(--green)]"}>{decision.decision}</b>
+              {decision.target ? ` → ${decision.target}` : ""}
+            </div>
+            <div className="text-[10.5px] text-[var(--text3)] leading-relaxed">{decision.reason}</div>
+            {(decision.candidates || []).filter((c: any) => c.compatible).slice(0, 3).map((c: any) => (
+              <div key={c.id} className="flex justify-between text-[10px] text-[var(--text2)] mt-1 border-t border-[var(--border)] pt-1">
+                <span>{c.name}</span>
+                <span>ETA {c.eta_total_min}m · {c.distance_km}km · score {c.score}</span>
+              </div>
+            ))}
+            <button onClick={() => setDecision(null)} className="btn text-[10px] mt-2">close</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
