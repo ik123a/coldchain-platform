@@ -5,3 +5,6 @@ node_modules/
 coldchain.db
 frontend_dev.log
 logs.txt
+
+.env
+*.env
