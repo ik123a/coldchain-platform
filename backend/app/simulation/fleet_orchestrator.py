@@ -19,6 +19,7 @@ from .events import make_event
 from .geo_data import WAREHOUSES, DESTINATIONS, POLYLINES, DRIVERS, CARGO_TYPES, REGION, GEOFENCES
 from .fleet_ops import pick_service, validate_transfer, apply_transfer, priority_queue, is_cargo_vehicle
 from .analytics import fleet_kpis
+from sqlalchemy import select
 from ..database.engine import SessionLocal
 from ..models.fleet import Vehicle, FleetRoute, VehicleEvent, RouteDecision, CargoTransfer
 from ..models.entities import Incident, AIAnalysis
@@ -584,6 +585,68 @@ class FleetOrchestrator:
         return {"snapshot": v.snapshot(),
                 "recent_events": [e for e in self.event_ring if e["payload"].get("vehicle_id") == vid][:30],
                 "geometry": v.geom[:120]}
+
+    # ---------------- incident replay ----------------
+    async def replay(self, incident_id: int) -> dict | None:
+        """Reassemble the incident window for an orchestrator (fleet) incident.
+
+        Only simulation_id == 0 is a fleet incident; classic sim-pipeline
+        incidents (simulation_id > 0) are a separate system. Joins VehicleEvents,
+        RouteDecisions, CargoTransfers, the Incident row, and any in-memory
+        per-incident telemetry frames into one {incident, frames[]} timeline
+        sorted by sim_minute. Returns None when the incident isn't a fleet one.
+        """
+        async with SessionLocal() as s:
+            inc = await s.get(Incident, incident_id)
+            if inc is None:
+                return None
+            if inc.simulation_id != 0:
+                return None
+            lo = (inc.detected_tick or 0) - 5
+            hi = (inc.resolved_tick if inc.resolved_tick is not None
+                  else int(self.sim_minute)) + 5
+            vevs = (await s.execute(
+                select(VehicleEvent).where(VehicleEvent.vehicle_id == inc.description.split(":")[0].strip(),
+                                           VehicleEvent.sim_minute >= lo,
+                                           VehicleEvent.sim_minute <= hi,
+                                           VehicleEvent.event_type.in_(["note"]))
+                .order_by(VehicleEvent.sim_minute))).scalars().all()
+            rvs = (await s.execute(
+                select(RouteDecision).where(RouteDecision.sim_minute >= lo,
+                                            RouteDecision.sim_minute <= hi)
+                .order_by(RouteDecision.sim_minute))).scalars().all()
+            cts = (await s.execute(
+                select(CargoTransfer).where(CargoTransfer.sim_minute >= lo,
+                                            CargoTransfer.sim_minute <= hi)
+                .order_by(CargoTransfer.sim_minute))).scalars().all()
+        vid = (inc.description or "").split(":")[0].strip()
+        frames: list[dict] = []
+        for e in vevs:
+            frames.append({"sim_minute": round(e.sim_minute, 2), "kind": "event",
+                           "data": {"type": e.event_type, "severity": e.severity,
+                                    "description": e.description, "vehicle_id": e.vehicle_id}})
+        for rv in rvs:
+            if rv.vehicle_id != vid:
+                continue
+            frames.append({"sim_minute": round(rv.sim_minute, 2), "kind": "route_decision",
+                           "data": {"decision": rv.decision, "reason": rv.reason,
+                                    "confidence": rv.confidence, "vehicle_id": rv.vehicle_id}})
+        for ct in cts:
+            frames.append({"sim_minute": round(ct.sim_minute, 2), "kind": "cargo_transfer",
+                           "data": {"vehicle_id": ct.vehicle_id, "facility_id": ct.facility_id,
+                                    "units": ct.units, "health_pct": ct.health_pct}})
+        for fr in self._incident_tel.get(incident_id, []):
+            frames.append({"sim_minute": fr["min"], "kind": "telemetry", "data": fr})
+        frames.sort(key=lambda f: f["sim_minute"])
+        return {"incident": {"id": inc.id, "type": inc.type, "severity": inc.severity,
+                             "status": inc.status, "root_cause": inc.root_cause,
+                             "description": inc.description,
+                             "detected_tick": inc.detected_tick,
+                             "resolved_tick": inc.resolved_tick,
+                             "peak_temperature": inc.peak_temperature,
+                             "simulation_id": inc.simulation_id,
+                             "vehicle_id": vid},
+                "frames": frames}
 
     # ---------------- telemetry history ----------------
     def history(self, vid: str, window: str = "5m") -> dict | None:

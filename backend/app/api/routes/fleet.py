@@ -132,6 +132,15 @@ async def truck_transfer(payload: dict):
     return res
 
 
+@router.get("/replay/{incident_id}")
+async def replay(incident_id: int):
+    """Frame-by-frame replay of a FLEET incident (simulation_id == 0 only)."""
+    r = await FLEET.replay(incident_id)
+    if r is None:
+        raise HTTPException(404, "not a fleet incident")
+    return r
+
+
 @router.post("/rebuild")
 async def rebuild(body: RebuildIn):
     """Stop → configure from body → spawn → start. Returns new world descriptor."""
