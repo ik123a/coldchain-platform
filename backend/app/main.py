@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .core.config import CORS_ORIGINS
 from .database.engine import Base, engine
 from .models import entities  # noqa: F401  (ensures models registered on Base.metadata)
-from .api.routes import auth, facilities, shipments, simulations, incidents, analytics, reports, demo, status
+from .api.routes import auth, facilities, shipments, simulations, incidents, analytics, reports, demo, status, fleet
 from .websocket.handler import router as ws_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -24,6 +24,12 @@ async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     log.info("database ready (auto-created tables)")
+    # fleet world (SIMULATION ONLY) — laptop demo, no hardware
+    import os, asyncio
+    from .simulation.fleet_orchestrator import FLEET
+    if os.getenv("FLEET_AUTOSTART", "1") == "1":
+        asyncio.create_task(FLEET.start(12))
+        log.info("fleet world started (12 vehicles)")
 
 
 app.include_router(auth.router)
@@ -35,6 +41,7 @@ app.include_router(simulations.router)
 app.include_router(incidents.router)
 app.include_router(analytics.router)
 app.include_router(reports.router)
+app.include_router(fleet.router)
 app.include_router(ws_router)
 
 
