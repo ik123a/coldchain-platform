@@ -72,6 +72,12 @@ class VehicleTwin:
         self.idle_min = 0.0
         self.stop_min = 0.0
         self.route_adherence = 100.0
+        self.time_over_limit_min = 0.0
+        self.max_excess_kmh = 0.0
+        self.stops: list[dict] = []
+        self._open_stop: dict | None = None
+        self._last_alerts = 0
+        self.original_eta_min = 0.0  # set at first step
 
         # connectivity
         self.gps_acc = self.rng.uniform(2.5, 6.0)
@@ -92,11 +98,14 @@ class VehicleTwin:
         target *= self.rng.uniform(0.85, 1.10)
         if rem < 1.0:
             target = min(target, max(6.0, rem * 12.0))  # decelerate on approach
+        if rem < 0.15:
+            target = 0.0                                # dock: come to a stop
         if self.door_open:
             target = min(target, 8.0)
         old = self.speed_kmh
-        self.speed_kmh = max(0.0, self.speed_kmh + (target - self.speed_kmh) * 0.28
-                             + self.rng.gauss(0, 1.3))
+        # noise scales with target speed: a stationary truck doesn't jitter ±1.3 km/h
+        noise = self.rng.gauss(0, 1.3 * min(1.0, max(0.15, target / 25.0)))
+        self.speed_kmh = max(0.0, self.speed_kmh + (target - self.speed_kmh) * 0.28 + noise)
         self.speeds.append(self.speed_kmh)
         self.speeds = self.speeds[-240:]
         self.max_speed = max(self.max_speed, self.speed_kmh)
@@ -112,9 +121,23 @@ class VehicleTwin:
             self.harsh_accels += 1
         if self.speed_kmh > self.speed_limit + 5:
             self.speed_events += 1
+            self.time_over_limit_min += dt_min
+            self.max_excess_kmh = max(self.max_excess_kmh, self.speed_kmh - self.speed_limit)
         if self.speed_kmh < 1.0:
             self.idle_min += dt_min
             self.stop_min += dt_min
+            if self._open_stop is None:
+                # planned if within 0.5 km of destination node else unexpected
+                import math as _m
+                planned = self.remaining_km() < 0.5
+                self._open_stop = {"sim_min": self.total_km and 0 or 0, "lat": self.lat, "lng": self.lng,
+                                   "planned": planned, "duration_min": 0.0,
+                                   "reason": "arrival stop" if planned else "unplanned stop"}
+            self._open_stop["duration_min"] += dt_min
+        elif self._open_stop is not None:
+            self.stops.append({**self._open_stop, "sim_min": round(self.done_km, 2)})
+            self.stops = self.stops[-12:]
+            self._open_stop = None
 
         # --- advance along polyline ---
         adv_km = self.speed_kmh * (dt_min / 60.0)
@@ -159,7 +182,19 @@ class VehicleTwin:
 
         if self.done_km >= self.total_km - 0.05:
             self.status = "ARRIVED"
+        # original ETA captured on first step; multi-ETA snapshot data
+        if self.original_eta_min == 0.0:
+            self.original_eta_min = self.eta_min()
         return self.snapshot()
+
+    def eta_bundle(self) -> dict:
+        cur = self.eta_min()
+        ttc = self.time_to_critical_min()
+        return {"original_min": round(self.original_eta_min, 1),
+                "current_min": round(cur, 1),
+                "ai_optimized_min": round(cur * (0.85 if self.compressor == "DEGRADED" else 1.0), 1),
+                "best_possible_min": round((self.remaining_km() / max(30.0, self.speed_limit)) * 60.0, 1),
+                "arrival_after_critical": bool(ttc is not None and cur > ttc)}
 
     def _box_tick(self, dt_min: float):
         """Engine.tick() advances one fixed step; emulate fractional dt by scaling
@@ -282,6 +317,7 @@ class VehicleTwin:
                 "distance_remaining_km": round(self.remaining_km(), 2),
                 "eta_min": round(self.eta_min(), 1),
                 "route_progress_percent": round(100.0 * self.done_km / max(0.01, self.total_km), 1),
+                "eta": self.eta_bundle(),
             },
             "vehicle": {
                 "engine_status": "RUNNING" if self.box.power_ok else "BATTERY",
@@ -325,7 +361,25 @@ class VehicleTwin:
                 "gps_accuracy_m": round(self.gps_acc, 1),
                 "signal_strength": round(self.signal, 1),
             },
+            "speeding": {"events": self.speed_events,
+                         "time_over_limit_min": round(self.time_over_limit_min, 1),
+                         "max_excess_kmh": round(self.max_excess_kmh, 1)},
+            "stops": self.stops[-8:],
+            "outside_temperature": round(self.box.ambient, 1),
             "route_adherence": round(self.route_adherence, 1),
             "status": self.status,
             "risk_level": self.risk.get("level", "LOW"),
         }
+
+    def alerts_delta(self) -> int:
+        """New alert-worthy readings since last poll: harsh events + risk escalation
+        + energy below 20%. Used by orchestrator for per-vehicle alert counts."""
+        n = self.harsh_brakes + self.harsh_accels + self.speed_events
+        energy = self.battery_pct if self.energy == "ELECTRIC" else self.fuel_pct
+        if energy < 20.0:
+            n += 1
+        if self.risk.get("level") in ("HIGH", "CRITICAL"):
+            n += 1
+        d = max(0, n - self._last_alerts)
+        self._last_alerts = n
+        return d

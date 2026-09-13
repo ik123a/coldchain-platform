@@ -14,7 +14,7 @@ from .routing import RoutingService, nearest_node
 from .fleet import VehicleTwin
 from .fleet_agents import FacilityMatcher, RouteScorer, FleetCoordinator
 from .events import make_event
-from .geo_data import WAREHOUSES, DESTINATIONS, POLYLINES, DRIVERS, CARGO_TYPES, REGION
+from .geo_data import WAREHOUSES, DESTINATIONS, POLYLINES, DRIVERS, CARGO_TYPES, REGION, GEOFENCES
 from ..database.engine import SessionLocal
 from ..models.fleet import Vehicle, FleetRoute, VehicleEvent, RouteDecision, CargoTransfer
 from ..models.entities import Incident, AIAnalysis
@@ -46,6 +46,10 @@ class FleetOrchestrator:
         self.event_ring: list[dict] = []
         self._task = None
         self._seed_i = 100
+        self.alert_counts: dict[str, int] = {}     # vehicle_id -> non-info alert count
+        self._last_weather: str | None = None
+        self._traffic_snap: dict[str, str] = {}
+        self._geo_state: dict[str, str | None] = {}
 
     # ---------------- lifecycle ----------------
     async def start(self, n_vehicles: int = 12):
@@ -109,9 +113,30 @@ class FleetOrchestrator:
                 for vid, v in self.vehicles.items():
                     factor = self.traffic.factor_for(v.origin_id, v.dest_id)
                     s = v.step(dt, factor, self.traffic.ambient_c)
+                    delta = v.alerts_delta()
+                    if delta:
+                        self.alert_counts[v.id] = self.alert_counts.get(v.id, 0) + delta
+                        s["alerts_new"] = delta
                     snaps.append(s)
                     await self._check_incident(v, s)
                     await self._check_arrival(v)
+                    await self._check_geofence(v)
+                # weather / traffic world events
+                w = self.traffic.maybe_weather()
+                if w != self._last_weather:
+                    first = self._last_weather is None
+                    self._last_weather = w
+                    if not first:
+                        await BROADCAST.emit(0, "weather.changed",
+                                             {"weather": w, "ambient_c": self.traffic.ambient_c})
+                        await self._evt(None, f"Weather changed to {w} "
+                                          f"(ambient {self.traffic.ambient_c}C)", "warning")
+                if self._tick_n % 40 == 0:
+                    for seg, lvl in self.traffic.segments.items():
+                        if self._traffic_snap.get(seg) != lvl:
+                            self._traffic_snap[seg] = lvl
+                            await BROADCAST.emit(0, "traffic.changed",
+                                                 {"segment": seg, "level": lvl})
                 # aggregated position update every world tick
                 await BROADCAST.emit(0, "vehicle.position.updated",
                                      {"vehicles": snaps, "sim_minute": round(self.sim_minute, 2),
@@ -121,6 +146,22 @@ class FleetOrchestrator:
                     await self._persist_vehicles(snaps)
         except asyncio.CancelledError:
             log.info("fleet loop cancelled")
+
+    # ---------------- geofence checks ----------------
+    async def _check_geofence(self, v: VehicleTwin):
+        from .geo_data import geofence_for
+        cur = geofence_for(v.lat, v.lng)
+        prev = self._geo_state.get(v.id)
+        if cur != prev:
+            self._geo_state[v.id] = cur
+            if cur is not None:
+                await BROADCAST.emit(0, "geofence.entered",
+                                     {"vehicle_id": v.id, "fence": cur["id"], "type": cur["type"]})
+                sev = "warning" if cur["type"] == "RESTRICTED" else "info"
+                await self._evt(v, f"{v.id} entered {cur['type']} zone {cur['id']}", sev)
+            elif prev is not None:
+                await BROADCAST.emit(0, "geofence.exited",
+                                     {"vehicle_id": v.id, "fence": prev["id"], "type": prev["type"]})
 
     # ---------------- incidents ----------------
     async def _check_incident(self, v: VehicleTwin, snap: dict):
@@ -155,7 +196,6 @@ class FleetOrchestrator:
                              {"vehicle_id": v.id, "incident_id": iid, "severity": sev,
                               "root_cause": cause, "snapshot": snap,
                               "sim_minute": round(self.sim_minute, 1)})
-        # AI immediately evaluates (event-driven, not per tick)
         task = asyncio.create_task(self._decide(v))
 
         async def _guarded():
@@ -312,15 +352,18 @@ class FleetOrchestrator:
         return {"applied": ok, "vehicle_id": vehicle_id, "action": action}
 
     # ---------------- persistence + events ----------------
-    async def _evt(self, v: VehicleTwin, text: str, severity: str = "info"):
-        ev = make_event("vehicle.event", {"vehicle_id": v.id, "text": text, "severity": severity},
-                        source=v.id)
+    async def _evt(self, v, text: str, severity: str = "info"):
+        """v may be None for world-level events (weather/traffic)."""
+        ev = make_event("vehicle.event" if v else "world.event",
+                        {"vehicle_id": v.id if v else None, "text": text, "severity": severity},
+                        source=v.id if v else "world")
         self.event_ring.insert(0, ev)
         self.event_ring = self.event_ring[:90]
-        async with SessionLocal() as s:
-            s.add(VehicleEvent(vehicle_id=v.id, event_type="note", lat=v.lat, lng=v.lng,
-                               severity=severity, description=text, sim_minute=self.sim_minute))
-            await s.commit()
+        if v is not None:
+            async with SessionLocal() as s:
+                s.add(VehicleEvent(vehicle_id=v.id, event_type="note", lat=v.lat, lng=v.lng,
+                                   severity=severity, description=text, sim_minute=self.sim_minute))
+                await s.commit()
 
     async def _persist_vehicles(self, snaps: list[dict]):
         try:
@@ -346,7 +389,11 @@ class FleetOrchestrator:
 
     # ---------------- introspection ----------------
     def state(self) -> dict:
-        snaps = [v.snapshot() for v in self.vehicles.values()]
+        snaps = []
+        for vid, v in self.vehicles.items():
+            s = v.snapshot()
+            s["alerts"] = self.alert_counts.get(vid, 0)
+            snaps.append(s)
         return {"vehicles": snaps,
                 "warehouses": self.warehouses,
                 "destinations": DESTINATIONS,
@@ -355,12 +402,15 @@ class FleetOrchestrator:
                 "paused": self.paused,
                 "speed": self.clock.speed,
                 "weather": self.traffic.state(),
+                "geofences": GEOFENCES,
                 "events": self.event_ring[:40],
                 "counts": {
                     "vehicles": len(snaps),
+                    "in_transit": sum(1 for s in snaps if s["status"] == "IN_TRANSIT"),
                     "at_risk": sum(1 for s in snaps if s["cargo"]["risk_level"] in ("HIGH", "CRITICAL")),
                     "critical": sum(1 for s in snaps if s["cargo"]["risk_level"] == "CRITICAL"),
                     "arrived": sum(1 for s in snaps if s["status"] == "ARRIVED"),
+                    "completed": sum(1 for s in snaps if s["status"] == "ARRIVED"),
                     "active_incidents": len(self.incident_db),
                 }}
 

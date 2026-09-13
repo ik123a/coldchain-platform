@@ -89,3 +89,31 @@ DRIVERS = [
 ]
 
 CARGO_TYPES = ["fresh_produce", "dairy", "frozen_goods", "pharma"]
+
+# ---------------- geofences ----------------
+# explicit zones + auto 0.6 km fences around every warehouse / destination
+import math as _math
+
+
+def _haversine_km(lat1, lng1, lat2, lng2):
+    la1, lo1, la2, lo2 = map(_math.radians, [lat1, lng1, lat2, lng2])
+    h = _math.sin((la2 - la1) / 2) ** 2 + _math.cos(la1) * _math.cos(la2) * _math.sin((lo2 - lo1) / 2) ** 2
+    return 2 * 6371.0 * _math.asin(_math.sqrt(h))
+
+
+GEOFENCES = [
+    {"id": "GF-RESTRICTED", "type": "RESTRICTED", "lat": 28.7000, "lng": 77.1000, "radius_km": 4.0},
+    {"id": "GF-EMERGENCY", "type": "EMERGENCY", "lat": 28.6139, "lng": 77.2090, "radius_km": 3.0},
+]
+for _w in WAREHOUSES:
+    GEOFENCES.append({"id": _w["id"], "type": "WAREHOUSE", "lat": _w["lat"], "lng": _w["lng"], "radius_km": 0.6})
+for _d in DESTINATIONS:
+    GEOFENCES.append({"id": _d["id"], "type": "DELIVERY", "lat": _d["lat"], "lng": _d["lng"], "radius_km": 0.6})
+
+
+def geofence_for(lat: float, lng: float):
+    """First matching fence (explicit zones checked first) or None."""
+    for f in GEOFENCES:
+        if _haversine_km(lat, lng, f["lat"], f["lng"]) <= f["radius_km"]:
+            return f
+    return None
