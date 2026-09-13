@@ -84,8 +84,10 @@ function reducer(st: State, a: Action): State {
       return { ...st, events: [ev, ...st.events].slice(0, 90), agentsStatus, selectedIncident: ev.simulation_id ? st.selectedIncident ?? st.incidents[0]?.id : st.selectedIncident, toasts };
     }
     case "fleet": {
-      const vehicles = a.payload as any[];
-      return { ...st, fleetVehicles: vehicles };
+      const p = a.payload as any;
+      return { ...st, fleetVehicles: p.vehicles || [],
+               fleetMeta: { simMinute: p.sim_minute, weather: p.weather, ambient: p.ambient_c,
+                            segments: p.weather?.segments } };
     }
     case "fleet_event": {
       const ev = a.payload as any;
@@ -133,7 +135,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           try {
             const m = JSON.parse(e.data);
             if (m.type === "sensor_update") dispatch({ type: "reading", payload: m as Reading });
-            else if (m.type === "vehicle.position.updated") dispatch({ type: "fleet", payload: m.vehicles });
+            else if (m.type === "vehicle.position.updated")
+              dispatch({ type: "fleet", payload: { vehicles: m.vehicles, sim_minute: m.sim_minute,
+                                                  weather: m.weather, ambient_c: m.ambient_c } });
             else if (["hello"].includes(m.type)) { /* greeting */ }
             else if (["agent_event", "alert"].includes(m.type)) dispatch({ type: "event", payload: m });
             else dispatch({ type: "fleet_event", payload: m });

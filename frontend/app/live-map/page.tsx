@@ -1,46 +1,54 @@
 "use client";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
-import type { Map as MLMap, GeoJSONSource } from "maplibre-gl";
+import type { Map as MLMap, GeoJSONSource, PointLike } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useStore } from "@/lib/store";
-import { api, post, API_BASE } from "@/lib/api";
+import { api, post } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, Filter, Layers, Pause, Play, Search, Truck, Warehouse, Zap } from "lucide-react";
+import { Bot, Filter, Pause, Play, Search, Truck, Zap } from "lucide-react";
 
 const RISK_COLORS: Record<string, string> = {
   LOW: "#34d399", MEDIUM: "#fbbf24", HIGH: "#f97316", CRITICAL: "#f87171",
 };
+const TRAFFIC_COLORS: Record<string, string> = {
+  LOW: "#34d39988", MODERATE: "#fbbf2488", HIGH: "#f9731688", SEVERE: "#f8717188",
+};
 
-interface VehicleSnap {
+interface VSnap {
   vehicle_id: string; lat: number; lng: number; heading: number; speed_kmh: number;
   status: string; energy_type: string;
-  trip: { eta_min: number; distance_remaining_km: number; destination_id: string; route_progress_percent: number };
+  trip: { eta_min: number; distance_remaining_km: number; destination_id: string; origin_id: string; route_progress_percent: number };
   refrigeration: { temperature: number; compressor_status: string; door_open: boolean };
   cargo: { cargo_type: string; load_percent: number; cargo_health: number; risk_level: string; risk_score: number; time_to_critical_min: number | null };
   driver: { name: string; driving_score: number };
   vehicle: { fuel_percent: number; battery_percent: number; vehicle_health: number };
 }
 
+interface Trail { lng: number; lat: number; t: number }
+
 export default function LiveMapPage() {
   const { st } = useStore();
   const mapRef = useRef<MLMap | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastSnapRef = useRef<Map<string, VehicleSnap>>(new Map());
-  const nextSnapRef = useRef<Map<string, VehicleSnap>>(new Map());
-  const lerpStateRef = useRef<{ t: number }>({ t: 1 });
+  const prevRef = useRef<Map<string, VSnap>>(new Map());
+  const nextRef = useRef<Map<string, VSnap>>(new Map());
+  const lerpRef = useRef(1);
+  const trailsRef = useRef<Map<string, Trail[]>>(new Map());
+  const followRef = useRef<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [following, setFollowing] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
   const [filter, setFilter] = useState("ALL");
   const [routeData, setRouteData] = useState<any>(null);
-  const [meta, setMeta] = useState<any>(null);
   const [decision, setDecision] = useState<any>(null);
-  const [warehouses, setWarehouses] = useState<any[]>([]);
-  const [destinations, setDestinations] = useState<any[]>([]);
+  const [geo, setGeo] = useState<{ warehouses: any[]; destinations: any[] }>({ warehouses: [], destinations: [] });
   const [search, setSearch] = useState("");
+  const [layers, setLayers] = useState({ vehicles: true, routes: true, trails: true, incidents: true, traffic: false });
+  const [clock, setClock] = useState(0);
 
-  const vehicles = (st.fleetVehicles || []) as VehicleSnap[];
+  const vehicles = (st.fleetVehicles || []) as VSnap[];
+  const fleetEvents = (st.fleetEvents || []) as any[];
   const filtered = vehicles.filter(v => {
     if (filter === "ALL") return true;
     if (filter === "RISK") return ["HIGH", "CRITICAL"].includes(v.cargo.risk_level);
@@ -50,203 +58,296 @@ export default function LiveMapPage() {
     return true;
   });
 
-  // load static geo
   useEffect(() => {
-    api("/api/fleet/state").then((s: any) => {
-      setWarehouses(s.warehouses); setDestinations(s.destinations);
-      setMeta({ sim_minute: s.sim_minute, paused: s.paused, speed: s.speed, weather: s.weather });
-    }).catch(() => {});
+    api("/api/fleet/state").then((s: any) =>
+      setGeo({ warehouses: s.warehouses, destinations: s.destinations })).catch(() => {});
   }, []);
 
-  // keep latest snapshots for interpolation
   useEffect(() => {
     if (!vehicles.length) return;
-    lastSnapRef.current = nextSnapRef.current.size ? nextSnapRef.current : new Map(vehicles.map(v => [v.vehicle_id, v]));
-    nextSnapRef.current = new Map(vehicles.map(v => [v.vehicle_id, v]));
-    lerpStateRef.current.t = 0;
+    prevRef.current = nextRef.current.size ? nextRef.current : new Map(vehicles.map(v => [v.vehicle_id, v]));
+    nextRef.current = new Map(vehicles.map(v => [v.vehicle_id, v]));
+    lerpRef.current = 0;
+    // append to trails
+    const trails = trailsRef.current;
+    for (const v of vehicles) {
+      const t = trails.get(v.vehicle_id) || [];
+      t.push({ lng: v.lng, lat: v.lat, t: Date.now() });
+      trails.set(v.vehicle_id, t.slice(-40)); // last ~10s of movement
+    }
+    setClock(c => c + 1);
   }, [st.fleetVehicles]);
 
-  // init map
+  // ---------- map init ----------
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    const TRUCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46">
+      <path d="M6 16 L26 16 L26 27 L6 27 Z" fill="#e6edf5" stroke="#0b1018" stroke-width="2"/>
+      <path d="M26 20 L36 20 L40 25 L40 27 L26 27 Z" fill="#9db4d0" stroke="#0b1018" stroke-width="2"/>
+      <circle cx="13" cy="30" r="4" fill="#0b1018" stroke="#e6edf5" stroke-width="2"/>
+      <circle cx="34" cy="30" r="4" fill="#0b1018" stroke="#e6edf5" stroke-width="2"/>
+      <path d="M14 14 L20 14 L20 9 L14 9 Z" fill="#7ec8ff"/>
+    </svg>`;
+    const img = new Image(46, 46);
+    img.src = "data:image/svg+xml;base64," + (typeof window !== "undefined"
+      ? window.btoa(unescape(encodeURIComponent(TRUCK_SVG))) : "");
+
     const map = new maplibregl.Map({
       container: containerRef.current,
       center: [77.10, 28.58],
       zoom: 9.3,
       style: {
         version: 8,
+        glyphFont: undefined,
         sources: {
-          osm: {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "© OpenStreetMap contributors",
-          },
+          osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+                 tileSize: 256, attribution: "© OpenStreetMap contributors" },
         },
         layers: [
           { id: "bg", type: "background", paint: { "background-color": "#0b1018" } },
-          { id: "osm-tiles", type: "raster", source: "osm", paint: { "raster-opacity": 0.82 } },
+          { id: "osm-tiles", type: "raster", source: "osm", paint: { "raster-opacity": 0.75 } },
         ],
-      },
+      } as any,
       attributionControl: false,
     });
     mapRef.current = map;
     map.on("load", () => {
-      // warehouses layer
+      map.addImage("truck-icon", img);
+      // sources
       map.addSource("wh", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addSource("dest", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addSource("veh", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addSource("trail", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addSource("route", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addSource("inc", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      // warehouse markers
       map.addLayer({
-        id: "wh-circles", type: "circle", source: "wh",
+        id: "wh-c", type: "circle", source: "wh",
         paint: { "circle-radius": 9, "circle-color": "#38bdf8",
                  "circle-stroke-color": "#7dd3fc", "circle-stroke-width": 1.5 },
       });
-      // destinations layer
-      map.addSource("dest", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({
-        id: "dest-circles", type: "circle", source: "dest",
-        paint: { "circle-radius": 6, "circle-color": "#a78bfa",
+        id: "wh-l", type: "symbol", source: "wh",
+        layout: { "text-field": ["get", "label"], "text-size": 9.5, "text-offset": [0, 1.2],
+                   "text-anchor": "top" },
+        paint: { "text-color": "#7dd3fc", "text-halo-color": "#0b1018", "text-halo-width": 1.2 },
+      });
+      map.addLayer({
+        id: "dest-c", type: "circle", source: "dest",
+        paint: { "circle-radius": 5.5, "circle-color": "#a78bfa",
                  "circle-stroke-color": "#c4b5fd", "circle-stroke-width": 1 },
       });
-      // vehicles (symbol layer with text; heading rotation via rotate)
-      map.addSource("veh", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      // vehicle trails
       map.addLayer({
-        id: "veh-risk", type: "circle", source: "veh",
-        paint: {
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 10, 12, 16],
-          "circle-color": ["get", "riskColor"],
-          "circle-opacity": 0.16,
-        },
+        id: "trail-line", type: "line", source: "trail",
+        paint: { "line-color": "#38bdf8", "line-width": 1.6, "line-opacity": 0.4 },
+        layout: { "line-cap": "round" },
+      });
+      // routes (recommended: solid; alternatives dashed)
+      map.addLayer({
+        id: "route-line", type: "line", source: "route",
+        paint: { "line-color": ["get", "color"], "line-width": 3,
+                 "line-opacity": 0.85, "line-dasharray": ["get", "dash"] },
+        layout: { "line-cap": "round" },
+      });
+      // incidents: pulsing circle + marker
+      map.addLayer({
+        id: "inc-pulse", type: "circle", source: "inc",
+        paint: { "circle-radius": 18, "circle-color": "#f8717122",
+                 "circle-stroke-color": "#f87171", "circle-stroke-width": 1.2 },
       });
       map.addLayer({
-        id: "veh-labels", type: "symbol", source: "veh",
+        id: "inc-core", type: "circle", source: "inc",
+        paint: { "circle-radius": 6, "circle-color": "#f87171" },
+      });
+      // vehicles: risk halo + rotated truck icon + label
+      map.addLayer({
+        id: "veh-halo", type: "circle", source: "veh",
+        paint: { "circle-radius": 13, "circle-color": ["get", "riskColor"], "circle-opacity": 0.18 },
+      });
+      map.addLayer({
+        id: "veh-icon", type: "symbol", source: "veh",
         layout: {
-          "text-field": ["concat", "🚚 ", ["get", "speedLabel"]],
-          "text-size": 12,
-          "text-offset": [0, -1.6],
-          "text-allow-overlap": true,
+          "icon-image": "truck-icon",
+          "icon-size": 0.65,
+          "icon-rotate": ["get", "heading"],
+          "icon-allow-overlap": true,
+          "icon-rotation-alignment": "map",
         },
-        paint: { "text-color": "#c9d5e4", "text-halo-color": "#0b1018", "text-halo-width": 1.5 },
       });
-      map.on("click", "veh-labels", (e: any) => {
+      map.addLayer({
+        id: "veh-label", type: "symbol", source: "veh",
+        layout: {
+          "text-field": ["get", "label"], "text-size": 9.5, "text-offset": [0, -1.7],
+          "text-allow-overlap": false,
+        },
+        paint: { "text-color": "#c9d5e4", "text-halo-color": "#0b1018", "text-halo-width": 1.4 },
+      });
+      // hover/click
+      map.on("click", "veh-icon", (e: any) => {
         const vid = e.features?.[0]?.properties?.vehicle_id;
         if (vid) setSelected(vid);
       });
-      map.on("click", "wh-circles", (e: any) => {
+      map.on("click", "wh-c", (e: any) => {
         const id = e.features?.[0]?.properties?.id;
         if (id) setSelected(id);
       });
-      map.on("mouseenter", "veh-labels", () => (map.getCanvas().style.cursor = "pointer"));
-      map.on("mouseleave", "veh-labels", () => (map.getCanvas().style.cursor = ""));
+      map.on("click", "inc-core", (e: any) => {
+        const vid = e.features?.[0]?.properties?.vehicle_id;
+        if (vid) { setSelected(vid);
+          const v = nextRef.current.get(vid);
+          if (v) map.easeTo({ center: [v.lng, v.lat], zoom: 11.5, duration: 700 }); }
+      });
+      for (const lyr of ["veh-icon", "wh-c", "dest-c", "inc-core"]) {
+        map.on("mouseenter", lyr, () => (map.getCanvas().style.cursor = "pointer"));
+        map.on("mouseleave", lyr, () => (map.getCanvas().style.cursor = ""));
+      }
     });
     return () => { map.remove(); mapRef.current = null; };
   }, []);
 
-  // static geo layers
+  // ---------- static geo layers ----------
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded() || (!warehouses.length && !destinations.length)) return;
-    const whSrc = map.getSource("wh") as GeoJSONSource;
-    whSrc?.setData({
+    if (!map || !map.isStyleLoaded() || (!geo.warehouses.length && !geo.destinations.length)) return;
+    (map.getSource("wh") as GeoJSONSource)?.setData({
       type: "FeatureCollection",
-      features: warehouses.map(w => ({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [w.lng, w.lat] },
-        properties: { id: w.id, name: w.name },
+      features: geo.warehouses.map(w => ({
+        type: "Feature", geometry: { type: "Point", coordinates: [w.lng, w.lat] },
+        properties: { id: w.id, label: `${w.name} · ${w.available_capacity}u` },
       })),
-    });
-    const dSrc = map.getSource("dest") as GeoJSONSource;
-    dSrc?.setData({
+    } as any);
+    (map.getSource("dest") as GeoJSONSource)?.setData({
       type: "FeatureCollection",
-      features: destinations.map(d => ({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [d.lng, d.lat] },
-        properties: { id: d.id, name: d.name },
+      features: geo.destinations.map(d => ({
+        type: "Feature", geometry: { type: "Point", coordinates: [d.lng, d.lat] },
+        properties: { id: d.id, label: d.name },
       })),
-    });
-  }, [warehouses, destinations]);
+    } as any);
+  }, [geo, clock]);
 
-  // rAF interpolation loop — smooth movement between backend snapshots
+  // ---------- per-frame interpolation ----------
   useEffect(() => {
     let raf = 0;
     const loop = () => {
       const map = mapRef.current;
-      const ls = lerpStateRef.current;
-      ls.t = Math.min(1, ls.t + 0.025);
-      if (map && map.isStyleLoaded() && nextSnapRef.current.size) {
-        const t = ls.t;
-        const feats = [];
-        for (const [vid, next] of nextSnapRef.current) {
-          const prev = lastSnapRef.current.get(vid) || next;
-          const lat = prev.lat + (next.lat - prev.lat) * t;
-          const lng = prev.lng + (next.lng - prev.lng) * t;
+      if (map && map.isStyleLoaded() && nextRef.current.size) {
+        lerpRef.current = Math.min(1, lerpRef.current + 0.03);
+        const t = lerpRef.current;
+        const feats: any[] = [];
+        for (const [vid, nxt] of nextRef.current) {
+          const prv = prevRef.current.get(vid) || nxt;
+          const lat = prv.lat + (nxt.lat - prv.lat) * t;
+          const lng = prv.lng + (nxt.lng - prv.lng) * t;
           feats.push({
-            type: "Feature",
-            geometry: { type: "Point", coordinates: [lng, lat] },
+            type: "Feature", geometry: { type: "Point", coordinates: [lng, lat] },
             properties: {
               vehicle_id: vid,
-              speedLabel: `${Math.round(next.speed_kmh)}`,
-              riskColor: RISK_COLORS[next.cargo?.risk_level || "LOW"],
-              heading: next.heading,
+              heading: nxt.heading,
+              riskColor: RISK_COLORS[nxt.cargo?.risk_level || "LOW"],
+              label: `${vid.replace("TRUCK-", "T")} ${Math.round(nxt.speed_kmh)} ${nxt.refrigeration?.temperature}° ${nxt.cargo?.risk_level[0]}`,
             },
           });
         }
-        (map.getSource("veh") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: feats } as any);
-        if (following) {
-          const next = nextSnapRef.current.get(following);
-          if (next) map.easeTo({ center: [next.lng, next.lat], duration: 300 });
+        if (layers.vehicles)
+          (map.getSource("veh") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: feats } as any);
+        // trails
+        if (layers.trails) {
+          const tfeats: any[] = [];
+          for (const [vid, pts] of trailsRef.current) {
+            if (pts.length < 2) continue;
+            tfeats.push({
+              type: "Feature",
+              geometry: { type: "LineString", coordinates: pts.map(p => [p.lng, p.lat]) },
+              properties: { vehicle_id: vid },
+            });
+          }
+          (map.getSource("trail") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: tfeats } as any);
+        }
+        if (followRef.current) {
+          const nxt = nextRef.current.get(followRef.current);
+          if (nxt) map.easeTo({ center: [nxt.lng, nxt.lat], duration: 320 });
         }
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [following]);
+  }, [layers.vehicles, layers.trails]);
 
-  // show route geometry for selected vehicle
+  // ---------- incident markers from events ----------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    const feats = fleetEvents.filter(e => e.type === "fleet.incident.created").slice(0, 10).map((e: any) => {
+      const s = e.snapshot || {};
+      return {
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [s.lng || 77.1, s.lat || 28.58] },
+        properties: { vehicle_id: e.vehicle_id, severity: e.severity, cause: e.root_cause },
+      };
+    });
+    (map.getSource("inc") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: feats } as any);
+  }, [fleetEvents.length]);
+
+  // ---------- selected vehicle: route + trail refresh ----------
   useEffect(() => {
     if (!selected || !selected.startsWith("TRUCK")) { setRouteData(null); return; }
     api(`/api/fleet/vehicle/${selected}`).then((d: any) => setRouteData(d)).catch(() => {});
-  }, [selected, st.fleetEvents?.length]);
+  }, [selected, fleetEvents.length]);
 
-  // AI decision card when event arrives
+  // draw route as proper GeoJSON line layer (recommended solid + old dashed)
   useEffect(() => {
-    const ev = (st.fleetEvents || []).find((e: any) => e.type === "ai.route.decision");
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    const feats: any[] = [];
+    if (routeData?.geometry && layers.routes) {
+      feats.push({
+        type: "Feature",
+        geometry: { type: "LineString", coordinates: routeData.geometry },
+        properties: { color: "#38bdf8", dash: [1, 0] },
+      });
+    }
+    (map.getSource("route") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: feats } as any);
+  }, [routeData, layers.routes]);
+
+  // follow sync
+  useEffect(() => { followRef.current = following; }, [following]);
+
+  // newest AI decision card
+  useEffect(() => {
+    const ev = fleetEvents.find(e => e.type === "ai.route.decision");
     if (ev) setDecision(ev);
-  }, [st.fleetEvents]);
+  }, [fleetEvents.length]);
 
-  const doInject = async (vid: string) => {
-    await post(`/api/fleet/vehicle/${vid}/inject`, { failure: "compressor_failure" });
-  };
-  const doDemo = async () => { await post("/api/fleet/demo"); };
-  const togglePause = async () => {
-    const r = await post("/api/fleet/pause");
-    setPaused(r.paused);
-  };
-
+  const doDemo = () => post("/api/fleet/demo");
+  const togglePause = async () => setPaused((await post("/api/fleet/pause")).paused);
   const selSnap = vehicles.find(v => v.vehicle_id === selected);
-  const selWh = warehouses.find(w => w.id === selected);
+  const selWh = geo.warehouses.find(w => w.id === selected);
+
   const searchGo = () => {
     const q = search.toLowerCase();
     const v = vehicles.find(x => x.vehicle_id.toLowerCase().includes(q));
-    const w = [...warehouses, ...destinations].find(x => x.id.toLowerCase().includes(q) || x.name.toLowerCase().includes(q));
-    if (v) { setSelected(v.vehicle_id); mapRef.current?.easeTo({ center: [v.lng, v.lat], zoom: 11, duration: 800 }); }
-    else if (w) { setSelected(w.id); mapRef.current?.easeTo({ center: [w.lng, w.lat], zoom: 11, duration: 800 }); }
+    const w = [...geo.warehouses, ...geo.destinations].find(x => x.id.toLowerCase().includes(q) || x.name.toLowerCase().includes(q));
+    if (v) { setSelected(v.vehicle_id); mapRef.current?.flyTo({ center: [v.lng, v.lat], zoom: 11 }); }
+    else if (w) { setSelected(w.id); mapRef.current?.flyTo({ center: [w.lng, w.lat], zoom: 11 }); }
   };
 
   return (
     <div className="fade-in h-[calc(100vh-88px)] flex flex-col gap-3">
       {/* top bar */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2.5 flex-wrap">
         <b className="text-[15px] flex items-center gap-2"><Truck size={16} className="text-[var(--accent)]" /> LIVE FLEET</b>
         <span className="badge badge-green">{vehicles.length} vehicles</span>
-        <span className="badge badge-cyan">{warehouses.length} warehouses</span>
+        <span className="badge badge-cyan">{geo.warehouses.length} warehouses</span>
         <span className={`badge ${vehicles.filter(v => v.cargo.risk_level === "CRITICAL").length ? "badge-red pulse-red" : "badge-green"}`}>
           {vehicles.filter(v => ["HIGH", "CRITICAL"].includes(v.cargo.risk_level)).length} at risk
         </span>
-        {meta && <span className="badge">sim {Math.round(meta.sim_minute || st.fleetMeta?.simMinute || 0)}m · {meta.weather?.weather || st.fleetMeta?.weather || "…"}</span>}
+        <span className="badge">sim {Math.round((st as any).fleetMeta?.simMinute || 0)}m · {(st as any).fleetMeta?.weather || "…"}</span>
         <div className="flex-1" />
         <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && searchGo()}
-               placeholder="search TRUCK / WH / destination…" className="w-52 text-[12px]" />
-        <button onClick={searchGo} className="btn text-[11px] flex items-center gap-1"><Search size={12} /> Find</button>
+               placeholder="search TRUCK-104 / WH-001 / hub…" className="w-52 text-[12px]" />
+        <button onClick={searchGo} className="btn text-[11px]"><Search size={12} /></button>
         <button onClick={togglePause} className="btn text-[11px] flex items-center gap-1">
           {paused ? <><Play size={12} /> Resume</> : <><Pause size={12} /> Pause</>}
         </button>
@@ -256,7 +357,7 @@ export default function LiveMapPage() {
       </div>
 
       <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
-        {/* left: filters + incidents */}
+        {/* left column */}
         <div className="col-span-2 flex flex-col gap-3 min-h-0">
           <div className="base-card p-3">
             <div className="text-[11px] text-[var(--text3)] uppercase mb-2 flex items-center gap-1"><Filter size={11} /> Filter</div>
@@ -265,13 +366,20 @@ export default function LiveMapPage() {
                 <button key={f} onClick={() => setFilter(f)} className={`chip text-[10px] ${filter === f ? "on" : ""}`}>{f.replace("_", " ")}</button>
               ))}
             </div>
+            <div className="text-[11px] text-[var(--text3)] uppercase mt-3 mb-1">Layers</div>
+            <div className="flex flex-wrap gap-1">
+              {(["vehicles", "routes", "trails", "incidents"] as const).map(l => (
+                <button key={l} onClick={() => setLayers(s => ({ ...s, [l]: !(s as any)[l] }))}
+                        className={`chip text-[10px] ${(layers as any)[l] ? "on" : ""}`}>{l}</button>
+              ))}
+            </div>
           </div>
           <div className="base-card p-3 flex-1 overflow-y-auto scroll-thin">
             <div className="text-[11px] text-[var(--text3)] uppercase mb-2">Active incidents</div>
-            {(st.fleetEvents || []).filter((e: any) => e.type === "fleet.incident.created").slice(0, 6).map((e: any, i: number) => (
+            {fleetEvents.filter(e => e.type === "fleet.incident.created").slice(0, 6).map((e: any, i: number) => (
               <button key={i} onClick={() => { setSelected(e.vehicle_id);
                   const v = vehicles.find(x => x.vehicle_id === e.vehicle_id);
-                  if (v) mapRef.current?.easeTo({ center: [v.lng, v.lat], zoom: 11.5, duration: 800 }); }}
+                  if (v) mapRef.current?.flyTo({ center: [v.lng, v.lat], zoom: 11.5 }); }}
                 className={`w-full text-left p-2 rounded-lg mb-1.5 border ${e.severity === "CRITICAL" ? "border-[var(--red)]/60 pulse-red" : "border-[var(--amber)]/50"}`}>
                 <div className="text-[11.5px] font-semibold flex justify-between">
                   <span>{e.vehicle_id}</span>
@@ -280,32 +388,26 @@ export default function LiveMapPage() {
                 <div className="text-[10px] text-[var(--text3)]">{e.root_cause?.replace(/_/g, " ")}</div>
               </button>
             ))}
-            {!(st.fleetEvents || []).some((e: any) => e.type === "fleet.incident.created") &&
-              <div className="text-[11px] text-[var(--text3)] py-3">no incidents — inject a failure or run the demo</div>}
+            {!fleetEvents.some(e => e.type === "fleet.incident.created") &&
+              <div className="text-[11px] text-[var(--text3)] py-3">no incidents — inject or run the demo</div>}
           </div>
         </div>
 
-        {/* center: map */}
+        {/* map */}
         <div className="col-span-7 base-card overflow-hidden relative">
           <div ref={containerRef} className="absolute inset-0" />
-          {routeData?.geometry && (
-            <svg className="absolute inset-0 pointer-events-none w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <polyline fill="none" stroke="#38bdf8" strokeWidth="0.4" strokeOpacity="0.7"
-                        points={routeData.geometry.map((p: number[]) => `${p[0]},${p[1]}`).join(" ")} />
-            </svg>
-          )}
           {following && (
-            <button onClick={() => setFollowing(null)}
-                    className="absolute top-3 left-3 z-10 btn btn-primary text-[11px]">
+            <button onClick={() => setFollowing(null)} className="absolute top-3 left-3 z-10 btn btn-primary text-[11px]">
               FOLLOWING {following} — stop
             </button>
           )}
-          <div className="absolute bottom-2 right-2 text-[9.5px] text-[var(--text3)] bg-[#0b1018cc] px-2 py-1 rounded">
-            ● vehicle ◆ warehouse ✦ destination | SIMULATION ONLY
+          <div className="absolute bottom-2 left-2 text-[9.5px] text-[var(--text3)] bg-[#0b1018cc] px-2 py-1 rounded flex gap-3">
+            <span>🚚 vehicle</span><span>🟦 warehouse</span><span>🟪 destination</span><span>⚠ incident</span>
+            <span className="text-[var(--cyan)]">SIMULATION ONLY</span>
           </div>
         </div>
 
-        {/* right: vehicle panel / warehouse + AI */}
+        {/* right column */}
         <div className="col-span-3 flex flex-col gap-3 min-h-0">
           <AnimatePresence mode="wait">
             {selSnap ? (
@@ -319,27 +421,25 @@ export default function LiveMapPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-[var(--text2)]">
                   <Stat l="Speed" v={`${selSnap.speed_kmh} km/h`} />
-                  <Stat l="Temp" v={`${selSnap.refrigeration.temperature}°C`}
-                        hot={selSnap.refrigeration.compressor_status !== "ONLINE"} />
+                  <Stat l="Temp" v={`${selSnap.refrigeration.temperature}°C`} hot={selSnap.refrigeration.compressor_status !== "ONLINE"} />
                   <Stat l="ETA" v={`${selSnap.trip.eta_min} min`} />
                   <Stat l="Remaining" v={`${selSnap.trip.distance_remaining_km} km`} />
+                  <Stat l="Progress" v={`${selSnap.trip.route_progress_percent}%`} />
                   <Stat l="Cargo" v={`${selSnap.cargo.cargo_type.replace("_", " ")} · ${selSnap.cargo.load_percent}%`} />
-                  <Stat l="Cargo health" v={`${selSnap.cargo.cargo_health}%`} />
-                  <Stat l="Compressor" v={selSnap.refrigeration.compressor_status}
-                        hot={selSnap.refrigeration.compressor_status !== "ONLINE"} />
-                  <Stat l="Door" v={selSnap.refrigeration.door_open ? "OPEN" : "SHUT"} hot={selSnap.refrigeration.door_open} />
-                  <Stat l="Energy" v={selSnap.energy_type === "ELECTRIC"
-                     ? `🔋 ${selSnap.vehicle.battery_percent}%` : `⛽ ${selSnap.vehicle.fuel_percent}%`} />
+                  <Stat l="Health" v={`${selSnap.cargo.cargo_health}%`} />
+                  <Stat l="Compressor" v={selSnap.refrigeration.compressor_status} hot={selSnap.refrigeration.compressor_status !== "ONLINE"} />
+                  <Stat l="Energy" v={selSnap.energy_type === "ELECTRIC" ? `🔋 ${selSnap.vehicle.battery_percent}%` : `⛽ ${selSnap.vehicle.fuel_percent}%`} />
                   <Stat l="Veh. health" v={`${selSnap.vehicle.vehicle_health}%`} />
                   <Stat l="Driver" v={`${selSnap.driver.name} (${selSnap.driver.driving_score})`} />
-                  <Stat l="Dest" v={selSnap.trip.destination_id} />
+                  <Stat l="Route" v={`${selSnap.trip.origin_id} → ${selSnap.trip.destination_id}`} />
                   {selSnap.cargo.time_to_critical_min != null &&
                     <Stat l="Time to critical" v={`${selSnap.cargo.time_to_critical_min} min`} hot />}
                 </div>
                 <div className="flex gap-1.5 mt-3 flex-wrap">
                   <button onClick={() => setFollowing(following === selSnap.vehicle_id ? null : selSnap.vehicle_id)}
                           className="btn text-[10.5px]">{following === selSnap.vehicle_id ? "Unfollow" : "Track Vehicle"}</button>
-                  <button onClick={() => doInject(selSnap.vehicle_id)} className="btn btn-red text-[10.5px]">Inject Failure</button>
+                  <button onClick={() => post(`/api/fleet/vehicle/${selSnap.vehicle_id}/inject`, { failure: "compressor_failure" })}
+                          className="btn btn-red text-[10.5px]">Inject Failure</button>
                   <button onClick={async () => {
                     const rc = await api(`/api/fleet/route-compare/${selSnap.vehicle_id}`);
                     setDecision({ ...rc, vehicle_id: selSnap.vehicle_id, manual: true });
@@ -351,14 +451,16 @@ export default function LiveMapPage() {
                 <b className="text-[13px]">{selWh.name}</b>
                 <div className="grid grid-cols-2 gap-1 mt-2 text-[11px] text-[var(--text2)]">
                   <Stat l="Status" v={selWh.status} />
-                  <Stat l="Free capacity" v={`${selWh.available_capacity} / ${selWh.capacity}u`} />
+                  <Stat l="Free" v={`${selWh.available_capacity}/${selWh.capacity}u`} />
                   <Stat l="Queue" v={`${selWh.queue_min} min`} />
-                  <Stat l="Docks" v={`${selWh.docks - selWh.busy_docks}/${selWh.docks} free`} />
+                  <Stat l="Docks" v={`${selWh.docks - selWh.busy_docks}/${selWh.docks}`} />
+                  <Stat l="Cargo" v={selWh.cargo_types.join(", ")} />
+                  <Stat l="Processing" v={`${selWh.proc_min} min`} />
                 </div>
               </motion.div>
             ) : (
               <div className="base-card p-6 text-[12px] text-[var(--text3)] text-center">
-                Select a vehicle or warehouse on the map
+                Click a truck, warehouse, or incident marker
               </div>
             )}
           </AnimatePresence>
@@ -366,48 +468,51 @@ export default function LiveMapPage() {
           {/* AI decision card */}
           <AnimatePresence>
             {decision && (
-              <motion.div key={decision.decision + (decision.target || "")}
+              <motion.div key={(decision.decision || "") + (decision.target || "") + (decision.vehicle_id || "")}
                           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                          className="base-card p-3 border-[var(--cyan)]/40">
+                          className="base-card p-3 border-[var(--cyan)]/40 shrink-0">
                 <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--cyan)] mb-1.5">
-                  <Bot size={13} /> AI FLEET COORDINATOR
+                  <Bot size={13} /> AI FLEET COORDINATOR {decision.manual && <span className="badge badge-cyan text-[9px]">manual query</span>}
                 </div>
                 <div className="text-[11px] text-[var(--text2)] mb-1">
                   <b>{decision.vehicle_id}</b> — <b className={decision.decision === "DIVERT" ? "text-[var(--amber)]" : "text-[var(--green)]"}>{decision.decision}</b>
-                  {decision.target ? ` -> ${decision.target}` : ""}
+                  {decision.target ? ` → ${decision.target}` : ""}
                 </div>
                 <div className="text-[10.5px] text-[var(--text3)] leading-relaxed">{decision.reason}</div>
                 {(decision.candidates || []).filter((c: any) => c.compatible).slice(0, 3).map((c: any) => (
                   <div key={c.id} className="flex justify-between text-[10px] text-[var(--text2)] mt-1 border-t border-[var(--border)] pt-1">
                     <span>{c.name}</span>
-                    <span>{c.eta_total_min}m · score {c.score}</span>
+                    <span>ETA {c.eta_total_min}m · {c.distance_km}km · score {c.score}</span>
                   </div>
                 ))}
+                {(decision.scored) && (
+                  <div className="text-[10px] text-[var(--text3)] mt-1.5">
+                    chosen route: {decision.scored.eta_min}m · projected temp {decision.scored.projected_temp_c}°C → risk {decision.scored.cargo_risk_after}
+                  </div>
+                )}
                 {decision.manual && <button onClick={() => setDecision(null)} className="btn text-[10px] mt-2">close</button>}
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* event feed */}
-          <div className="base-card p-3 flex-1 overflow-hidden flex flex-col min-h-[140px]">
+          {/* live events */}
+          <div className="base-card p-3 flex-1 min-h-[130px] overflow-hidden flex flex-col">
             <div className="text-[11px] text-[var(--text3)] uppercase mb-1.5">Live events</div>
-            <div className="flex-1 overflow-y-auto scroll-thin space-y-1">
-              {(st.fleetEvents || []).slice(0, 24).map((e: any, i: number) => (
+            <div className="flex-1 overflow-y-auto scroll-thin space-y-1 pr-1">
+              {fleetEvents.slice(0, 30).map((e: any, i: number) => (
                 <div key={i} className="text-[10.5px] flex gap-2 leading-snug">
-                  <span className="text-[var(--text3)] shrink-0">
-                    {new Date((e.ts || e.payload?.ts || Date.now() * (e.payload?.ts ? 1 : 0)) * (e.payload?.ts ? 1000 : 1)).toLocaleTimeString?.() || ""}
-                  </span>
+                  <span className="text-[var(--text3)] shrink-0">{e.payload?.text ? "" : ""}{e.type === "vehicle.event" ? "🚚" : e.type === "fleet.incident.created" ? "⚠" : e.type === "ai.route.decision" ? "🤖" : e.type === "vehicle.route.changed" ? "🔀" : e.type === "cargo.transferred" ? "📦" : "•"}</span>
                   <span className="text-[var(--text2)]">
                     {e.type === "vehicle.event" && (e.payload?.text || "")}
-                    {e.type === "fleet.incident.created" && `⚠ INCIDENT ${e.vehicle_id}: ${e.root_cause}`}
-                    {e.type === "ai.route.decision" && `🤖 AI ${e.decision} -> ${e.target}`}
-                    {e.type === "vehicle.route.changed" && `🔀 ${e.vehicle_id} rerouted -> ${e.new_target}`}
-                    {e.type === "cargo.transferred" && `📦 ${e.vehicle_id} delivered ${e.units}u to ${e.facility_id}`}
-                    {e.type === "vehicle.failure.injected" && `⚡ ${e.vehicle_id}: ${e.failure}`}
+                    {e.type === "fleet.incident.created" && `INCIDENT ${e.vehicle_id}: ${e.root_cause} (${e.severity})`}
+                    {e.type === "ai.route.decision" && `AI ${e.decision} → ${e.target} (conf ${e.confidence})`}
+                    {e.type === "vehicle.route.changed" && `${e.vehicle_id} rerouted → ${e.new_target} · ETA ${e.eta_min}m`}
+                    {e.type === "cargo.transferred" && `${e.vehicle_id} delivered ${e.units}u to ${e.facility_id}`}
+                    {e.type === "vehicle.failure.injected" && `${e.vehicle_id}: ${e.failure} injected`}
                   </span>
                 </div>
               ))}
-              {!(st.fleetEvents || []).length && <div className="text-[11px] text-[var(--text3)]">waiting for events…</div>}
+              {!fleetEvents.length && <div className="text-[11px] text-[var(--text3)]">waiting for events…</div>}
             </div>
           </div>
         </div>
