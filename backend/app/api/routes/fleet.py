@@ -22,6 +22,15 @@ class SpeedIn(BaseModel):
     speed: float = Field(ge=0.25, le=100)
 
 
+class RebuildIn(BaseModel):
+    fleet_size: int = Field(default=12, ge=1, le=60)
+    seed: int = Field(default=42, ge=0)
+    weather: str | None = None
+    traffic_intensity: float = Field(default=1.0, ge=0.5, le=2.0)
+    failure_probability: float = Field(default=0.0, ge=0.0, le=1.0)
+    speed: float = Field(default=2.0, ge=0.25, le=100)
+
+
 @router.get("/state")
 async def state():
     return FLEET.state()
@@ -110,6 +119,16 @@ async def truck_transfer(payload: dict):
     if not res.get("transferred"):
         raise HTTPException(409, res.get("reason", "transfer rejected"))
     return res
+
+
+@router.post("/rebuild")
+async def rebuild(body: RebuildIn):
+    """Stop → configure from body → spawn → start. Returns new world descriptor."""
+    return await FLEET.rebuild(
+        scenario_seed=body.seed, weather=body.weather,
+        traffic_intensity=body.traffic_intensity,
+        failure_probability=body.failure_probability, speed=body.speed,
+        fleet_size=body.fleet_size)
 
 
 @router.get("/analytics")

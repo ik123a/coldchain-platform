@@ -51,11 +51,52 @@ class FleetOrchestrator:
         self._autonomous = True                    # AI decisions auto-apply (SIMULATION ONLY)
         self.event_ring: list[dict] = []
         self._task = None
-        self._seed_i = 100
         self.alert_counts: dict[str, int] = {}     # vehicle_id -> non-info alert count
         self._last_weather: str | None = None
         self._traffic_snap: dict[str, str] = {}
         self._geo_state: dict[str, str | None] = {}
+        import random as _r
+        self._world_rng = _r.Random(42)
+
+    # ---------------- scenario configure / rebuild ----------------
+    def configure(self, *, scenario_seed: int | None = None, weather: str | None = None,
+                  traffic_intensity: float | None = None,
+                  failure_probability: float | None = None, speed: float | None = None,
+                  fleet_size: int | None = None) -> dict:
+        """Rebuild the world: fresh TrafficWorld(seed, intensity), world-rng
+        (spawn + autonomous failure dice), optional weather override.
+        VehicleTwins keep their own per-vid rng; world-level randomness lives
+        here — deterministic per seed, no RNG injected into twins."""
+        s = self.scenario
+        seed = int(s["seed"] if scenario_seed is None else scenario_seed)
+        s.update({"seed": seed,
+                  "weather": weather,  # None means stochastic (no override)
+                  "traffic_intensity": float(1.0 if traffic_intensity is None else traffic_intensity),
+                  "failure_probability": float(0.0 if failure_probability is None else failure_probability),
+                  "fleet_size": int(s["fleet_size"] if fleet_size is None else fleet_size)})
+        self.traffic = TrafficWorld(seed=seed, traffic_intensity=s["traffic_intensity"])
+        if weather is not None:
+            self.traffic.set_weather(weather)
+        else:
+            self.traffic.set_weather("NORMAL")
+        import random as _r
+        self._world_rng = _r.Random(seed)
+        if speed is not None:
+            self.set_speed(speed)
+        return dict(s)
+
+    async def rebuild(self, **kwargs) -> dict:
+        """stop → configure → spawn → start with the scenario's fleet size."""
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except (asyncio.CancelledError, Exception):
+                pass
+            self._task = None
+        s = self.configure(**kwargs)
+        await self.start(s["fleet_size"])
+        return {"world_id": s["seed"], "vehicles": len(self.vehicles), "scenario": dict(s)}
 
     # ---------------- lifecycle ----------------
     async def start(self, n_vehicles: int = 12):
@@ -78,8 +119,32 @@ class FleetOrchestrator:
         self.paused = not self.paused
         return self.paused
 
+    # ---------------- living world: seeded autonomous failures ----------------
+    async def _fail_world_tick(self) -> None:
+        """Per world-tick, per cargo vehicle: world-rng < p → random failure.
+        Default p=0 keeps capstone demos deterministic ("fail world rng" hook)."""
+        p = float(self.scenario.get("failure_probability", 0.0))
+        if p <= 0.0:
+            return
+        import random as _r
+        kinds = ["compressor_failure", "compressor_degradation", "door_open",
+                 "power_failure", "sensor_fault"]
+        cargo = [v for v in self.vehicles.values() if is_cargo_vehicle(v)]
+        if not cargo:
+            return
+        for v in cargo:
+            if self._world_rng.random() < p:
+                kind = kinds[self._world_rng.randrange(len(kinds))]
+                v.inject_failure(kind)
+                await self._evt(v, f"Living world: {kind} on {v.id}", "critical")
+                await BROADCAST.emit(0, "vehicle.failure.injected",
+                                     {"vehicle_id": v.id, "failure": kind,
+                                      "source": "living_world"})
+
     # ---------------- fleet spawning ----------------
     def _spawn_fleet(self):
+        self.vehicles = {}
+        rng = self._world_rng
         pairs = [(o, d) for (o, d) in POLYLINES.keys()]
         for i in range(self.n_vehicles):
             o, d = pairs[i % len(pairs)]
@@ -94,23 +159,22 @@ class FleetOrchestrator:
                     cargo = dest["required_cargo"][0]
             route = self.routing.calculate_route(o, d, 1.0)
             energy = "ELECTRIC" if i % 5 == 0 else ("HYBRID" if i % 7 == 0 else "DIESEL")
-            vid = f"TRUCK-{101 + i}"
-            self._seed_i += 1
+            vid = f"TRUCK-{rng.randrange(10000):04d}-{i:02d}"
             self.vehicles[vid] = VehicleTwin(
                 vid, "REFRIGERATED_TRUCK" if energy != "ELECTRIC" else "EV_REEFER",
                 energy, DRIVERS[i % len(DRIVERS)], cargo,
                 load_units=200 + ((i * 137) % 600), capacity_units=1000,
-                origin_id=o, dest_id=d, route=route, seed=self._seed_i)
+                origin_id=o, dest_id=d, route=route, seed=rng.randrange(10 ** 9))
         # service vehicles: zero cargo, wide thermal band (never trips risk)
         # exact same origin/dest unpack as cargo vehicles — no tuple bugs
         for j in range(2):
             o, d = pairs[(j + 5) % len(pairs)] if j else pairs[0]
             route = self.routing.calculate_route(o, d, 1.0)
-            self._seed_i += 1
-            svc = VehicleTwin(f"SERVICE-0{j + 1}", "SERVICE_TRUCK", "ELECTRIC",
-                              "Mechanic", "pharma", 0, 100, o, d, route, seed=self._seed_i)
+            svc = VehicleTwin(f"SERVICE-{rng.randrange(9000) + 1000}-{j}", "SERVICE_TRUCK", "ELECTRIC",
+                              "Mechanic", "pharma", 0, 100, o, d, route,
+                              seed=rng.randrange(10 ** 9))
             svc.box = Engine(target=20.0, mn=-40.0, mx=60.0, hum_min=10.0, hum_max=95.0,
-                             seed=self._seed_i)
+                             seed=svc.seed)
             self.vehicles[svc.id] = svc
         self.service_tasks: dict[str, str] = {}   # service vid -> target vid
         self.service_pending: dict[str, str] = {}  # target vid -> task type
@@ -129,8 +193,9 @@ class FleetOrchestrator:
                 self.sim_minute += dt
                 self._tick_n += 1
                 self.traffic.maybe_weather()
+                await self._fail_world_tick()
                 snaps = []
-                for vid, v in self.vehicles.items():
+                for vid, v in list(self.vehicles.items()):
                     factor = self.traffic.factor_for(v.origin_id, v.dest_id)
                     s = v.step(dt, factor, self.traffic.ambient_c)
                     delta = v.alerts_delta()
@@ -167,6 +232,8 @@ class FleetOrchestrator:
                 self._service_progress(dt)
         except asyncio.CancelledError:
             log.info("fleet loop cancelled")
+        except Exception as e:
+            log.exception("fleet loop unhandled error: %s", e)
 
     # ---------------- geofence checks ----------------
     async def _check_geofence(self, v: VehicleTwin):
@@ -485,6 +552,7 @@ class FleetOrchestrator:
                 "sim_minute": round(self.sim_minute, 2),
                 "paused": self.paused,
                 "speed": self.clock.speed,
+                "scenario": dict(self.scenario),
                 "weather": self.traffic.state(),
                 "geofences": GEOFENCES,
                 "events": self.event_ring[:40],
