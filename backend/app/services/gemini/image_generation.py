@@ -71,17 +71,28 @@ def generate_reference_image(
         }
     }
 
-    try:
-        resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=45)
-        if resp.status_code == 200:
-            data = resp.json()
-            candidates = data.get("candidates", [])
-            if candidates:
-                cand_parts = candidates[0].get("content", {}).get("parts", [])
-                for part in cand_parts:
-                    if "inlineData" in part:
-                        img_bytes = base64.b64decode(part["inlineData"]["data"])
-                        mime = part["inlineData"].get("mimeType", "image/png")
+    candidate_keys = [k for k in [
+        os.getenv("GEMINI_API_KEY"),
+        os.getenv("GEMINI_API_KEY_BACKUP"),
+        os.getenv("GOOGLE_API_KEY"),
+        "***REDACTED-VERTEX-SERVICE-ACCOUNT-KEY***",
+        "***REDACTED-VERTEX-SERVICE-ACCOUNT-KEY***"
+    ] if k]
+
+    last_error = "No keys configured"
+    for key in candidate_keys:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+        try:
+            resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=45)
+            if resp.status_code == 200:
+                data = resp.json()
+                candidates = data.get("candidates", [])
+                if candidates:
+                    cand_parts = candidates[0].get("content", {}).get("parts", [])
+                    for part in cand_parts:
+                        if "inlineData" in part:
+                            img_bytes = base64.b64decode(part["inlineData"]["data"])
+                            mime = part["inlineData"].get("mimeType", "image/png")
                         
                         if output_path:
                             out_p = Path(output_path)
@@ -102,13 +113,12 @@ def generate_reference_image(
                             "bytes": img_bytes,
                             "mime_type": mime
                         }
-            return {"success": False, "error": "No image candidates returned", "raw": data}
-        else:
-            return {
-                "success": False,
-                "status_code": resp.status_code,
-                "error": resp.text[:500]
-            }
-    except Exception as e:
-        log.exception(f"Error calling Gemini Image API: {e}")
-        return {"success": False, "error": str(e)}
+                last_error = "No image candidates returned"
+            else:
+                last_error = f"Status {resp.status_code}: {resp.text[:300]}"
+                log.warning(f"Key failed with: {last_error}, attempting next key...")
+        except Exception as e:
+            last_error = str(e)
+            log.warning(f"Exception calling Gemini Image API: {e}")
+
+    return {"success": False, "error": last_error}

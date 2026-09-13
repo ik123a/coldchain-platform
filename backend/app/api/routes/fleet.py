@@ -90,3 +90,28 @@ async def route_compare(vid: str):
     bundle = FLEET.coordinator.evaluate(v, FLEET.traffic, v.dest_id)
     return {"vehicle_id": vid, **{k: bundle.get(k) for k in
             ("decision", "target", "reason", "confidence", "candidates", "options", "scored")}}
+
+
+@router.post("/service/dispatch")
+async def service_dispatch(payload: dict):
+    """Dispatch nearest service vehicle to repair a broken truck."""
+    target = payload.get("vehicle_id", "")
+    task = payload.get("task", "repair")
+    return await FLEET.dispatch_service(target, task)
+
+
+@router.post("/transfer")
+async def truck_transfer(payload: dict):
+    """Truck-to-truck cargo transfer (donor truck -> receiver truck)."""
+    donor = payload.get("from_vehicle_id", "")
+    receiver = payload.get("to_vehicle_id", "")
+    res = await FLEET.request_transfer(donor, receiver)
+    if not res.get("transferred"):
+        raise HTTPException(409, res.get("reason", "transfer rejected"))
+    return res
+
+
+@router.get("/priority-queue")
+async def incident_priority():
+    """Active incidents ranked: soonest time-to-critical first."""
+    return {"queue": FLEET.priority_queue(), "count": len(FLEET.priority_queue())}

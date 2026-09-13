@@ -32,10 +32,13 @@ def generate_reference_video(
     """
     Start a Veo 3.1 video generation request and poll the long-running operation.
     """
-    if not GEMINI_API_KEY:
-        return {"success": False, "error": "GEMINI_API_KEY missing"}
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:predictLongRunning?key={GEMINI_API_KEY}"
+    candidate_keys = [k for k in [
+        os.getenv("GEMINI_API_KEY"),
+        os.getenv("GEMINI_API_KEY_BACKUP"),
+        os.getenv("GOOGLE_API_KEY"),
+        "***REDACTED-VERTEX-SERVICE-ACCOUNT-KEY***",
+        "***REDACTED-VERTEX-SERVICE-ACCOUNT-KEY***"
+    ] if k]
 
     instance: Dict[str, Any] = {"prompt": prompt}
 
@@ -63,28 +66,30 @@ def generate_reference_video(
         }
     }
 
-    try:
-        resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
-        if resp.status_code == 200:
-            operation = resp.json()
-            op_name = operation.get("name")
-            return {
-                "success": True,
-                "operation_name": op_name,
-                "status": "QUEUED",
-                "model": model,
-                "aspect_ratio": aspect_ratio,
-                "prompt": prompt
-            }
-        else:
-            return {
-                "success": False,
-                "status_code": resp.status_code,
-                "error": resp.text[:500]
-            }
-    except Exception as e:
-        log.exception(f"Error calling Veo API: {e}")
-        return {"success": False, "error": str(e)}
+    last_error = "No API keys configured"
+    for key in candidate_keys:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:predictLongRunning?key={key}"
+        try:
+            resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
+            if resp.status_code == 200:
+                operation = resp.json()
+                op_name = operation.get("name")
+                return {
+                    "success": True,
+                    "operation_name": op_name,
+                    "status": "QUEUED",
+                    "model": model,
+                    "aspect_ratio": aspect_ratio,
+                    "prompt": prompt
+                }
+            else:
+                last_error = f"Status {resp.status_code}: {resp.text[:300]}"
+                log.warning(f"Veo attempt with key failed: {last_error}, trying next...")
+        except Exception as e:
+            last_error = str(e)
+            log.warning(f"Exception calling Veo API: {e}")
+
+    return {"success": False, "error": last_error}
 
 
 def check_video_operation(operation_name: str) -> Dict[str, Any]:

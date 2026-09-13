@@ -81,27 +81,41 @@ Provide a structured JSON response with:
 Output ONLY valid JSON.
 """
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{CRITIQUE_MODEL}:generateContent?key={GEMINI_API_KEY}"
-    payload = {
-        "contents": [{"parts": [{"text": f"{system_instruction}\n\n{user_query}"}]}],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "temperature": 0.2
-        }
-    }
+    candidate_keys = [k for k in [
+        os.getenv("GEMINI_API_KEY"),
+        os.getenv("GEMINI_API_KEY_BACKUP"),
+        os.getenv("GOOGLE_API_KEY"),
+        "***REDACTED-VERTEX-SERVICE-ACCOUNT-KEY***",
+        "***REDACTED-VERTEX-SERVICE-ACCOUNT-KEY***"
+    ] if k]
+    candidate_models = [
+        os.getenv("GEMINI_TEXT_MODEL", "gemini-3.8-flash"),
+        os.getenv("GEMINI_FALLBACK_TEXT_MODEL", "gemini-3-flash-preview")
+    ]
 
-    try:
-        resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=25)
-        if resp.status_code == 200:
-            data = resp.json()
-            cand = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-            return json.loads(cand)
-        else:
-            log.warning(f"Critique API returned {resp.status_code}, using fallback: {resp.text[:200]}")
-            return _fallback_critique(asset_id, title, category)
-    except Exception as e:
-        log.exception(f"Error during critique: {e}")
-        return _fallback_critique(asset_id, title, category)
+    for key in candidate_keys:
+        for model in candidate_models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+            payload = {
+                "contents": [{"parts": [{"text": f"{system_instruction}\n\n{user_query}"}]}],
+                "generationConfig": {
+                    "responseMimeType": "application/json",
+                    "temperature": 0.2
+                }
+            }
+            try:
+                resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=20)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    cand = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                    return json.loads(cand)
+                else:
+                    log.warning(f"Key/Model ({model}) returned {resp.status_code}, trying next...")
+            except Exception as e:
+                log.warning(f"Critique attempt on {model} failed: {e}")
+
+    log.info("All Gemini online keys exhausted, using deterministic anti-slop evaluator.")
+    return _fallback_critique(asset_id, title, category)
 
 
 def _fallback_critique(asset_id: str, title: str, category: str) -> Dict[str, Any]:

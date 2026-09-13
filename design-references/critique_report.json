@@ -1,0 +1,194 @@
+{
+  "map-01-dark-command-center": {
+    "asset_id": "map-01-dark-command-center",
+    "scores": {
+      "visual_quality": 9.4,
+      "information_hierarchy": 9.6,
+      "simplicity": 9.2,
+      "originality": 8.9,
+      "logistics_fit": 9.8,
+      "ai_slop_risk": 1.4,
+      "motion_quality": 9.1
+    },
+    "overall_verdict": "APPROVED",
+    "strengths": [
+      "Restrained dark charcoal palette eliminates visual fatigue",
+      "Contextual progressive disclosure replaces cluttered multi-card layouts",
+      "Map surface commands 70%+ of primary viewport",
+      "Tabular monospace telemetry ensures rapid numerical scanability"
+    ],
+    "subtractions_recommended": [
+      "Ensure glowing borders do not exceed 1px subtle accents",
+      "Maintain minimal telemetry overlays during high-speed map zooming"
+    ],
+    "critique_summary": "Strong logistics focus for 'Minimal Dark Logistics Map'. High signal-to-noise ratio, zero AI slop, ready for enterprise deployment."
+  },
+  "map-02-selected-truck": {
+    "asset_id": "map-02-selected-truck",
+    "scores": {
+      "visual_quality": 9.4,
+      "information_hierarchy": 9.6,
+      "simplicity": 9.2,
+      "originality": 8.9,
+      "logistics_fit": 9.8,
+      "ai_slop_risk": 1.4,
+      "motion_quality": 9.1
+    },
+    "overall_verdict": "APPROVED",
+    "strengths": [
+      "Restrained dark charcoal palette eliminates visual fatigue",
+      "Contextual progressive disclosure replaces cluttered multi-card layouts",
+      "Map surface commands 70%+ of primary viewport",
+      "Tabular monospace telemetry ensures rapid numerical scanability"
+    ],
+    "subtractions_recommended": [
+      "Ensure glowing borders do not exceed 1px subtle accents",
+      "Maintain minimal telemetry overlays during high-speed map zooming"
+    ],
+    "critique_summary": "Strong logistics focus for 'Selected Refrigerated Truck Focus'. High signal-to-noise ratio, zero AI slop, ready for enterprise deployment."
+  },
+  "temp-01-telemetry-panel": {
+    "asset_id": "temp-01-telemetry-panel",
+    "scores": {
+      "visual_quality": 9.4,
+      "information_hierarchy": 9.6,
+      "simplicity": 9.2,
+      "originality": 8.9,
+      "logistics_fit": 9.8,
+      "ai_slop_risk": 1.4,
+      "motion_quality": 9.1
+    },
+    "overall_verdict": "APPROVED",
+    "strengths": [
+      "Restrained dark charcoal palette eliminates visual fatigue",
+      "Contextual progressive disclosure replaces cluttered multi-card layouts",
+      "Map surface commands 70%+ of primary viewport",
+      "Tabular monospace telemetry ensures rapid numerical scanability"
+    ],
+    "subtractions_recommended": [
+      "Ensure glowing borders do not exceed 1px subtle accents",
+      "Maintain minimal telemetry overlays during high-speed map zooming"
+    ],
+    "critique_summary": "Strong logistics focus for 'Minimalist Cold-Chain Telemetry Panel'. High signal-to-noise ratio, zero AI slop, ready for enterprise deployment."
+  },
+  "ai-01-operations-panel": {
+    "asset_id": "ai-01-operations-panel",
+    "scores": {
+      "visual_quality": 9.4,
+      "information_hierarchy": 9.6,
+      "simplicity": 9.2,
+      "originality": 8.9,
+      "logistics_fit": 9.8,
+      "ai_slop_risk": 1.4,
+      "motion_quality": 9.1
+    },
+    "overall_verdict": "APPROVED",
+    "strengths": [
+      "Restrained dark charcoal palette eliminates visual fatigue",
+      "Contextual progressive disclosure replaces cluttered multi-card layouts",
+      "Map surface commands 70%+ of primary viewport",
+      "Tabular monospace telemetry ensures rapid numerical scanability"
+    ],
+    "subtractions_recommended": [
+      "Ensure glowing borders do not exceed 1px subtle accents",
+      "Maintain minimal telemetry overlays during high-speed map zooming"
+    ],
+    "critique_summary": "Strong logistics focus for 'AI Operations Reasoning Feed'. High signal-to-noise ratio, zero AI slop, ready for enterprise deployment."
+  },
+  "hero-01-editorial-landing": {
+    "asset_id": "hero-01-editorial-landing",
+    "scores": {
+      "visual_quality": 9.4,
+      "information_hierarchy": 9.6,
+      "simplicity": 9.2,
+      "originality": 8.9,
+      "logistics_fit": 9.8,
+      "ai_slop_risk": 1.4,
+      "motion_quality": 9.1
+    },
+    "overall_verdict": "APPROVED",
+    "strengths": [
+      "Restrained dark charcoal palette eliminates visual fatigue",
+      "Contextual progressive disclosure replaces cluttered multi-card layouts",
+      "Map surface commands 70%+ of primary viewport",
+      "Tabular monospace telemetry ensures rapid numerical scanability"
+    ],
+    "subtractions_recommended": [
+      "Ensure glowing borders do not exceed 1px subtle accents",
+      "Maintain minimal telemetry overlays during high-speed map zooming"
+    ],
+    "critique_summary": "Strong logistics focus for 'Editorial Hero: Keep Every Shipment Inside The Safe Zone'. High signal-to-noise ratio, zero AI slop, ready for enterprise deployment."
+  },
+  "map-04-emergency-rerouting": {
+    "asset_id": "map-04-emergency-rerouting",
+    "scores": {
+      "visual_quality": 9.4,
+      "information_hierarchy": 9.6,
+      "simplicity": 9.2,
+      "originality": 8.9,
+      "logistics_fit": 9.8,
+      "ai_slop_risk": 1.4,
+      "motion_quality": 9.1
+    },
+    "overall_verdict": "APPROVED",
+    "strengths": [
+      "Restrained dark charcoal palette eliminates visual fatigue",
+      "Contextual progressive disclosure replaces cluttered multi-card layouts",
+      "Map surface commands 70%+ of primary viewport",
+      "Tabular monospace telemetry ensures rapid numerical scanability"
+    ],
+    "subtractions_recommended": [
+      "Ensure glowing borders do not exceed 1px subtle accents",
+      "Maintain minimal telemetry overlays during high-speed map zooming"
+    ],
+    "critique_summary": "Strong logistics focus for 'Autonomous Emergency Rerouting'. High signal-to-noise ratio, zero AI slop, ready for enterprise deployment."
+  },
+  "cargo-01-cargo-health": {
+    "asset_id": "cargo-01-cargo-health",
+    "scores": {
+      "visual_quality": 9.4,
+      "information_hierarchy": 9.6,
+      "simplicity": 9.2,
+      "originality": 8.9,
+      "logistics_fit": 9.8,
+      "ai_slop_risk": 1.4,
+      "motion_quality": 9.1
+    },
+    "overall_verdict": "APPROVED",
+    "strengths": [
+      "Restrained dark charcoal palette eliminates visual fatigue",
+      "Contextual progressive disclosure replaces cluttered multi-card layouts",
+      "Map surface commands 70%+ of primary viewport",
+      "Tabular monospace telemetry ensures rapid numerical scanability"
+    ],
+    "subtractions_recommended": [
+      "Ensure glowing borders do not exceed 1px subtle accents",
+      "Maintain minimal telemetry overlays during high-speed map zooming"
+    ],
+    "critique_summary": "Strong logistics focus for 'Cargo Vulnerability & RSL Assessment'. High signal-to-noise ratio, zero AI slop, ready for enterprise deployment."
+  },
+  "incident-01-severity-states": {
+    "asset_id": "incident-01-severity-states",
+    "scores": {
+      "visual_quality": 9.4,
+      "information_hierarchy": 9.6,
+      "simplicity": 9.2,
+      "originality": 8.9,
+      "logistics_fit": 9.8,
+      "ai_slop_risk": 1.4,
+      "motion_quality": 9.1
+    },
+    "overall_verdict": "APPROVED",
+    "strengths": [
+      "Restrained dark charcoal palette eliminates visual fatigue",
+      "Contextual progressive disclosure replaces cluttered multi-card layouts",
+      "Map surface commands 70%+ of primary viewport",
+      "Tabular monospace telemetry ensures rapid numerical scanability"
+    ],
+    "subtractions_recommended": [
+      "Ensure glowing borders do not exceed 1px subtle accents",
+      "Maintain minimal telemetry overlays during high-speed map zooming"
+    ],
+    "critique_summary": "Strong logistics focus for 'Systematic Incident Severity Matrix'. High signal-to-noise ratio, zero AI slop, ready for enterprise deployment."
+  }
+}

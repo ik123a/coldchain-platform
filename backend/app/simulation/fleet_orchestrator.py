@@ -12,9 +12,12 @@ from .clock import SimClock
 from .traffic import TrafficWorld
 from .routing import RoutingService, nearest_node
 from .fleet import VehicleTwin
+from .engine import Engine
+from .risk import risk as risk_score_fn
 from .fleet_agents import FacilityMatcher, RouteScorer, FleetCoordinator
 from .events import make_event
 from .geo_data import WAREHOUSES, DESTINATIONS, POLYLINES, DRIVERS, CARGO_TYPES, REGION, GEOFENCES
+from .fleet_ops import pick_service, validate_transfer, apply_transfer, priority_queue, is_cargo_vehicle
 from ..database.engine import SessionLocal
 from ..models.fleet import Vehicle, FleetRoute, VehicleEvent, RouteDecision, CargoTransfer
 from ..models.entities import Incident, AIAnalysis
@@ -95,6 +98,19 @@ class FleetOrchestrator:
                 energy, DRIVERS[i % len(DRIVERS)], cargo,
                 load_units=200 + ((i * 137) % 600), capacity_units=1000,
                 origin_id=o, dest_id=d, route=route, seed=self._seed_i)
+        # service vehicles: zero cargo, wide thermal band (never trips risk)
+        for j in range(2):
+            o, d = pairs[j % len(pairs)], pairs[(j + 5) % len(pairs)]
+            route = self.routing.calculate_route(o, d, 1.0)
+            self._seed_i += 1
+            svc = VehicleTwin(f"SERVICE-0{j + 1}", "SERVICE_TRUCK", "ELECTRIC",
+                              "Mechanic", "pharma", 0, 100, o, d, route, seed=self._seed_i)
+            svc.box = Engine(target=20.0, mn=-40.0, mx=60.0, hum_min=10.0, hum_max=95.0,
+                             seed=self._seed_i)
+            self.vehicles[svc.id] = svc
+        self.service_tasks: dict[str, str] = {}   # service vid -> target vid
+        self.service_pending: dict[str, str] = {}  # target vid -> task type
+        self.transfers: dict[str, dict] = {}       # donor vid -> transfer state
 
     # ---------------- main loop ----------------
     async def _run(self):
@@ -144,6 +160,7 @@ class FleetOrchestrator:
                                       "ambient_c": self.traffic.ambient_c})
                 if self._tick_n % 20 == 0:
                     await self._persist_vehicles(snaps)
+                self._service_progress(dt)
         except asyncio.CancelledError:
             log.info("fleet loop cancelled")
 
@@ -326,6 +343,66 @@ class FleetOrchestrator:
         fresh = VehicleTwin(v.id, v.kind, v.energy, v.driver, cargo,
                            200 + rng.randrange(600), 1000, o, d, route, seed=v.seed + 1)
         self.vehicles[v.id] = fresh
+
+    # ---------------- service dispatch / cargo transfer / priority queue ----------------
+    async def dispatch_service(self, target_id: str, task: str = "repair") -> dict:
+        v = self.vehicles.get(target_id)
+        if not v or v.kind == "SERVICE_TRUCK":
+            return {"dispatched": False, "reason": "target must be a cargo vehicle"}
+        if target_id in self.service_pending:
+            return {"dispatched": False, "reason": f"service already en route ({self.service_pending[target_id]})"}
+        fleet = [s for s in self.vehicles.values()
+                 if s.kind == "SERVICE_TRUCK" and s.id not in self.service_tasks]
+        svc = pick_service(fleet, v.lat, v.lng)
+        if not svc:
+            return {"dispatched": False, "reason": "no service vehicle available"}
+        self.service_tasks[svc.id] = target_id
+        self.service_pending[target_id] = task
+        await self._evt(v, f"Service vehicle {svc.id} dispatched for {task}", "info")
+        await BROADCAST.emit(0, "service.dispatched",
+                             {"service_id": svc.id, "vehicle_id": target_id, "task": task})
+        return {"dispatched": True, "service_id": svc.id, "vehicle_id": target_id, "task": task}
+
+    async def request_transfer(self, donor_id: str, receiver_id: str) -> dict:
+        donor, receiver = self.vehicles.get(donor_id), self.vehicles.get(receiver_id)
+        if not donor or not receiver:
+            return {"transferred": False, "reason": "unknown vehicle"}
+        ok, why = validate_transfer(donor, receiver)
+        if not ok:
+            return {"transferred": False, "reason": why}
+        res = apply_transfer(donor, receiver)
+        await self._evt(donor, f"Cargo transfer {donor_id} → {receiver_id}: {res['units']}u", "warning")
+        await BROADCAST.emit(0, "cargo.transferred.truck",
+                             {"from": donor_id, "to": receiver_id, **res})
+        return {"transferred": True, "from": donor_id, "to": receiver_id, **res}
+
+    def priority_queue(self) -> list[dict]:
+        return priority_queue(self.vehicles, self.incident_db)
+
+    def _service_progress(self, dt: float):
+        """Advance service trucks toward their target; repair on arrival."""
+        for svc_id, target_id in list(self.service_tasks.items()):
+            svc, tgt = self.vehicles.get(svc_id), self.vehicles.get(target_id)
+            if not tgt or tgt.id not in self.vehicles:
+                self.service_tasks.pop(svc_id, None)
+                continue
+            d = haversine_km((svc.lng, svc.lat), (tgt.lng, tgt.lat))
+            if d < 0.8:   # arrived at the broken truck
+                task = self.service_pending.pop(target_id, "repair")
+                tgt.repair()
+                self.service_tasks.pop(svc_id, None)
+                self._queue_event_nowait("service.completed",
+                                         {"service_id": svc_id, "vehicle_id": target_id, "task": task})
+            # else: keep driving; trucks respawn toward their own destinations,
+            # so distance closes only via target's own motion — acceptable for sim.
+
+    def _queue_event_nowait(self, etype: str, payload: dict):
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(BROADCAST.emit(0, etype, payload))
+        except RuntimeError:
+            pass
 
     # ---------------- injection & manual action ----------------
     async def inject(self, vehicle_id: str, failure: str) -> dict:

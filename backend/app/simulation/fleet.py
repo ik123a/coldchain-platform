@@ -212,6 +212,18 @@ class VehicleTwin:
             self.box.temperature = before + (self.box.temperature - before) * (dt_min / 0.25)
 
     # ---------------- failures & recovery ----------------
+    def repair(self):
+        """Field repair by a service vehicle: full compressor + electrical restore.
+        Cargo temperature is NOT reset — thermal recovery takes time realistically."""
+        self.compressor = COMPRESSOR_OK
+        self.fault = None
+        # broaden compressor contactor path first
+        self.box.compressor_on = True
+        self.box.cooling_efficiency = 1.0
+        # sensor health recovered, door confirmed shut, power restored
+        self.box.inject("repair")
+        self.door_open = False
+
     def inject_failure(self, kind: str):
         if kind == "compressor_failure":
             self.compressor = COMPRESSOR_FAILED

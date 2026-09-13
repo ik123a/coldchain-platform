@@ -8,6 +8,8 @@ import { api, post } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bot, Maximize2, Minimize2, Pause, Play, Search, Truck, Zap } from "lucide-react";
 import { FleetTable } from "@/components/live-map/FleetTable";
+import { FloatingVehicleInspector } from "@/components/live-map/FloatingVehicleInspector";
+import { DeepTelemetryDrawer } from "@/components/live-map/DeepTelemetryDrawer";
 
 const RISK_COLORS: Record<string, string> = {
   LOW: "#34d399", MEDIUM: "#fbbf24", HIGH: "#f97316", CRITICAL: "#f87171",
@@ -53,6 +55,7 @@ export default function LiveMapPage() {
   const [timelineTab, setTimelineTab] = useState<"events" | "timeline">("events");
   const [vehicleHistory, setVehicleHistory] = useState<any[]>([]);
   const [clock, setClock] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const vehicles = (st.fleetVehicles || []) as VSnap[];
   const fleetEvents = (st.fleetEvents || []) as any[];
@@ -98,12 +101,19 @@ export default function LiveMapPage() {
       style: {
         version: 8,
         sources: {
-          osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-                 tileSize: 256, attribution: "© OpenStreetMap contributors" },
+          carto: {
+            type: "raster",
+            tiles: [
+              "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+              "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png"
+            ],
+            tileSize: 256,
+            attribution: "© CARTO, © OpenStreetMap"
+          },
         },
         layers: [
-          { id: "bg", type: "background", paint: { "background-color": "#0b1018" } },
-          { id: "osm-tiles", type: "raster", source: "osm", paint: { "raster-opacity": 0.75 } },
+          { id: "bg", type: "background", paint: { "background-color": "#080A0F" } },
+          { id: "carto-tiles", type: "raster", source: "carto", paint: { "raster-opacity": 0.95 } },
         ],
       } as any,
       attributionControl: false,
@@ -369,60 +379,50 @@ export default function LiveMapPage() {
               <span className="text-[var(--cyan)]">SIMULATION ONLY</span>
             </div>
 
-            {/* floating vehicle drawer */}
+            {/* Progressive Disclosure: Level 1 Floating Inspector & Level 2 Deep Drawer */}
             <AnimatePresence>
-              {(selSnap || selWh) && (
-                <motion.div key={(selSnap?.vehicle_id || selWh?.id) || "x"}
-                            initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                            className="absolute top-3 right-3 z-10 w-[300px] max-h-[75%] overflow-y-auto scroll-thin base-card p-3">
-                  {selSnap ? (
-                    <>
-                      <div className="flex items-center justify-between mb-2">
-                        <b className="text-[13.5px]">{selSnap.vehicle_id}</b>
-                        <span className={`badge ${selSnap.cargo.risk_level === "CRITICAL" ? "badge-red" : selSnap.cargo.risk_level === "HIGH" ? "badge-amber" : "badge-green"}`}>
-                          {selSnap.cargo.risk_level} RISK
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-[var(--text2)]">
-                        <Stat l="Speed" v={`${selSnap.speed_kmh} km/h`} />
-                        <Stat l="Inside" v={`${selSnap.refrigeration.temperature}°C`} hot={selSnap.refrigeration.compressor_status !== "ONLINE"} />
-                        <Stat l="Outside" v={`${selSnap.outside_temperature}°C`} />
-                        <Stat l="ETA" v={`${selSnap.trip.eta_min} min`} />
-                        <Stat l="Remaining" v={`${selSnap.trip.distance_remaining_km} km`} />
-                        <Stat l="Progress" v={`${selSnap.trip.route_progress_percent}%`} />
-                        <Stat l="Cargo" v={`${selSnap.cargo.cargo_type.replace("_", " ")} ${selSnap.cargo.load_percent}%`} />
-                        <Stat l="Health" v={`${selSnap.cargo.cargo_health}%`} />
-                        <Stat l="Compressor" v={selSnap.refrigeration.compressor_status} hot={selSnap.refrigeration.compressor_status !== "ONLINE"} />
-                        <Stat l="Energy" v={selSnap.energy_type === "ELECTRIC" ? `🔋 ${selSnap.vehicle.battery_percent}%` : `⛽ ${selSnap.vehicle.fuel_percent}%`} />
-                        <Stat l="Driver" v={`${selSnap.driver.name} (${selSnap.driver.driving_score})`} />
-                        <Stat l="Route" v={`${selSnap.trip.origin_id} → ${selSnap.trip.destination_id}`} />
-                        {selSnap.cargo.time_to_critical_min != null &&
-                          <Stat l="Time to critical" v={`${selSnap.cargo.time_to_critical_min} min`} hot />}
-                      </div>
-                      <div className="flex gap-1.5 mt-3 flex-wrap">
-                        <button onClick={() => setFollowing(following === selSnap.vehicle_id ? null : selSnap.vehicle_id)}
-                                className="btn text-[10.5px]">{following === selSnap.vehicle_id ? "Unfollow" : "Track Vehicle"}</button>
-                        <button onClick={() => post(`/api/fleet/vehicle/${selSnap.vehicle_id}/inject`, { failure: "compressor_failure" })}
-                                className="btn btn-red text-[10.5px]">Inject Failure</button>
-                        <button onClick={async () => {
-                          const rc = await api(`/api/fleet/route-compare/${selSnap.vehicle_id}`);
-                          setDecision({ ...rc, vehicle_id: selSnap.vehicle_id, manual: true });
-                        }} className="btn btn-primary text-[10.5px]">AI Analysis</button>
-                      </div>
-                    </>
-                  ) : selWh && (
-                    <>
-                      <b className="text-[13px]">{selWh.name}</b>
-                      <div className="grid grid-cols-2 gap-1 mt-2 text-[11px] text-[var(--text2)]">
-                        <Stat l="Status" v={selWh.status} />
-                        <Stat l="Free" v={`${selWh.available_capacity}/${selWh.capacity}u`} />
-                        <Stat l="Queue" v={`${selWh.queue_min} min`} />
-                        <Stat l="Docks" v={`${selWh.docks - selWh.busy_docks}/${selWh.docks}`} />
-                        <Stat l="Cargo" v={selWh.cargo_types.join(", ")} />
-                        <Stat l="Processing" v={`${selWh.proc_min} min`} />
-                      </div>
-                    </>
-                  )}
+              {selSnap && !drawerOpen && (
+                <FloatingVehicleInspector
+                  vehicle={selSnap}
+                  onClose={() => setSelected(null)}
+                  onOpenDrawer={() => setDrawerOpen(true)}
+                  onTrack={() => setFollowing(following === selSnap.vehicle_id ? null : selSnap.vehicle_id)}
+                  isTracking={following === selSnap.vehicle_id}
+                  onInject={() => post(`/api/fleet/vehicle/${selSnap.vehicle_id}/inject`, { failure: "compressor_failure" })}
+                />
+              )}
+
+              {selSnap && drawerOpen && (
+                <DeepTelemetryDrawer
+                  vehicle={selSnap}
+                  onClose={() => setDrawerOpen(false)}
+                  onApproveDiversion={async (vid, fac) => {
+                    const rc = await api(`/api/fleet/route-compare/${vid}`);
+                    setDecision({ ...rc, vehicle_id: vid, manual: true });
+                    setDrawerOpen(false);
+                  }}
+                  onInjectFailure={() => post(`/api/fleet/vehicle/${selSnap.vehicle_id}/inject`, { failure: "compressor_failure" })}
+                />
+              )}
+
+              {selWh && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute top-4 right-4 z-30 w-72 bg-[#0E121A]/95 backdrop-blur-md border border-[#1E2638] rounded-xl p-4 shadow-2xl text-slate-100 space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-[#1E2638] pb-2">
+                    <b className="text-sm font-mono text-white">{selWh.name}</b>
+                    <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-white text-xs">✕</button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs font-mono text-slate-300">
+                    <Stat l="Status" v={selWh.status} />
+                    <Stat l="Capacity" v={`${selWh.available_capacity}/${selWh.capacity}u`} />
+                    <Stat l="Queue" v={`${selWh.queue_min} min`} />
+                    <Stat l="Docks" v={`${selWh.docks - selWh.busy_docks}/${selWh.docks}`} />
+                    <Stat l="Processing" v={`${selWh.proc_min} min`} />
+                    <Stat l="Dock Temp" v="3.8°C" />
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
