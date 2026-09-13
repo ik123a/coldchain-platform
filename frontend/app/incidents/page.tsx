@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { api, post } from "@/lib/api";
@@ -9,7 +9,7 @@ import { Siren } from "lucide-react";
 const sevBadge = (s: string) => s === "CRITICAL" ? "badge-red" : s === "HIGH" ? "badge-amber" : "badge-cyan";
 const prioCls: Record<string, string> = { CRITICAL: "btn-red", HIGH: "btn-amber", MEDIUM: "", LOW: "" };
 
-export default function IncidentsPage() {
+function IncidentsInner() {
   const { st, dispatch } = useStore();
   const params = useSearchParams();
   const [selected, setSelected] = useState<any>(null);
@@ -211,5 +211,13 @@ function AskAI({ id }: { id: number }) {
       </div>
       {ans && <div className="mt-2 text-[11.5px] text-[var(--text2)] bg-[#0d1623] rounded-lg p-3 leading-relaxed fade-in">{ans}</div>}
     </div>
+  );
+}
+
+export default function IncidentsPage() {
+  return (
+    <Suspense fallback={<div className="base-card p-10 text-center text-[var(--text3)]">loading incidents…</div>}>
+      <IncidentsInner />
+    </Suspense>
   );
 }

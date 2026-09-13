@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 const NAV = [
   { href: "/", label: "Home", icon: Home },
   { href: "/dashboard", label: "Dashboard", icon: Activity },
+  { href: "/live-map", label: "Live Map", icon: Map },
   { href: "/simulation", label: "Live Simulation", icon: FlaskConical },
   { href: "/twin", label: "Digital Twin", icon: Map },
   { href: "/shipments", label: "Shipments", icon: Container },

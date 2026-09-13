@@ -36,6 +36,9 @@ interface State {
   theme: "dark" | "light" | "system";
   selectedIncident?: number | null;
   toasts: { id: number; text: string; sev: string }[];
+  fleetVehicles?: any[];
+  fleetEvents?: any[];
+  fleetMeta?: { simMinute?: number; weather?: string };
 }
 
 const defaultAgents = {
@@ -50,6 +53,7 @@ const defaultAgents = {
 const initial: State = {
   status: null, dashboard: null, sim: null, history: [], events: [], incidents: [],
   agentsStatus: defaultAgents, connected: false, theme: "dark", selectedIncident: null, toasts: [],
+  fleetVehicles: [], fleetEvents: [], fleetMeta: {},
 };
 
 type Action = { type: string; payload?: any };
@@ -79,6 +83,29 @@ function reducer(st: State, a: Action): State {
       const toasts = [...st.toasts, { id: Date.now() + Math.random(), text: ev.detail || ev.kind, sev: ev.kind.includes("detected") ? "CRITICAL" : ev.kind.includes("resolved") || ev.kind.includes("verified") ? "OK" : "INFO" }].slice(-5);
       return { ...st, events: [ev, ...st.events].slice(0, 90), agentsStatus, selectedIncident: ev.simulation_id ? st.selectedIncident ?? st.incidents[0]?.id : st.selectedIncident, toasts };
     }
+    case "fleet": {
+      const vehicles = a.payload as any[];
+      return { ...st, fleetVehicles: vehicles };
+    }
+    case "fleet_event": {
+      const ev = a.payload as any;
+      const t = ev.type as string;
+      const toasts = [...st.toasts];
+      if (["fleet.incident.created", "ai.route.decision", "vehicle.route.changed", "cargo.transferred"].includes(t)) {
+        toasts.push({ id: Date.now() + Math.random(),
+                      text: t === "ai.route.decision"
+                        ? `AI: ${ev.decision} -> ${ev.target} (${ev.vehicle_id})`
+                        : t === "fleet.incident.created"
+                        ? `INCIDENT ${ev.vehicle_id}: ${ev.root_cause}`
+                        : t === "vehicle.route.changed"
+                        ? `${ev.vehicle_id} rerouted -> ${ev.new_target}`
+                        : `${ev.vehicle_id} transferred ${ev.units}u`,
+                      sev: t === "fleet.incident.created" ? "CRITICAL" : t === "ai.route.decision" ? "INFO" : "OK" });
+      }
+      return { ...st, fleetEvents: [ev, ...st.fleetEvents].slice(0, 90),
+               fleetMeta: { simMinute: ev.sim_minute ?? st.fleetMeta?.simMinute, weather: ev.weather ?? st.fleetMeta?.weather },
+               toasts: toasts.slice(-5) };
+    }
     case "incidents": return { ...st, incidents: a.payload };
     case "select_incident": return { ...st, selectedIncident: a.payload };
     case "connected": return { ...st, connected: a.payload };
@@ -106,8 +133,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           try {
             const m = JSON.parse(e.data);
             if (m.type === "sensor_update") dispatch({ type: "reading", payload: m as Reading });
-            else if (["agent_event", "alert", "hello"].includes(m.type) && m.type !== "hello") dispatch({ type: "event", payload: m });
-            if (m.type === "incident_detected") loadIncidents();
+            else if (m.type === "vehicle.position.updated") dispatch({ type: "fleet", payload: m.vehicles });
+            else if (["hello"].includes(m.type)) { /* greeting */ }
+            else if (["agent_event", "alert"].includes(m.type)) dispatch({ type: "event", payload: m });
+            else dispatch({ type: "fleet_event", payload: m });
+            if (m.type === "incident_detected" || m.type === "fleet.incident.created") loadIncidents();
           } catch {}
         };
         ws.onclose = () => { dispatch({ type: "connected", payload: false }); timer = setTimeout(connect, 1500); };
