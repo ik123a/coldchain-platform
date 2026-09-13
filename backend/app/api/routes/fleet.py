@@ -49,6 +49,17 @@ async def vehicle(vid: str):
     return d
 
 
+@router.get("/vehicle/{vid}/history")
+async def vehicle_history(vid: str, window: str = "5m"):
+    """Capped telemetry history: window=5m|15m|1h|trip."""
+    if window not in ("5m", "15m", "1h", "trip"):
+        raise HTTPException(400, "window must be 5m|15m|1h|trip")
+    h = FLEET.history(vid, window)
+    if h is None:
+        raise HTTPException(404, "unknown vehicle")
+    return h
+
+
 @router.post("/vehicle/{vid}/inject")
 async def inject(vid: str, body: InjectIn):
     return await FLEET.inject(vid, body.failure)

@@ -47,6 +47,7 @@ class FleetOrchestrator:
         self.n_vehicles = n_vehicles
         self._tick_n = 0
         self.incident_db: dict[str, int] = {}     # vehicle_id -> Incident.id
+        self._incident_tel: dict[int, list[dict]] = {}  # incident_id -> deep-copied tel frames
         self._over_run: dict[str, int] = {}
         self._autonomous = True                    # AI decisions auto-apply (SIMULATION ONLY)
         self.event_ring: list[dict] = []
@@ -197,7 +198,17 @@ class FleetOrchestrator:
                 snaps = []
                 for vid, v in list(self.vehicles.items()):
                     factor = self.traffic.factor_for(v.origin_id, v.dest_id)
+                    v.sim_minute = self.sim_minute
                     s = v.step(dt, factor, self.traffic.ambient_c)
+                    # per-incident telemetry deep-copy (survives respawns)
+                    iid = self.incident_db.get(v.id)
+                    if iid is not None:
+                        self._incident_tel.setdefault(iid, []).append(
+                            dict(v._tel[-1]) if v._tel else
+                            {"min": round(self.sim_minute, 2), "speed": 0, "temp": 0,
+                             "humidity": 0, "energy": 0, "cargo_health": 0, "risk": 0})
+                        if len(self._incident_tel[iid]) > 2400:
+                            self._incident_tel[iid] = self._incident_tel[iid][-2400:]
                     delta = v.alerts_delta()
                     if delta:
                         self.alert_counts[v.id] = self.alert_counts.get(v.id, 0) + delta
@@ -573,6 +584,24 @@ class FleetOrchestrator:
         return {"snapshot": v.snapshot(),
                 "recent_events": [e for e in self.event_ring if e["payload"].get("vehicle_id") == vid][:30],
                 "geometry": v.geom[:120]}
+
+    # ---------------- telemetry history ----------------
+    def history(self, vid: str, window: str = "5m") -> dict | None:
+        """Slice the vehicle's capped telemetry buffer by sim-minute.
+
+        window: 5m | 15m | 1h | trip (whole buffer).
+        Returns {points, window, sim_minute} or None for unknown vehicle.
+        """
+        v = self.vehicles.get(vid)
+        if not v:
+            return None
+        span = {"5m": 5.0, "15m": 15.0, "1h": 60.0}.get(window)
+        pts = list(v._tel)
+        if window != "trip" and span is not None:
+            cutoff = self.sim_minute - span
+            pts = [p for p in pts if p["min"] >= cutoff]
+        return {"vehicle_id": vid, "window": window,
+                "sim_minute": round(self.sim_minute, 2), "points": pts}
 
 
 FLEET = FleetOrchestrator()

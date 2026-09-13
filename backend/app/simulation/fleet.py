@@ -21,6 +21,21 @@ BOX_PROFILES = {
 RISK_ORDER = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
 
 
+def _tel_append(self, snap: dict, sim_minute: float):
+    """Append one capped telemetry frame (2400-deep deque semantics via list slice)."""
+    self._tel.append({
+        "min": round(sim_minute, 2),
+        "speed": round(snap["speed_kmh"], 1),
+        "temp": snap["refrigeration"]["temperature"],
+        "humidity": snap["refrigeration"]["humidity"],
+        "energy": round(self.battery_pct if self.energy == "ELECTRIC" else self.fuel_pct, 1),
+        "cargo_health": snap["cargo"]["cargo_health"],
+        "risk": round(snap["cargo"]["risk_score"], 1),
+    })
+    if len(self._tel) > 2400:
+        self._tel = self._tel[-2400:]
+
+
 class VehicleTwin:
     def __init__(self, vid: str, kind: str, energy: str, driver: str, cargo_type: str,
                  load_units: int, capacity_units: int, origin_id: str, dest_id: str,
@@ -87,6 +102,8 @@ class VehicleTwin:
         self.over_ticks = 0
         self.risk: dict = {"score": 0.0, "level": "LOW"}
         self._snaps: list[dict] = []
+        self._tel: list[dict] = []          # capped per-world-tick telemetry
+        self.sim_minute = 0.0               # orchestrator stamps each tick
 
     # ---------------- per world tick ----------------
     def step(self, dt_min: float, traffic_factor: float, ambient_c: float) -> dict:
@@ -185,7 +202,9 @@ class VehicleTwin:
         # original ETA captured on first step; multi-ETA snapshot data
         if self.original_eta_min == 0.0:
             self.original_eta_min = self.eta_min()
-        return self.snapshot()
+        snap = self.snapshot()
+        _tel_append(self, snap, self.sim_minute)
+        return snap
 
     def eta_bundle(self) -> dict:
         cur = self.eta_min()
