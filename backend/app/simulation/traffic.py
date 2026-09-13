@@ -8,16 +8,27 @@ AMBIENT = {"NORMAL": 33.0, "HEATWAVE": 44.0, "RAIN": 27.0, "FOG": 25.0}
 
 
 class TrafficWorld:
-    def __init__(self, seed: int = 42):
+    def __init__(self, seed: int = 42, traffic_intensity: float = 1.0):
         self.rng = random.Random(seed)
+        self.intensity = max(0.1, float(traffic_intensity))
         self.segments: dict[str, str] = {}
         self.weather = "NORMAL"
         self.ambient_c = AMBIENT["NORMAL"]
 
+    def set_weather(self, w: str) -> str:
+        if w in AMBIENT:
+            self.weather = w
+            self.ambient_c = AMBIENT[w]
+        return self.weather
+
+    def _weights(self) -> list[float]:
+        n = self.intensity
+        return [6.0 / n, 3.0, 1.5 * (0.5 + n / 2), 0.5 * n]
+
     def level_for(self, origin_id: str, dest_id: str) -> str:
         key = f"{origin_id}>{dest_id}"
         if key not in self.segments or self.rng.random() < 0.02:
-            self.segments[key] = self.rng.choices(LEVELS, weights=[6, 3, 1.5, 0.5])[0]
+            self.segments[key] = self.rng.choices(LEVELS, weights=self._weights())[0]
         return self.segments[key]
 
     def factor_for(self, origin_id: str, dest_id: str) -> float:
@@ -32,4 +43,5 @@ class TrafficWorld:
 
     def state(self) -> dict:
         return {"weather": self.weather, "ambient_c": self.ambient_c,
+                "intensity": self.intensity,
                 "segments": dict(list(self.segments.items())[:40])}

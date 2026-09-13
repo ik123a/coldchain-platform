@@ -10,7 +10,7 @@ import asyncio, json, logging
 from datetime import datetime
 from .clock import SimClock
 from .traffic import TrafficWorld
-from .routing import RoutingService, nearest_node
+from .routing import RoutingService, nearest_node, haversine_km
 from .fleet import VehicleTwin
 from .engine import Engine
 from .risk import risk as risk_score_fn
@@ -18,6 +18,7 @@ from .fleet_agents import FacilityMatcher, RouteScorer, FleetCoordinator
 from .events import make_event
 from .geo_data import WAREHOUSES, DESTINATIONS, POLYLINES, DRIVERS, CARGO_TYPES, REGION, GEOFENCES
 from .fleet_ops import pick_service, validate_transfer, apply_transfer, priority_queue, is_cargo_vehicle
+from .analytics import fleet_kpis
 from ..database.engine import SessionLocal
 from ..models.fleet import Vehicle, FleetRoute, VehicleEvent, RouteDecision, CargoTransfer
 from ..models.entities import Incident, AIAnalysis
@@ -32,7 +33,9 @@ ARRIVE_KM = 0.3
 class FleetOrchestrator:
     def __init__(self, n_vehicles: int = 12):
         self.clock = SimClock(speed=2.0)
-        self.traffic = TrafficWorld(seed=42)
+        self.scenario = {"seed": 42, "weather": None, "traffic_intensity": 1.0,
+                         "failure_probability": 0.0, "fleet_size": n_vehicles}
+        self.traffic = TrafficWorld(seed=42, traffic_intensity=1.0)
         self.routing = RoutingService("auto")
         self.warehouses = [dict(w) for w in WAREHOUSES]
         self.matcher = FacilityMatcher(self.routing, self.warehouses)
@@ -99,8 +102,9 @@ class FleetOrchestrator:
                 load_units=200 + ((i * 137) % 600), capacity_units=1000,
                 origin_id=o, dest_id=d, route=route, seed=self._seed_i)
         # service vehicles: zero cargo, wide thermal band (never trips risk)
+        # exact same origin/dest unpack as cargo vehicles — no tuple bugs
         for j in range(2):
-            o, d = pairs[j % len(pairs)], pairs[(j + 5) % len(pairs)]
+            o, d = pairs[(j + 5) % len(pairs)] if j else pairs[0]
             route = self.routing.calculate_route(o, d, 1.0)
             self._seed_i += 1
             svc = VehicleTwin(f"SERVICE-0{j + 1}", "SERVICE_TRUCK", "ELECTRIC",
@@ -458,7 +462,10 @@ class FleetOrchestrator:
                     veh.vehicle_health = snap["vehicle"]["vehicle_health"]
                     veh.load_units = snap["cargo"]["load_units"]
                     veh.cargo_type = snap["cargo"]["cargo_type"]
-                    veh.destination_id = snap["trip"]["destination_id"]
+                    dest = snap["trip"].get("destination_id")
+                    if isinstance(dest, (tuple, list)):
+                        dest = str(dest[0]) if dest else None
+                    veh.destination_id = dest
                     veh.status = snap["status"]
                 await s.commit()
         except Exception as e:

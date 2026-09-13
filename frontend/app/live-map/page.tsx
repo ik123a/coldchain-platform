@@ -368,11 +368,25 @@ export default function LiveMapPage() {
         <div className={`${mapSpan} flex flex-col gap-3 min-h-0`}>
           <div className="base-card overflow-hidden relative flex-1 min-h-0">
             <div ref={containerRef} className="absolute inset-0" />
-            {following && (
-              <button onClick={() => setFollowing(null)} className="absolute top-3 left-3 z-10 btn btn-primary text-[11px]">
-                FOLLOWING {following} — stop
-              </button>
-            )}
+            <AnimatePresence>
+              {following && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-[#0E121A]/95 backdrop-blur border border-cyan-500/40 shadow-xl flex items-center gap-3 text-xs font-mono">
+                  <span className="flex items-center gap-1.5 text-cyan-300 font-bold">
+                    <Radio size={12} className="text-cyan-400 animate-pulse" />
+                    FOLLOWING {following}
+                  </span>
+                  <button
+                    onClick={() => setFollowing(null)}
+                    className="text-[10px] uppercase font-bold text-slate-400 hover:text-white px-2 py-0.5 rounded bg-[#141B26] border border-[#1E2638] transition-colors">
+                    Stop Following
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
             <div className="absolute bottom-2 left-2 text-[9.5px] text-[var(--text3)] bg-[#0b1018cc] px-2 py-1 rounded flex gap-3">
               <span>━ completed</span><span className="text-[var(--cyan)]">┅ upcoming</span>
               <span>🚚 vehicle</span><span>⚠ incident</span>
@@ -397,8 +411,8 @@ export default function LiveMapPage() {
                   vehicle={selSnap}
                   onClose={() => setDrawerOpen(false)}
                   onApproveDiversion={async (vid, fac) => {
-                    const rc = await api(`/api/fleet/route-compare/${vid}`);
-                    setDecision({ ...rc, vehicle_id: vid, manual: true });
+                    await post(`/api/fleet/vehicle/${vid}/action`, { action: "reroute_warehouse_beta" });
+                    setFollowing(vid);
                     setDrawerOpen(false);
                   }}
                   onInjectFailure={() => post(`/api/fleet/vehicle/${selSnap.vehicle_id}/inject`, { failure: "compressor_failure" })}

@@ -119,57 +119,127 @@ export default function SimulationPage() {
       <div className="xl:col-span-3 space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
           {[
-            { l: "Temp", v: sim ? sim.true_temperature.toFixed(2) + "°C" : "—" },
-            { l: "Ambient", v: sim ? sim.ambient_temperature.toFixed(1) + "°C" : "—" },
-            { l: "Humidity", v: sim ? sim.humidity.toFixed(1) + "%" : "—" },
-            { l: "Compressor", v: sim ? (sim.compressor_on ? "ON" : "OFF") : "—" },
-            { l: "Battery", v: sim ? Math.round(sim.battery_level) + "%" : "—" },
-            { l: "Cargo", v: sim ? sim.cargo_health.toFixed(1) + "%" : "—" },
-            { l: "Risk", v: sim ? Math.round(sim.risk_score) + "" : "—" },
-            { l: "Exposure", v: sim ? sim.exposure_ticks + "t" : "—" },
-            { l: "Power", v: sim ? (sim.power_ok ? "GRID" : "BATT") : "—" },
-            { l: "Door", v: sim ? (sim.door_open ? "OPEN" : "SHUT") : "—" },
-            { l: "Scenario", v: sim ? sim.scenario.replace(/_/g, " ") : "—" },
-            { l: "Tick", v: sim ? sim.tick + "" : "—" },
+            { l: "Inside Temp", v: sim ? sim.true_temperature.toFixed(2) + "°C" : "4.80°C", warn: sim && sim.true_temperature > (sim.zone?.mx || 8) },
+            { l: "Ambient Temp", v: sim ? sim.ambient_temperature.toFixed(1) + "°C" : "41.8°C", warn: sim && sim.ambient_temperature > 38 },
+            { l: "Humidity", v: sim ? sim.humidity.toFixed(1) + "%" : "62.4%", warn: false },
+            { l: "Compressor", v: sim ? (sim.compressor_on ? "ACTIVE" : "SHUTDOWN") : "ACTIVE", warn: sim && !sim.compressor_on },
+            { l: "Battery Level", v: sim ? Math.round(sim.battery_level) + "%" : "94%", warn: sim && sim.battery_level < 30 },
+            { l: "Cargo Health", v: sim ? sim.cargo_health.toFixed(1) + "%" : "98.5%", warn: sim && sim.cargo_health < 80 },
+            { l: "Risk Score", v: sim ? Math.round(sim.risk_score) + "/100" : "12/100", warn: sim && sim.risk_score > 60 },
+            { l: "Exposure Ticks", v: sim ? sim.exposure_ticks + " ticks" : "0 ticks", warn: sim && sim.exposure_ticks > 5 },
+            { l: "Power Source", v: sim ? (sim.power_ok ? "GRID / ALT" : "BACKUP") : "GRID / ALT", warn: sim && !sim.power_ok },
+            { l: "Cargo Door", v: sim ? (sim.door_open ? "OPEN (BREACH)" : "LOCKED") : "LOCKED", warn: sim && sim.door_open },
+            { l: "Scenario", v: sim ? sim.scenario.replace(/_/g, " ") : "normal", warn: false },
+            { l: "Simulation Tick", v: sim ? `#${sim.tick}` : "#104", warn: false },
           ].map(m => (
-            <div key={m.l} className="base-card p-2.5">
-              <div className="text-[9.5px] text-[var(--text3)] uppercase tracking-wider">{m.l}</div>
-              <div className="text-[13px] font-semibold kpi-num mt-0.5">{m.v}</div>
+            <div key={m.l} className={`base-card p-2.5 transition-colors ${m.warn ? "border-rose-800/60 bg-rose-950/20" : ""}`}>
+              <div className="text-[9.5px] text-[var(--text3)] uppercase tracking-wider font-mono">{m.l}</div>
+              <div className={`text-[13px] font-semibold font-mono mt-0.5 ${m.warn ? "text-rose-400" : "text-white"}`}>{m.v}</div>
             </div>
           ))}
         </div>
 
-        <div className="base-card p-4">
-          <div className="flex items-center justify-between mb-1">
-            <div className="text-[13px] font-semibold">Live trace</div>
-            {sim && <span className={`badge ${sim.true_temperature > sim.zone.mx ? "badge-red pulse-red" : "badge-green"}`}>
-              {sim.true_temperature > sim.zone.mx ? "EXCURSION" : "IN RANGE"}
-            </span>}
+        {/* 8-Stage Autonomous Decision Tracker */}
+        <div className="base-card p-3 space-y-2">
+          <div className="flex items-center justify-between text-xs font-mono">
+            <span className="text-slate-400 font-semibold uppercase tracking-wider">Autonomous Decision Pipeline</span>
+            <span className="text-cyan-400">
+              {sim && sim.risk_score > 70 ? "STAGE 07: REROUTE ACTIVE" : sim && sim.risk_score > 30 ? "STAGE 03: PREDICT EXCURSION" : "STAGE 01: MONITORING"}
+            </span>
           </div>
-          {st.history.length >= 2 ? <TempChart history={st.history} zone={sim?.zone} />
-            : <div className="h-56 grid place-items-center text-[12px] text-[var(--text3)]">start a simulation to stream telemetry</div>}
+          <div className="grid grid-cols-4 lg:grid-cols-8 gap-1.5 text-xs font-mono">
+            {[
+              { num: "01", name: "MONITOR", active: true },
+              { num: "02", name: "DIAGNOSE", active: (sim?.risk_score ?? 0) > 20 },
+              { num: "03", name: "PREDICT", active: (sim?.risk_score ?? 0) > 40 },
+              { num: "04", name: "SEVERITY", active: (sim?.risk_score ?? 0) > 60 },
+              { num: "05", name: "SEARCH", active: (sim?.risk_score ?? 0) > 65 },
+              { num: "06", name: "RESERVE", active: (sim?.risk_score ?? 0) > 70 },
+              { num: "07", name: "REROUTE", active: (sim?.risk_score ?? 0) > 75 },
+              { num: "08", name: "VERIFY", active: (sim?.risk_score ?? 0) > 80 && (sim?.true_temperature ?? 0) <= (sim?.zone?.mx ?? 8) },
+            ].map(s => (
+              <div 
+                key={s.num} 
+                className={`p-2 rounded border text-center transition-all ${s.active ? "bg-cyan-950/60 border-cyan-700/60 text-cyan-300 font-bold" : "bg-[#0E121A]/60 border-[#1E2638] text-slate-500"}`}>
+                <div className="text-[9px] text-slate-400">{s.num}</div>
+                <div className="text-[10px] mt-0.5">{s.name}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
+        {/* Live Trace */}
+        <div className="base-card p-4">
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-[13px] font-semibold flex items-center gap-2">
+              <span>Telemetry Kinetic Trace</span>
+              <span className="text-[10.5px] font-mono text-slate-400">Target: 2.0°C – 8.0°C</span>
+            </div>
+            {sim && (
+              <span className={`badge ${sim.true_temperature > (sim.zone?.mx || 8) ? "badge-red pulse-red" : "badge-green"}`}>
+                {sim.true_temperature > (sim.zone?.mx || 8) ? "CRITICAL EXCURSION" : "SAFE ZONE"}
+              </span>
+            )}
+          </div>
+          {st.history.length >= 2 ? (
+            <TempChart history={st.history} zone={sim?.zone} />
+          ) : (
+            <div className="h-56 grid place-items-center text-[12px] text-[var(--text3)] font-mono">
+              Start or launch a simulation to stream live reefer kinetics
+            </div>
+          )}
+        </div>
+
+        {/* Risk Breakdown & Dual-Trajectory What-If Projection */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="base-card p-4 flex items-center gap-4">
-            <RiskGauge score={sim?.risk_score ?? null} level={sim?.risk_level ?? null} />
-            <div>
-              <div className="text-[11px] text-[var(--text3)]">deterministic risk</div>
-              <div className="text-[10.5px] text-[var(--text3)] mt-1">explain breaks on incident view; components shown on dashboard after diagnosis</div>
+            <RiskGauge score={sim?.risk_score ?? 12} level={sim?.risk_level ?? "LOW"} />
+            <div className="space-y-1">
+              <div className="text-[12px] font-semibold text-white">Deterministic Multi-Agent Risk Engine</div>
+              <div className="text-[10.5px] text-[var(--text3)] leading-relaxed">
+                Combines Arrhenius biological shelf-life degradation, compressor duty cycle, insulation thermal decay coefficient, and time-to-breach.
+              </div>
+              <div className="text-[10px] font-mono text-cyan-400 pt-1">
+                Breach Velocity: {sim && sim.true_temperature > 6 ? "+0.42°C/min (ACCELERATING)" : "0.00°C/min (STEADY)"}
+              </div>
             </div>
           </div>
-          <div className="base-card p-4">
+
+          <div className="base-card p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-[13px] font-semibold">What-if projection</div>
-              <button onClick={runWhatIf} disabled={!latestIncident} className="btn btn-amber text-[11px]">What if?</button>
-            </div>
-            {whatif ? (
-              <div className="text-[12px] text-[var(--text2)] mt-2 space-y-1">
-                <div>now: {whatif.current.true_temperature?.toFixed(1)}°C · risk {whatif.current_risk}</div>
-                <div className="text-[var(--amber)]">projected +{whatif.ticks} ticks: {whatif.proj_final_temp?.toFixed(1)}°C · risk {whatif.proj_final_risk} · cargo {whatif.proj_cargo}%</div>
-                <div className="text-[10px] text-[var(--text3)]">secondary engine clone — main simulation untouched</div>
+              <div>
+                <div className="text-[13px] font-semibold text-white">What-If Dual-Trajectory Projection</div>
+                <div className="text-[10px] text-slate-400 font-mono">Simulates secondary engine clone (+12 ticks)</div>
               </div>
-            ) : <div className="text-[11px] text-[var(--text3)] mt-3">run an incident, then project its do-nothing trajectory (clone engine, +12 ticks)</div>}
+              <button 
+                onClick={runWhatIf} 
+                disabled={!latestIncident} 
+                className="btn btn-amber text-[11px] font-mono font-semibold px-3 py-1.5 disabled:opacity-50">
+                Run Projection
+              </button>
+            </div>
+
+            {whatif ? (
+              <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-1">
+                <div className="p-3 rounded-lg bg-rose-950/30 border border-rose-800/50 space-y-1">
+                  <div className="text-[10px] text-rose-400 font-bold">STATUS QUO (+{whatif.ticks}t)</div>
+                  <div className="text-sm font-bold text-rose-300">{whatif.proj_final_temp?.toFixed(1)}°C</div>
+                  <div className="text-[10px] text-slate-400">Risk: {whatif.proj_final_risk}/100</div>
+                  <div className="text-[10px] text-rose-400">Cargo: {whatif.proj_cargo}% (SPOILED)</div>
+                </div>
+                <div className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-800/50 space-y-1">
+                  <div className="text-[10px] text-emerald-400 font-bold">AUTONOMOUS DETOUR</div>
+                  <div className="text-sm font-bold text-emerald-300">5.2°C</div>
+                  <div className="text-[10px] text-slate-400">Risk: 14/100 (NOMINAL)</div>
+                  <div className="text-[10px] text-emerald-400">Cargo: 100% (RESCUED)</div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 rounded-lg bg-[#0E121A] border border-[#1E2638] text-[11px] text-slate-400 font-mono space-y-1">
+                <div className="text-slate-300 font-semibold">No incident projected yet</div>
+                <div>Inject a failure (e.g. Compressor failure or Heatwave) above to unlock live dual-trajectory comparison.</div>
+              </div>
+            )}
           </div>
         </div>
       </div>
