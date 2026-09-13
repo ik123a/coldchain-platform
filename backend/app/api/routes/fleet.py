@@ -4,6 +4,7 @@ import asyncio
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from ...simulation.fleet_orchestrator import FLEET
+from ...simulation.analytics import fleet_kpis
 from ...simulation.routing import RoutingService, nearest_node
 
 router = APIRouter(prefix="/api/fleet", tags=["fleet"])
@@ -109,6 +110,12 @@ async def truck_transfer(payload: dict):
     if not res.get("transferred"):
         raise HTTPException(409, res.get("reason", "transfer rejected"))
     return res
+
+
+@router.get("/analytics")
+async def analytics():
+    """Live fleet KPIs: twin aggregation + DB-counted events."""
+    return await fleet_kpis(FLEET)
 
 
 @router.get("/priority-queue")
