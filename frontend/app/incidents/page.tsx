@@ -1,19 +1,116 @@
 "use client";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { api, post } from "@/lib/api";
 import { useStore } from "@/lib/store";
-import { Siren } from "lucide-react";
+import { Play, Siren, X } from "lucide-react";
 
 const sevBadge = (s: string) => s === "CRITICAL" ? "badge-red" : s === "HIGH" ? "badge-amber" : "badge-cyan";
 const prioCls: Record<string, string> = { CRITICAL: "btn-red", HIGH: "btn-amber", MEDIUM: "", LOW: "" };
+
+function PlaybackModal({ incidentId, onClose }: { incidentId: number; onClose: () => void }) {
+  const [data, setData] = useState<any>(null);
+  const [idx, setIdx] = useState(0);
+  const [speed, setSpeed] = useState<1 | 5>(1);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    api(`/api/fleet/replay/${incidentId}`).then(setData);
+  }, [incidentId]);
+
+  const frames: any[] = data?.frames ?? [];
+  useEffect(() => {
+    if (timer.current) clearInterval(timer.current);
+    if (!frames.length) return;
+    timer.current = setInterval(() => {
+      setIdx(i => Math.min(frames.length - 1, i + 1));
+    }, 1000 / speed);
+    return () => { if (timer.current) clearInterval(timer.current); };
+  }, [frames.length, speed]);
+
+  const cur = frames[idx];
+  const temps = frames.filter((f: any) => f.kind === "telemetry").map((f: any) => f.data.temp as number);
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6"
+                onClick={onClose}>
+      <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }}
+                  onClick={e => e.stopPropagation()}
+                  className="base-card p-5 w-full max-w-2xl space-y-4 border-[var(--accent)]/40">
+        <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
+          <div>
+            <div className="text-base font-bold">Incident #{incidentId} replay</div>
+            {data && (
+              <div className="text-[11px] text-[var(--text2)]">
+                {data.incident.vehicle_id} · {data.incident.root_cause?.replace(/_/g, " ")} ·{" "}
+                <span className={data.incident.status === "RESOLVED" ? "text-[var(--green)]" : "text-[var(--amber)]"}>
+                  {data.incident.status}
+                </span>
+              </div>
+            )}
+          </div>
+          <button onClick={onClose} aria-label="Close replay" className="text-[var(--text2)] hover:text-white"><X size={16} /></button>
+        </div>
+
+        {!data && <div className="text-[var(--text3)] text-sm">loading frames…</div>}
+        {data && !frames.length && <div className="text-[var(--text3)] text-sm">no frames captured for this incident window.</div>}
+        {data && frames.length > 0 && (
+          <>
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1">
+                {[1, 5].map(sp => (
+                  <button key={sp} onClick={() => { setSpeed(sp as 1 | 5); setIdx(0); }}
+                          className={`px-2 py-1 rounded text-[11px] font-mono border ${speed === sp ? "border-[var(--accent)] text-[var(--accent)]" : "border-[var(--border)] text-[var(--text2)]"}`}>
+                    {sp}x
+                  </button>
+                ))}
+              </div>
+              <input type="range" min={0} max={frames.length - 1} value={idx} onChange={e => setIdx(+e.target.value)}
+                     className="flex-1 accent-[var(--accent)]" aria-label="scrub frames" />
+              <span className="text-[11px] text-[var(--text3)] font-mono">{idx + 1}/{frames.length}</span>
+            </div>
+
+            {/* text timeline */}
+            <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-lg p-3 min-h-[72px] text-[12px] leading-relaxed">
+              {cur.kind === "event" && (<span className={cur.data.severity === "critical" ? "text-[var(--red)]" : "text-[var(--text)]"}>
+                [{cur.data.severity}] {cur.data.description}</span>)}
+              {cur.kind === "route_decision" && (<span>
+                <b className="text-[var(--accent)]">{cur.data.decision}</b> — {cur.data.reason} <i className="text-[var(--text3)]">(confidence {cur.data.confidence})</i></span>)}
+              {cur.kind === "cargo_transfer" && (<span className="text-[var(--green)]">
+                transferred {cur.data.units}u → {cur.data.facility_id} (health {cur.data.health_pct}%)</span>)}
+              {cur.kind === "telemetry" && (<span className="font-mono text-[11px]">
+                sim {cur.data.min} · {cur.data.speed} km/h · <b className={cur.data.temp > 8 ? "text-[var(--red)]" : ""}>{cur.data.temp}°C</b> · risk {cur.data.risk} · cargo {cur.data.cargo_health}%</span>)}
+              <div className="text-[9.5px] text-[var(--text3)] mt-1 font-mono">t+{cur.sim_minute} sim-min · kind: {cur.kind}</div>
+            </div>
+
+            {/* temp strip */}
+            {temps.length > 1 && (
+              <div>
+                <div className="text-[10px] text-[var(--text3)] mb-1 font-mono">temperature frames ({temps.length})</div>
+                <div className="flex gap-[2px] h-8 items-end">
+                  {temps.slice(-60).map((t: number, i: number) => (
+                    <div key={i} className="flex-1 rounded-sm"
+                         style={{ height: `${Math.min(100, Math.max(4, (t / 12) * 100))}%`,
+                                  background: t > 8 ? "var(--red)" : t > 6 ? "var(--amber)" : "var(--green)", opacity: 0.85 }} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
 
 function IncidentsInner() {
   const { st, dispatch } = useStore();
   const params = useSearchParams();
   const [selected, setSelected] = useState<any>(null);
   const [executing, setExecuting] = useState<string>("");
+  const [replayingId, setReplayingId] = useState<number | null>(null);
 
   const selId = st.selectedIncident || (params.get("id") ? +params.get("id")! : st.incidents[0]?.id);
 
@@ -47,6 +144,12 @@ function IncidentsInner() {
                 <span className={`badge ${sevBadge(i.severity)}`}>{i.severity}</span>
               </div>
               <div className="text-[10.5px] text-[var(--text3)] mt-0.5">{i.status} · peak {i.peak_temperature?.toFixed(1)}°C · tick {i.detected_tick}</div>
+              {i.simulation_id === 0 && (
+                <button onClick={e => { e.stopPropagation(); setReplayingId(i.id); }}
+                        className="mt-1.5 flex items-center gap-1 text-[10.5px] font-mono text-[var(--accent)] hover:underline">
+                  <Play size={10} /> REPLAY
+                </button>
+              )}
             </button>
           ))}
           {!st.incidents.length && <div className="text-[12px] text-[var(--text3)] p-4">no incidents recorded yet</div>}
@@ -184,6 +287,10 @@ function IncidentsInner() {
           </>
         )}
       </div>
+
+      <AnimatePresence>
+        {replayingId != null && <PlaybackModal incidentId={replayingId} onClose={() => setReplayingId(null)} />}
+      </AnimatePresence>
     </div>
   );
 }
