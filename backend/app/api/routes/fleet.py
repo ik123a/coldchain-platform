@@ -22,6 +22,10 @@ class SpeedIn(BaseModel):
     speed: float = Field(ge=0.25, le=100)
 
 
+class WeatherIn(BaseModel):
+    weather: str = Field(pattern="^(NORMAL|HEATWAVE|RAIN|FOG)$")
+
+
 class RebuildIn(BaseModel):
     fleet_size: int = Field(default=12, ge=1, le=60)
     seed: int = Field(default=42, ge=0)
@@ -78,6 +82,12 @@ async def inject_random():
 @router.post("/speed")
 async def speed(body: SpeedIn):
     return {"speed": FLEET.set_speed(body.speed)}
+
+
+@router.post("/weather")
+async def weather(body: WeatherIn):
+    """Force a weather state (demo lever; emits weather.changed)."""
+    return {"weather": FLEET.set_weather(body.weather)}
 
 
 @router.post("/pause")

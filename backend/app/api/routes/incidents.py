@@ -5,7 +5,7 @@ from sqlalchemy import select
 from ...database.engine import get_db
 from ...models.entities import Incident, AIAnalysis, RecommendedAction, SensorReading, Simulation, Shipment
 from ...schemas.dto import IncidentOut, AskIn, ExecuteActionIn
-from ...simulation.runner import RUNNERS
+from ...simulation.runner import RUNNERS, mark_action_claimed
 from ...simulation.engine import Engine
 from ...simulation.risk import risk
 

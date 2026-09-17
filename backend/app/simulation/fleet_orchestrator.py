@@ -57,6 +57,7 @@ class FleetOrchestrator:
         self._last_weather: str | None = None
         self._traffic_snap: dict[str, str] = {}
         self._geo_state: dict[str, str | None] = {}
+        self._driver_state: dict[str, str] = {}
         import random as _r
         self._world_rng = _r.Random(42)
 
@@ -117,6 +118,11 @@ class FleetOrchestrator:
     def set_speed(self, speed: float) -> float:
         return self.clock.set_speed(speed)
 
+    def set_weather(self, weather: str) -> str:
+        """Force a weather override (demo lever). Returns the applied state."""
+        self.scenario["weather"] = weather
+        return self.traffic.set_weather(weather)
+
     def toggle_pause(self) -> bool:
         self.paused = not self.paused
         return self.paused
@@ -145,6 +151,18 @@ class FleetOrchestrator:
 
     # ---------------- fleet spawning ----------------
     def _spawn_fleet(self):
+        # fresh world: reset per-world tracking so a same-seed rebuild re-emits
+        # spawn-time zone entries, weather diffs, and alert counts
+        self._geo_state = {}
+        self._driver_state = {}
+        self._over_run = {}
+        self.incident_db = {}
+        self._incident_tel = {}
+        self.alert_counts = {}
+        self._traffic_snap = {}
+        self._last_weather = None
+        self.sim_minute = 0.0
+        self._tick_n = 0
         self.vehicles = {}
         rng = self._world_rng
         pairs = [(o, d) for (o, d) in POLYLINES.keys()]
@@ -218,6 +236,7 @@ class FleetOrchestrator:
                     await self._check_incident(v, s)
                     await self._check_arrival(v)
                     await self._check_geofence(v)
+                    await self._check_idling(v, s)
                 # weather / traffic world events
                 w = self.traffic.maybe_weather()
                 if w != self._last_weather:
@@ -248,6 +267,21 @@ class FleetOrchestrator:
             log.exception("fleet loop unhandled error: %s", e)
 
     # ---------------- geofence checks ----------------
+    async def _check_idling(self, v: VehicleTwin, snap: dict):
+        """Emit vehicle.idling / vehicle.stopped on the corresponding state transition."""
+        dstate = snap["driver"]["state"]
+        prev = self._driver_state.get(v.id)
+        if dstate == prev:
+            return
+        self._driver_state[v.id] = dstate
+        if dstate == "IDLE":
+            await BROADCAST.emit(0, "vehicle.idling",
+                                 {"vehicle_id": v.id, "sim_minute": round(self.sim_minute, 2),
+                                  "idle_min": round(v.idle_min, 1)})
+        elif prev == "IDLE" and dstate == "DRIVING":
+            await BROADCAST.emit(0, "vehicle.stopped",
+                                 {"vehicle_id": v.id, "sim_minute": round(self.sim_minute, 2)})
+
     async def _check_geofence(self, v: VehicleTwin):
         from .geo_data import geofence_for
         cur = geofence_for(v.lat, v.lng)
@@ -453,11 +487,27 @@ class FleetOrchestrator:
         ok, why = validate_transfer(donor, receiver)
         if not ok:
             return {"transferred": False, "reason": why}
-        res = apply_transfer(donor, receiver)
-        await self._evt(donor, f"Cargo transfer {donor_id} → {receiver_id}: {res['units']}u", "warning")
-        await BROADCAST.emit(0, "cargo.transferred.truck",
-                             {"from": donor_id, "to": receiver_id, **res})
-        return {"transferred": True, "from": donor_id, "to": receiver_id, **res}
+
+        async def _progress():
+            """Cargo hand-off runs over ~6 world ticks: emit 0→100% progress,
+            then apply + broadcast completion (cargo.transfer.progress)."""
+            for pct in (0, 20, 40, 60, 80, 100):
+                await asyncio.sleep(0.25)
+                await BROADCAST.emit(0, "cargo.transfer.progress",
+                                     {"from": donor_id, "to": receiver_id,
+                                      "progress_pct": pct})
+            if donor_id not in self.vehicles or receiver_id not in self.vehicles:
+                await self._evt(donor, f"Transfer {donor_id} → {receiver_id} aborted "
+                              "(vehicle left the fleet)", "warning")
+                return
+            res = apply_transfer(donor, receiver)
+            await self._evt(donor, f"Cargo transfer {donor_id} → {receiver_id}: {res['units']}u",
+                            "warning")
+            await BROADCAST.emit(0, "cargo.transferred.truck",
+                                 {"from": donor_id, "to": receiver_id, **res})
+        asyncio.create_task(_progress())
+        return {"transferred": True, "from": donor_id, "to": receiver_id,
+                "note": "progress 0→100 over ~6 ticks, then completion"}
 
     def priority_queue(self) -> list[dict]:
         return priority_queue(self.vehicles, self.incident_db)
