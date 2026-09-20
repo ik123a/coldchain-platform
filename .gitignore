@@ -10,3 +10,33 @@ logs.txt
 
 .env
 *.env
+
+# Auto-added safety ignores for large files and temp data
+.venv/
+venv/
+env/
+*.pyo
+dist/
+build/
+.gradle/
+local.properties
+*.iml
+.idea/libraries/
+.idea/caches/
+*.h5
+*.pt
+*.bin
+*.gguf
+*.zst
+*.tar.gz
+*.iso
+*.vmdk
+*.dll
+*.exe
+*.zip
+*.7z
+*.rar
+.turbo/
+/frontend/.next/cache/webpack/client-production/0.pack
+/frontend/.next/cache/webpack/server-production/0.pack
+/frontend/node_modules/@next/swc-win32-x64-msvc/next-swc.win32-x64-msvc.node
