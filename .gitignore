@@ -5,6 +5,8 @@ node_modules/
 coldchain.db
 frontend_dev.log
 logs.txt
+*.tsbuildinfo
+.pytest_cache/
 
 .env
 *.env

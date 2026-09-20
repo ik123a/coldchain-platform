@@ -51,13 +51,16 @@ class RoutingService:
         if key in self._cache:
             return self._cache[key]
         if self.provider in ("auto", "osrm") and self._osrm_ok:
-            try:
-                rt = self._osrm(origin_id, dest_id, traffic_factor)
-            except Exception:
-                self._osrm_ok = False
-                if self.provider == "osrm":
-                    raise
-                rt = None
+            rt = None
+            for attempt in (1, 2):
+                try:
+                    rt = self._osrm(origin_id, dest_id, traffic_factor)
+                    break
+                except Exception:
+                    if attempt == 2:
+                        self._osrm_ok = False
+                        if self.provider == "osrm":
+                            raise
         else:
             rt = None
         if rt is None:
@@ -71,7 +74,9 @@ class RoutingService:
                f"{o[0]},{o[1]};{d[0]},{d[1]}?overview=full&geometries=geojson")
         with urllib.request.urlopen(url, timeout=4) as r:
             data = json.load(r)
-        rt = data["routes"][0]
+        rt = data["routes"][0] if data.get("routes") else None
+        if rt is None or data.get("code", "Ok") not in ("Ok", "FoundRoute"):
+            raise ValueError(f"OSRM reported {data.get('code')} for {origin_id}->{dest_id}")
         pts = [[p[0], p[1]] for p in rt["geometry"]["coordinates"]]
         step = 2 if len(pts) > 200 else 1
         pts = pts[::step]
@@ -80,8 +85,10 @@ class RoutingService:
 
     def _fallback(self, origin_id, dest_id, traffic_factor) -> dict:
         nodes = _nodes()
-        # deterministic per-pair jitter for the dogleg so different pairs differ
-        seed_src = (hash(origin_id) ^ hash(dest_id)) & 0xFFFF
+        # stable per-pair jitter: str-hash, immune to PYTHONHASHSEED randomization
+        seed_src = 0
+        for ch in f"{origin_id}->{dest_id}":
+            seed_src = (seed_src * 31 + ord(ch)) & 0xFFFF
         key = (origin_id, dest_id)
         rev = (dest_id, origin_id)
         if key in POLYLINES:

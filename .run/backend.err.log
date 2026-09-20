@@ -1,0 +1,20 @@
+INFO:     Started server process [29212]
+INFO:     Waiting for application startup.
+2026-09-17 18:35:54,592 INFO coldchain: database ready (auto-created tables)
+2026-09-17 18:35:54,594 INFO coldchain: fleet world started (12 vehicles)
+2026-09-17 18:36:10,589 INFO fleet: fleet started with 14 vehicles
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2026-09-17 19:13:52,574 ERROR fleet: fleet loop unhandled error: 
+Traceback (most recent call last):
+  File "D:\Projects\capstone project\coldchain-platform\backend\app\simulation\fleet_orchestrator.py", line 237, in _run
+    await self._check_arrival(v)
+  File "D:\Projects\capstone project\coldchain-platform\backend\app\simulation\fleet_orchestrator.py", line 405, in _check_arrival
+    await self._evt(v, f"{v.id} arrived at {v.dest_id} — delivered {units}u", "info")
+  File "D:\Projects\capstone project\coldchain-platform\backend\app\simulation\fleet_orchestrator.py", line 576, in _evt
+    await s.commit()
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 999, in commit
+    await greenlet_spawn(self.sync_session.commit)
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 190, in greenlet_spawn
+    result = context.switch(*args, **kwargs)
+MemoryError
