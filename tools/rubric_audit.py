@@ -196,7 +196,27 @@ print("\n" + "=" * 100)
 print("VERIFIABLE GAPS (probed against the filesystem, not hardcoded)")
 print("=" * 100)
 real_gaps = []
-if not (REPO / "REPORT.md").exists() and not list(REPO.glob("docs/*[Rr][Ee][Pp][Oo][Rr][Tt]*.md")):
+# A SKELETON is not the deliverable. REPORT-OUTLINE.md is scaffolding, so a
+# glob for "*report*.md" would falsely close the Report gap the moment that
+# file was committed -- which is exactly what happened. Require real prose:
+# substantial length AND paragraph-shaped lines, not a heading/table map.
+def looks_like_finished_report() -> bool:
+    for p in list(REPO.glob("docs/*[Rr][Ee][Pp][Oo][Rr][Tt]*.md")) + list(REPO.glob("*.md")):
+        if "OUTLINE" in p.name.upper() or "SKELETON" in p.name.upper():
+            continue
+        try:
+            t = p.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        words = len(t.split())
+        prose = [l for l in t.splitlines()
+                 if len(l.split()) > 18 and not l.lstrip().startswith(("|", "#", "-", "*"))]
+        if words >= 3000 and len(prose) >= 25:
+            return True
+    return False
+
+
+if not looks_like_finished_report():
     real_gaps.append(("Report", "No mini-report draft (20-30 pp required for the final panel)", "HIGH"))
 if not list(REPO.glob("**/*.pptx")) and not list(REPO.glob("**/*[Ss]lides*.md")):
     real_gaps.append(("Presentation", "No slide deck in repo (10-15 min group presentation)", "MEDIUM"))
