@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ColdChain Rescue — Use-Case Diagram</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#020617;color:#e2e8f0;font-family:'JetBrains Mono',monospace;padding:32px}
+  h1{font-size:22px;font-weight:700;letter-spacing:-.02em}
+  h1 .pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:#34d399;margin-right:10px;animation:p 2s infinite}
+  @keyframes p{0%,100%{opacity:1}50%{opacity:.35}}
+  .sub{color:#64748b;font-size:12px;margin:8px 0 4px}
+  .meta{color:#475569;font-size:10px;margin-bottom:24px}
+  .card{border:1px solid #1e293b;border-radius:10px;background:#0b1220;padding:0;overflow:hidden;margin-bottom:24px}
+  svg{display:block;width:100%;height:auto}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+  .ic{border:1px solid #1e293b;border-radius:8px;background:#0f172a;padding:14px}
+  .ic h3{font-size:12px;font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+  .ic .d{width:8px;height:8px;border-radius:2px}
+  .ic ul{list-style:none;font-size:10.5px;color:#94a3b8;line-height:1.85}
+  .ic li::before{content:"• ";color:#475569}
+  .foot{color:#334155;font-size:9px;margin-top:8px;line-height:1.7}
+  .lbl{font-size:11px;fill:#e2e8f0}
+  .lbl-s{font-size:9px;fill:#94a3b8}
+  .lbl-t{font-size:7.5px;fill:#64748b}
+  .uc{fill:rgba(6,78,59,.4);stroke:#34d399;stroke-width:1.5}
+  .sys{fill:rgba(8,51,68,.4);stroke:#22d3ee;stroke-width:1.5}
+  .ext{fill:rgba(30,41,59,.5);stroke:#94a3b8;stroke-width:1.2;stroke-dasharray:4,3}
+  .rel{stroke:#475569;stroke-width:1.1;fill:none}
+  .assoc{stroke:#64748b;stroke-width:1.1;fill:none;stroke-dasharray:3,2}
+</style>
+</head>
+<body>
+
+<h1><span class="pulse"></span>ColdChain Rescue — Use-Case Diagram</h1>
+<div class="sub">CBCA301 Capstone · Milestone-2 deliverable: "Use-case diagram and appropriate UML/DFD/flow diagrams"</div>
+<div class="meta">54 API endpoints across 11 route modules, derived from <code>backend/app/api/routes/*.py</code> · actors from the stakeholder analysis · 27 Sep 2026</div>
+
+<div class="card">
+<svg viewBox="0 0 1400 880" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+    <marker id="arw" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="1400" height="880" fill="url(#grid)"/>
+
+  <!-- ============ ACTORS (left) ============ -->
+  <g>
+    <rect x="30" y="70"  width="150" height="54" rx="6" fill="#0f172a"/>
+    <rect x="30" y="70"  width="150" height="54" rx="6" class="ext"/>
+    <text x="105" y="93"  class="lbl" text-anchor="middle">Dispatcher</text>
+    <text x="105" y="108" class="lbl-s" text-anchor="middle">PRIMARY USER</text>
+
+    <rect x="30" y="180" width="150" height="54" rx="6" fill="#0f172a"/>
+    <rect x="30" y="180" width="150" height="54" rx="6" class="ext"/>
+    <text x="105" y="203" class="lbl" text-anchor="middle">Logistics Mgr</text>
+    <text x="105" y="218" class="lbl-s" text-anchor="middle">analytics</text>
+
+    <rect x="30" y="290" width="150" height="54" rx="6" fill="#0f172a"/>
+    <rect x="30" y="290" width="150" height="54" rx="6" class="ext"/>
+    <text x="105" y="313" class="lbl" text-anchor="middle">Quality Officer</text>
+    <text x="105" y="328" class="lbl-s" text-anchor="middle">excursion audit</text>
+
+    <rect x="30" y="400" width="150" height="54" rx="6" fill="#0f172a"/>
+    <rect x="30" y="400" width="150" height="54" rx="6" class="ext"/>
+    <text x="105" y="423" class="lbl" text-anchor="middle">Driver</text>
+    <text x="105" y="438" class="lbl-s" text-anchor="middle">receives action</text>
+
+    <rect x="30" y="510" width="150" height="54" rx="6" fill="#0f172a"/>
+    <rect x="30" y="510" width="150" height="54" rx="6" class="ext"/>
+    <text x="105" y="533" class="lbl" text-anchor="middle">Auditor</text>
+    <text x="105" y="548" class="lbl-s" text-anchor="middle">reproducibility</text>
+  </g>
+
+  <!-- ============ SYSTEM BOUNDARY ============ -->
+  <rect x="215" y="45" width="800" height="790" rx="12" fill="none"
+        stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="8,4" opacity="0.5"/>
+  <text x="232" y="66" class="lbl-t" fill="#fbbf24">SYSTEM BOUNDARY — ColdChain Rescue</text>
+
+  <!-- ============ USE CASES ============ -->
+  <g>
+    <!-- UC1 Monitor live fleet -->
+    <rect x="330" y="88" width="270" height="56" rx="6" fill="#0f172a"/>
+    <rect x="330" y="88" width="270" height="56" rx="6" class="uc"/>
+    <text x="465" y="110" class="lbl" text-anchor="middle">UC-01 · Monitor live fleet</text>
+    <text x="465" y="127" class="lbl-s" text-anchor="middle">GET /state · /vehicle/{vid} · /history</text>
+
+    <!-- UC2 Detect excursion -->
+    <rect x="330" y="160" width="270" height="56" rx="6" fill="#0f172a"/>
+    <rect x="330" y="160" width="270" height="56" rx="6" class="uc"/>
+    <text x="465" y="182" class="lbl" text-anchor="middle">UC-02 · Detect excursion</text>
+    <text x="465" y="199" class="lbl-s" text-anchor="middle">cargo-class band check · 6 agents</text>
+
+    <!-- UC3 Raise & track incident -->
+    <rect x="640" y="88" width="270" height="56" rx="6" fill="#0f172a"/>
+    <rect x="640" y="88" width="270" height="56" rx="6" class="uc"/>
+    <text x="775" y="110" class="lbl" text-anchor="middle">UC-03 · Raise / track incident</text>
+    <text x="775" y="127" class="lbl-s" text-anchor="middle">GET /incidents · /{iid} · priority-queue</text>
+
+    <!-- UC4 Act on incident -->
+    <rect x="640" y="160" width="270" height="56" rx="6" fill="#0f172a"/>
+    <rect x="640" y="160" width="270" height="56" rx="6" class="uc"/>
+    <text x="775" y="182" class="lbl" text-anchor="middle">UC-04 · Act on incident</text>
+    <text x="775" y="199" class="lbl-s" text-anchor="middle">POST /{iid}/action · /vehicle/{vid}/action</text>
+
+    <!-- UC5 Verify recovery -->
+    <rect x="640" y="232" width="270" height="56" rx="6" fill="#0f172a"/>
+    <rect x="640" y="232" width="270" height="56" rx="6" class="uc"/>
+    <text x="775" y="254" class="lbl" text-anchor="middle">UC-05 · Verify recovery</text>
+    <text x="775" y="271" class="lbl-s" text-anchor="middle">RecoveryVerifier → RESOLVED (no timeout)</text>
+
+    <!-- UC6 Run simulation -->
+    <rect x="330" y="232" width="270" height="56" rx="6" fill="#0f172a"/>
+    <rect x="330" y="232" width="270" height="56" rx="6" class="uc"/>
+    <text x="465" y="254" class="lbl" text-anchor="middle">UC-06 · Run simulation</text>
+    <text x="465" y="271" class="lbl-s" text-anchor="middle">POST /simulations · /start · /pause · /speed</text>
+
+    <!-- UC7 Inject failure / world event -->
+    <rect x="330" y="304" width="270" height="56" rx="6" fill="#0f172a"/>
+    <rect x="330" y="304" width="270" height="56" rx="6" class="uc"/>
+    <text x="465" y="326" class="lbl" text-anchor="middle">UC-07 · Inject failure / weather</text>
+    <text x="465" y="343" class="lbl-s" text-anchor="middle">/failure/{cause} · /weather · /inject</text>
+
+    <!-- UC8 Analyse performance -->
+    <rect x="640" y="304" width="270" height="56" rx="6" fill="#0f172a"/>
+    <rect x="640" y="304" width="270" height="56" rx="6" class="uc"/>
+    <text x="775" y="326" class="lbl" text-anchor="middle">UC-08 · Analyse KPIs</text>
+    <text x="775" y="343" class="lbl-s" text-anchor="middle">GET /analytics · /dashboard · /fleet/analytics</text>
+
+    <!-- UC9 Replay incident -->
+    <rect x="330" y="376" width="270" height="56" rx="6" fill="#0f172a"/>
+    <rect x="330" y="376" width="270" height="56" rx="6" class="uc"/>
+    <text x="465" y="398" class="lbl" text-anchor="middle">UC-09 · Replay incident</text>
+    <text x="465" y="415" class="lbl-s" text-anchor="middle">GET /replay/{incident_id}</text>
+
+    <!-- UC10 Explain decision -->
+    <rect x="640" y="376" width="270" height="56" rx="6" fill="#0f172a"/>
+    <rect x="640" y="376" width="270" height="56" rx="6" class="uc"/>
+    <text x="775" y="398" class="lbl" text-anchor="middle">UC-10 · Explain decision</text>
+    <text x="775" y="415" class="lbl-s" text-anchor="middle">POST /ask-ai · /what-if  (DETERMINISTIC)</text>
+
+    <!-- UC11 Generate report -->
+    <rect x="485" y="448" width="270" height="56" rx="6" fill="#0f172a"/>
+    <rect x="485" y="448" width="270" height="56" rx="6" class="uc"/>
+    <text x="620" y="470" class="lbl" text-anchor="middle">UC-11 · Generate report</text>
+    <text x="620" y="487" class="lbl-s" text-anchor="middle">GET /reports/{iid}.json · .pdf</text>
+
+    <!-- UC12 Authenticate -->
+    <rect x="485" y="520" width="270" height="56" rx="6" fill="#0f172a"/>
+    <rect x="485" y="520" width="270" height="56" rx="6" class="sys"/>
+    <text x="620" y="542" class="lbl" text-anchor="middle">UC-12 · Authenticate</text>
+    <text x="620" y="559" class="lbl-s" text-anchor="middle">POST /login · /register · GET /me</text>
+  </g>
+
+  <!-- ============ <<include>> DEPENDENCIES ============ -->
+  <g opacity="0.95">
+    <path class="rel" d="M600 116 L640 116" marker-end="url(#arw)"/>
+    <text x="620" y="110" class="lbl-t" text-anchor="middle" fill="#fbbf24">«include»</text>
+
+    <path class="rel" d="M775 144 L775 160" marker-end="url(#arw)"/>
+    <text x="800" y="156" class="lbl-t" fill="#fbbf24">«include»</text>
+
+    <path class="rel" d="M775 216 L775 232" marker-end="url(#arw)"/>
+    <text x="800" y="228" class="lbl-t" fill="#fbbf24">«include»</text>
+
+    <path class="rel" d="M775 288 L775 304" marker-end="url(#arw)"/>
+    <text x="800" y="300" class="lbl-t" fill="#fbbf24">«include»</text>
+
+    <path class="rel" d="M600 260 L640 260" marker-end="url(#arw)"/>
+    <text x="620" y="254" class="lbl-t" text-anchor="middle" fill="#fbbf24">«extend»</text>
+  </g>
+
+  <!-- ============ ASSOCIATIONS ============ -->
+  <g>
+    <path class="assoc" d="M180 97 L330 110"/>
+    <path class="assoc" d="M180 97 L465 168"/>
+    <path class="assoc" d="M180 97 L640 254"/>
+
+    <path class="assoc" d="M180 207 L640 110"/>
+    <path class="assoc" d="M180 207 L775 326"/>
+
+    <path class="assoc" d="M180 317 L775 110"/>
+    <path class="assoc" d="M180 317 L775 188"/>
+
+    <path class="assoc" d="M180 427 L640 188"/>
+    <path class="assoc" d="M180 427 L775 404"/>
+
+    <path class="assoc" d="M180 537 L465 260"/>
+    <path class="assoc" d="M180 537 L465 332"/>
+    <path class="assoc" d="M180 537 L465 404"/>
+  </g>
+
+  <!-- ============ EXTERNAL SYSTEM ============ -->
+  <g>
+    <rect x="1055" y="150" width="220" height="60" rx="6" fill="#0f172a"/>
+    <rect x="1055" y="150" width="220" height="60" rx="6" class="ext"/>
+    <text x="1165" y="174" class="lbl" text-anchor="middle">Gemini / OpenAI</text>
+    <text x="1165" y="191" class="lbl-s" text-anchor="middle">design-reference ONLY</text>
+
+    <rect x="1055" y="240" width="220" height="60" rx="6" fill="#0f172a"/>
+    <rect x="1055" y="240" width="220" height="60" rx="6" class="ext"/>
+    <text x="1165" y="264" class="lbl" text-anchor="middle">SQLite</text>
+    <text x="1165" y="281" class="lbl-s" text-anchor="middle">15 tables · persistent record</text>
+
+    <rect x="1055" y="330" width="220" height="60" rx="6" fill="#0f172a"/>
+    <rect x="1055" y="330" width="220" height="60" rx="6" class="ext"/>
+    <text x="1165" y="354" class="lbl" text-anchor="middle">MapLibre GL</text>
+    <text x="1165" y="371" class="lbl-s" text-anchor="middle">GeoJSON veh + trail sources</text>
+  </g>
+
+  <path class="rel" d="M910 404 L1055 190" stroke-dasharray="4,3" marker-end="url(#arw)" opacity="0.7"/>
+  <text x="985" y="288" class="lbl-t" fill="#fb7185" transform="rotate(-38 985 288)">design assets</text>
+
+  <path class="rel" d="M1015 660 L1165 300" marker-end="url(#arw)" opacity="0.7"/>
+  <path class="rel" d="M1015 116 L1165 262" marker-end="url(#arw)" opacity="0.7"/>
+  <path class="rel" d="M1015 404 L1165 356" marker-end="url(#arw)" opacity="0.7"/>
+
+  <!-- ============ LEGEND (outside boundary) ============ -->
+  <g transform="translate(30, 690)">
+    <text x="0" y="0" class="lbl" font-weight="700">LEGEND</text>
+    <rect x="0" y="16" width="22" height="14" rx="3" class="uc"/>
+    <text x="32" y="27" class="lbl-s">Use case (in system)</text>
+    <rect x="0" y="40" width="22" height="14" rx="3" class="sys"/>
+    <text x="32" y="51" class="lbl-s">Cross-cutting use case</text>
+    <rect x="0" y="64" width="22" height="14" rx="3" class="ext"/>
+    <text x="32" y="75" class="lbl-s">Actor / external system</text>
+    <line x1="0" y1="94" x2="22" y2="94" class="rel"/>
+    <text x="32" y="98" class="lbl-s">«include» — always invoked</text>
+    <line x1="0" y1="112" x2="22" y2="112" class="assoc"/>
+    <text x="32" y="116" class="lbl-s">Association — actor uses case</text>
+    <rect x="0" y="130" width="22" height="14" rx="4" fill="none" stroke="#fbbf24"
+          stroke-dasharray="4,2" opacity="0.6"/>
+    <text x="32" y="141" class="lbl-s">System boundary</text>
+  </g>
+
+  <!-- ============ KEY INVARIANT ============ -->
+  <g transform="translate(330, 610)">
+    <rect width="580" height="200" rx="8" fill="#0f172a" stroke="#34d399" stroke-width="1.2" opacity="0.9"/>
+    <text x="18" y="26" class="lbl" fill="#34d399" font-weight="700">Key invariant — no LLM in the operational path</text>
+    <text x="18" y="50"  class="lbl-s">UC-02 → UC-05 run entirely in deterministic Python (15 modules, 6 agents).</text>
+    <text x="18" y="70"  class="lbl-s">Same seed + inputs ⇒ byte-identical output, so every result is reproducible.</text>
+    <text x="18" y="90"  class="lbl-s">UC-10 "ask-ai" is deterministic explanation, NOT a model call.</text>
+    <text x="18" y="116" class="lbl-s" fill="#fb7185">The Gemini/OpenAI dependency is reachable only via UC-12-adjacent design-reference</text>
+    <text x="18" y="132" class="lbl-s" fill="#fb7185">routes and generates design assets. It cannot influence any decision in this</text>
+    <text x="18" y="148" class="lbl-s" fill="#fb7185">diagram. The UI asserts ai_mode = DETERMINISTIC-AGENTS to keep that honest.</text>
+    <text x="18" y="176" class="lbl-t">Rationale: the rubric scores "reproducible results". An LLM decision layer would forfeit it.</text>
+  </g>
+</svg>
+</div>
+
+<div class="cards">
+  <div class="ic">
+    <h3><span class="d" style="background:#34d399"></span>Actor → Use-case map</h3>
+    <ul>
+      <li>Dispatcher → UC-01, 02, 04, 05 <b>(primary)</b></li>
+      <li>Logistics Manager → UC-03, 08</li>
+      <li>Quality Officer → UC-03, 05, 11</li>
+      <li>Driver → UC-04, 07 (receives action)</li>
+      <li>Auditor → UC-06, 09, 12</li>
+    </ul>
+  </div>
+  <div class="ic">
+    <h3><span class="d" style="background:#22d3ee"></span>Relationships</h3>
+    <ul>
+      <li>UC-01 «include» UC-03 — monitoring always tracks incidents</li>
+      <li>UC-03 «include» UC-04 — tracking requires an action path</li>
+      <li>UC-04 «include» UC-05 — acting must be verified, not assumed</li>
+      <li>UC-05 «include» UC-08 — verified recoveries feed analytics</li>
+      <li>UC-07 «extend» UC-04 — failure injection extends incident action</li>
+    </ul>
+  </div>
+  <div class="ic">
+    <h3><span class="d" style="background:#fbbf24"></span>Coverage note</h3>
+    <ul>
+      <li>54 API endpoints map into 12 use cases</li>
+      <li>Unmapped: <code>/demo/*</code> and <code>/facilities/*</code> — setup and reference data</li>
+      <li><code>/gemini/*</code> is outside the operational boundary by design</li>
+      <li>Endpoints derived from source, not from assumption</li>
+    </ul>
+  </div>
+</div>
+
+<div class="foot">
+  ColdChain Rescue · CBCA301 Capstone · Bennett University · BCA Semester V<br>
+  Use-case diagram generated from <code>backend/app/api/routes/*.py</code> (54 endpoints, 11 modules) and the stakeholder analysis in <code>docs/SDG-STAKEHOLDERS-REQUIREMENTS.md</code> §4.
+</div>
+
+</body>
+</html>
