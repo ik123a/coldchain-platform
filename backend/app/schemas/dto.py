@@ -99,7 +99,8 @@ class StatusOut(BaseModel):
     api: str = "ONLINE"
     database: str = "CONNECTED"
     websocket: str = "CONNECTED"
-    ai_mode: str = "DETERMINISTIC"
+    ai_mode: str = "DETERMINISTIC-AGENTS"
     simulations_running: int = 0
+    simulations_orphaned: int = 0
     incidents_open: int = 0
     timestamp: datetime

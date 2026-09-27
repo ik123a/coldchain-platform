@@ -119,10 +119,27 @@ export default function LiveMapPage() {
      Precedence: temperature excursion (physical spoilage risk) beats risk
      score (predictive), which beats an open incident. */
   const { railState, railLabel } = useMemo(() => {
-    const excursions = vehicles.filter(
-      (v) => typeof v.refrigeration?.temperature === "number" &&
-             (v.refrigeration.temperature as number) > 8
-    ).length;
+    // Each cargo class has its own safe band (frozen sits near -18C, chilled
+    // near 4C), so a single hardcoded 8C threshold would flag correctly-stored
+    // frozen cargo as a breach. Count against each vehicle's own limits.
+    const band = (v: any): { min: number; max: number } | null => {
+      const t = v.cargo?.cargo_type;
+      if (t === "frozen_goods") return { min: -22, max: -15 };
+      if (t === "dairy") return { min: 2, max: 6 };
+      if (t === "pharmaceutical") return { min: 2, max: 8 };
+      if (t === "fresh_produce") return { min: 2, max: 8 };
+      return null;
+    };
+    const breaching = vehicles.filter((v) => {
+      const temp = v.refrigeration?.temperature;
+      const b = band(v);
+      if (typeof temp !== "number" || !b) return false;
+      return temp > b.max || temp < b.min;
+    });
+    const excursions = breaching.length;
+    const worst = breaching
+      .map((v) => ({ id: v.vehicle_id, t: v.refrigeration.temperature as number, b: band(v)! }))
+      .sort((a, b) => (b.t - b.b.max) - (a.t - a.b.max))[0];
     const atRisk = vehicles.filter(
       (v) => ["HIGH", "CRITICAL"].includes(v.cargo?.risk_level || "")
     ).length;
@@ -131,9 +148,13 @@ export default function LiveMapPage() {
     if (excursions > 0) {
       return {
         railState: "critical" as const,
-        railLabel: `Fleet status: critical — ${excursions} vehicle${
-          excursions === 1 ? "" : "s"
-        } above the 8 degree Celsius cold-chain limit.`,
+        railLabel: worst
+          ? `Fleet status: critical — ${worst.id} at ${worst.t.toFixed(1)}°C, outside its ` +
+            `${worst.b.min}°C to ${worst.b.max}°C safe band` +
+            (excursions > 1 ? ` (${excursions} vehicles breaching).` : ".")
+          : `Fleet status: critical — ${excursions} vehicle${
+              excursions === 1 ? "" : "s"
+            } outside the cold-chain safe band.`,
       };
     }
     if (atRisk > 0) {

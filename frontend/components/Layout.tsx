@@ -170,7 +170,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </Link>
 
           <div className="flex shrink-0 items-center gap-4 font-mono t-label">
-            <StatusIndicator label="AI ENGINE" value={st.status?.ai_mode || "LLM"} ok={st.status?.ai_mode != null} />
+            <StatusIndicator label="AI ENGINE" value={st.status?.ai_mode || "DETERMINISTIC-AGENTS"} ok={st.status?.ai_mode === "DETERMINISTIC-AGENTS"} />
             <StatusIndicator label="DB" value={st.status?.database || "ONLINE"} ok={st.status?.database === "CONNECTED"} />
             <StatusIndicator label="WS" value={st.connected ? "STREAMING" : "CONNECTING"} ok={st.connected} />
 

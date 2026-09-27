@@ -17,4 +17,9 @@ GEMINI_FALLBACK_TEXT_MODEL = os.getenv("GEMINI_FALLBACK_TEXT_MODEL", "gemini-3-f
 
 CORS_ORIGINS = [o.strip() for o in os.getenv(
     "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000").split(",") if o.strip()]
-AI_MODE = "LLM" if (OPENAI_API_KEY or GEMINI_API_KEY_PRIMARY) else "DETERMINISTIC"
+# Operational AI is the deterministic six-agent team in app/simulation/agents_d.py
+# and fleet_agents.py — pure Python, zero API keys, no LLM at runtime. The Gemini
+# service under app/services/gemini/ only generates design-reference images and is
+# reachable solely through /api/gemini, so a key being present says nothing about
+# how decisions are made. Report the mode that is actually true.
+AI_MODE = "DETERMINISTIC-AGENTS"
