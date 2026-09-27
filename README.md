@@ -37,8 +37,14 @@ Then open <http://localhost:3000/live-map>.
 ## Verify everything
 
 ```powershell
-python .loop/judge.py     # 6 goals + 3 boundaries; exit 0 = releasable
+python .loop/judge.py        # 6 goals + 3 boundaries; exit 0 = releasable
+python tools/rubric_audit.py # self-audit against the CBCA301 rubric
 ```
+
+`rubric_audit.py` probes the repository for each rubric-scoped artefact and
+reports what is present or missing. It is how the documentation claims in
+`docs/` were verified — it reads the filesystem rather than asserting, so it
+cannot report a fixed list of gaps.
 
 ---
 
