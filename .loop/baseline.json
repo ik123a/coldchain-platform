@@ -1,0 +1,13 @@
+{
+  "_comment": "Anti-Goodhart anchor. Human-written. The build agent may NOT edit this file or any path listed in protected_sha256.",
+  "written_at_commit": "4e2aaca",
+  "protected_sha256": {
+    "backend/tests/test_fleet_twin.py": "0ce4fcd8eaffd4dcbdaee7fc715d6c1ac99b1de9f4d5468a115f7b8b1c7ce25e",
+    "backend/tests/test_fleet_ai.py": "e5ecd71fe0595cc86890b30a67544e258990353a75cca0782de73e2962674414",
+    "backend/tests/test_fleet_ops.py": "b4eea42da03b352039ae85bcc30870b29e218adb926832177d8c5b91213d895a",
+    "backend/tests/test_world_events.py": "495fcb8493d29a0be73a36115018735255b386a67f11f62f8f6353e85074fa0c",
+    "backend/tests/test_scenario_analytics.py": "c11ad038a5af608cd0258fd4785244a3c385e3d8e1d7f3c86c1e99b9a9257df1",
+    "backend/tests/acceptance_sweep.py": "e4b3df23118f0259815ad762841483084671a82958b6e7326aaba4bfd91bc9cf",
+    ".loop/judge.py": "bc8b27aa8415dc917aea4eeab7d1d7eeb30fa63956e62cb1abbc1f835ff41b2e"
+  }
+}
