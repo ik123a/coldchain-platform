@@ -80,6 +80,7 @@ browser, no server or dependencies required.
 
 | Document | Rubric item it serves |
 |---|---|
+| [`docs/LOG-DIARY.md`](docs/LOG-DIARY.md) | Milestone-2 — Documentation & Project Management (progress evidence, action plan, future prospects) |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Milestone-2 — System/Technical Design |
 | [`docs/TESTING.md`](docs/TESTING.md) | Milestone-2 — Testing & Validation |
 | [`docs/PERFORMANCE-RESULTS.md`](docs/PERFORMANCE-RESULTS.md) | Milestone-2 — Performance & Results |
