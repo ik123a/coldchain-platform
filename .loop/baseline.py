@@ -56,6 +56,24 @@ def main() -> int:
     target.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     print(f"baseline written at {doc['written_at_commit']}: "
           f"{len(PROTECTED)} protected files pinned")
+
+    # Pin every verifier too (G7/V1). A verifier is what the judge trusts, so
+    # editing one to be more permissive must be as visible as editing a test.
+    tools = ROOT / "tools"
+    pins = ROOT / ".loop" / "verifier-hashes.json"
+    if tools.exists():
+        verifiers = sorted(p for p in tools.glob("*.py")
+                           if not p.name.startswith("_"))
+        vdoc = {
+            "_comment": "G7/V1 anchor. Every verifier in tools/ is byte-pinned so "
+                        "a check cannot be weakened silently. Re-pin only after "
+                        "reviewing the diff to the verifier itself.",
+            "written_at_commit": doc["written_at_commit"],
+            "verifier_sha256_16": {
+                p.name: sha(p)[:16] for p in verifiers},
+        }
+        pins.write_text(json.dumps(vdoc, indent=2) + "\n", encoding="utf-8")
+        print(f"verifier pins written: {len(verifiers)} verifiers")
     return 0
 
 

@@ -428,6 +428,132 @@ def check_routes() -> dict:
                       if not bad else "; ".join(bad[:6])}
 
 
+def check_verifiers() -> dict:
+    """G7 - the verifier suite itself must be sound.
+
+    This session produced six verifiers that reported a result while measuring
+    the wrong thing: a gate that swallowed ImportError, a probe that matched
+    4 of 23 boxes, a fact-check comparing a substring, an audit asserting a
+    fixed gap list, a checker too literal to match real text, and a gap
+    detector satisfied by its own placeholder.
+
+    Those fixes were all advisory -- written into scripts that the judge never
+    ran. A later change could reintroduce any of them and the gate would stay
+    green. This check makes the meta-property machine-decidable:
+
+      V1  every verifier in tools/ must be byte-pinned, so an edit to a
+          verifier cannot silently weaken it
+      V2  no verifier may report success while its tooling is unavailable
+          (the ImportError swallow)
+      V3  no gap detector may be satisfiable by a placeholder
+    """
+    res = {"id": "G7", "ok": True, "detail": ""}
+    problems: list[str] = []
+
+    tools = ROOT / "tools"
+    verifiers = sorted(p for p in tools.glob("*.py")
+                       if not p.name.startswith("_"))
+    if not verifiers:
+        return {"id": "G7", "ok": False,
+                "detail": "no verifiers found in tools/ -- V1 cannot run"}
+
+    # V1: hash-pin every verifier. The pin file carries metadata keys
+    # (_comment, written_at_commit, verifier_sha256_16) -- iterate the
+    # verifier map, NOT the top-level document, or the metadata is reported
+    # as deleted verifiers.
+    pins = ROOT / ".loop" / "verifier-hashes.json"
+    current = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()[:16]
+               for p in verifiers}
+    if pins.exists():
+        recorded = json.loads(pins.read_text(encoding="utf-8"))
+        recorded = recorded.get("verifier_sha256_16", {})
+        for name, want in recorded.items():
+            got = current.get(name)
+            if got is None:
+                problems.append(f"V1 verifier DELETED: {name}")
+            elif got != want:
+                problems.append(
+                    f"V1 verifier CHANGED: {name} ({want} -> {got}). "
+                    "Verifiers are pinned: weakening one must be a deliberate, "
+                    "reviewed act, not an edit that slips in with a feature.")
+        for name in current:
+            if name not in recorded:
+                problems.append(f"V1 verifier ADDED (pin it): {name}")
+    # (If pins are missing the caller is mid-bootstrap; baseline.py writes them.)
+
+    # V2: no verifier may treat a missing dependency as success.
+    for p in verifiers:
+        src = p.read_text(encoding="utf-8", errors="replace")
+        for bad in ("except ImportError:\n        return True",
+                    "except ImportError:\n        pass",
+                    "except Exception:\n        return True"):
+            if bad in src:
+                problems.append(f"V2 {p.name}: swallows an error as success")
+
+    # V3: the Report gap must not be satisfiable by a placeholder.
+    #
+    # Source-text matching was the first attempt and it was wrong: the regex
+    # only matched one exact spelling of the glob, so a real regression (an
+    # unguarded `list(REPO.glob(...))` check) slipped past while the rule
+    # looked present. Text-shape matching for behaviour is the wrong tool.
+    #
+    # Instead, run the audit's own report predicate with a SKELETON present
+    # and require it to still report the gap. That tests the behaviour that
+    # actually matters, so any rewrite of the audit is still covered.
+    audit = ROOT / "tools" / "rubric_audit.py"
+    if audit.exists():
+        src = audit.read_text(encoding="utf-8", errors="replace")
+        if "looks_like_finished_report" not in src:
+            problems.append(
+                "V3 rubric_audit.py has no prose guard on the Report gap, so a "
+                "skeleton (REPORT-OUTLINE.md) would satisfy it -- this "
+                "happened in b2aeb15.")
+        else:
+            # Behavioural probe: a skeleton plus an outline must NOT close it.
+            try:
+                import importlib.util
+                spec = importlib.util.spec_from_file_location(
+                    "_audit_probe", audit)
+                mod = importlib.util.module_from_spec(spec)
+                # Execute the source with REPO rebound to a temp dir holding
+                # only a skeleton -- the predicate must return False.
+                import tempfile
+                with tempfile.TemporaryDirectory() as td:
+                    tmp = pathlib.Path(td)
+                    (tmp / "docs").mkdir()
+                    (tmp / "docs" / "REPORT-OUTLINE.md").write_text(
+                        "# Outline\n\n- section\n| a | b |\n", encoding="utf-8")
+                    probe_src = src.replace(
+                        f'REPO = pathlib.Path(r"{ROOT}")',
+                        f'REPO = pathlib.Path(r"{tmp}")')
+                    if probe_src == src:      # REPO defined differently
+                        probe_src = re.sub(
+                            r'^REPO\s*=.*$',
+                            f'REPO = pathlib.Path(r"{tmp}")',
+                            src, count=1, flags=re.M)
+                    ns: dict = {"__name__": "_audit_probe"}
+                    exec(compile(probe_src, str(audit), "exec"), ns)
+                    fn = ns.get("looks_like_finished_report")
+                    if fn is None:
+                        problems.append(
+                            "V3 audit has no looks_like_finished_report() to probe")
+                    elif fn():
+                        problems.append(
+                            "V3 audit treats a skeleton as a finished report "
+                            "(behavioural probe: REPORT-OUTLINE.md alone "
+                            "closed the gap)")
+            except Exception as e:
+                problems.append(f"V3 probe could not run: {type(e).__name__}: {e}")
+
+    if problems:
+        return {"id": "G7", "ok": False,
+                "detail": "; ".join(problems)[:600]}
+    return {"id": "G7", "ok": True,
+            "detail": f"{len(verifiers)} verifiers pinned, "
+                      f"{len(current)} hashed, no error-swallowing or "
+                      f"placeholder-satisfiable gap"}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", action="store_true")
@@ -452,6 +578,10 @@ def main() -> int:
         # green run.
         checks.append(check_styles())
         checks.append(check_targets())
+
+    # G7 always runs, including --quick: pure text inspection, costs nothing,
+    # and it is the guard against a verifier being quietly weakened.
+    checks.append(check_verifiers())
 
     goals = [c for c in checks if c["id"].startswith("G")]
     bounds = [c for c in checks if c["id"].startswith("B")]
