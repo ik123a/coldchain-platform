@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ColdChain Rescue — Level 0 / Level 1 DFD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#020617;color:#e2e8f0;font-family:'JetBrains Mono',monospace;padding:32px}
+  h1{font-size:22px;font-weight:700;letter-spacing:-.02em}
+  h1 .pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:#22d3ee;margin-right:10px;animation:p 2s infinite}
+  @keyframes p{0%,100%{opacity:1}50%{opacity:.35}}
+  .sub{color:#64748b;font-size:12px;margin:8px 0 4px}
+  .meta{color:#475569;font-size:10px;margin-bottom:22px}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tab{font-size:11px;padding:6px 14px;border:1px solid #1e293b;border-radius:6px;
+       background:#0f172a;color:#94a3b8;cursor:pointer}
+  .tab.on{border-color:#22d3ee;color:#22d3ee;background:rgba(8,51,68,.4)}
+  .card{border:1px solid #1e293b;border-radius:10px;background:#0b1220;padding:0;
+        overflow:hidden;margin-bottom:22px}
+  svg{display:block;width:100%;height:auto}
+  .hide{display:none}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:18px}
+  .ic{border:1px solid #1e293b;border-radius:8px;background:#0f172a;padding:14px}
+  .ic h3{font-size:12px;font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+  .ic .d{width:8px;height:8px;border-radius:2px}
+  .ic ul{list-style:none;font-size:10.5px;color:#94a3b8;line-height:1.85}
+  .foot{color:#334155;font-size:9px;margin-top:8px;line-height:1.7}
+  .lbl{font-size:11px;fill:#e2e8f0}
+  .lbl-s{font-size:9px;fill:#94a3b8}
+  .lbl-t{font-size:7.5px;fill:#64748b}
+  .proc{fill:rgba(6,78,59,.4);stroke:#34d399;stroke-width:1.5}
+  .store{fill:rgba(76,29,149,.4);stroke:#a78bfa;stroke-width:1.5}
+  .ext{fill:rgba(30,41,59,.5);stroke:#94a3b8;stroke-width:1.2;stroke-dasharray:4,3}
+  .flow{stroke:#64748b;stroke-width:1.2;fill:none;marker-end:url(#arw)}
+  .flowq{stroke:#fbbf24;stroke-width:1.2;fill:none;marker-end:url(#arw);stroke-dasharray:5,3}
+</style>
+</head>
+<body>
+
+<h1><span class="pulse"></span>ColdChain Rescue — Data Flow Diagram</h1>
+<div class="sub">CBCA301 Capstone · Milestone-2: "Use-case diagram and appropriate UML/DFD/flow diagrams"</div>
+<div class="meta">Level 0 (context) and Level 1 (processes + data stores) · derived from the running system, not drawn from assumption</div>
+
+<div class="tabs">
+  <div class="tab on" data-t="l0">Level 0 — Context</div>
+  <div class="tab" data-t="l1">Level 1 — Process &amp; Data Flows</div>
+  <div class="tab" data-t="seq">Incident Sequence</div>
+</div>
+
+<!-- ================= LEVEL 0 ================= -->
+<div class="card" id="l0">
+<svg viewBox="0 0 1400 480" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="g0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+    <marker id="arw" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="#64748b"/>
+    </marker>
+    <marker id="arw2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="#fbbf24"/>
+    </marker>
+  </defs>
+  <rect width="1400" height="480" fill="url(#g0)"/>
+
+  <!-- single process -->
+  <rect x="530" y="150" width="340" height="180" rx="10" fill="#0f172a"/>
+  <rect x="530" y="150" width="340" height="180" rx="10" class="proc"/>
+  <text x="700" y="200" class="lbl" text-anchor="middle" font-weight="700" font-size="14">0</text>
+  <text x="700" y="228" class="lbl" text-anchor="middle" font-weight="700">ColdChain Rescue</text>
+  <text x="700" y="252" class="lbl-s" text-anchor="middle">Live cold-chain digital twin &amp;</text>
+  <text x="700" y="268" class="lbl-s" text-anchor="middle">autonomous recovery orchestration</text>
+  <text x="700" y="298" class="lbl-t" text-anchor="middle" fill="#34d399">DETERMINISTIC · no LLM in operational path</text>
+  <text x="700" y="316" class="lbl-t" text-anchor="middle">26 modules · 54 endpoints · 15 tables</text>
+
+  <!-- external entities -->
+  <g>
+    <rect x="60" y="80"  width="230" height="56" rx="6" fill="#0f172a"/><rect x="60" y="80"  width="230" height="56" rx="6" class="ext"/>
+    <text x="175" y="104" class="lbl" text-anchor="middle">Dispatcher</text>
+    <text x="175" y="120" class="lbl-s" text-anchor="middle">fleet commands, queries</text>
+
+    <rect x="60" y="200" width="230" height="56" rx="6" fill="#0f172a"/><rect x="60" y="200" width="230" height="56" rx="6" class="ext"/>
+    <text x="175" y="224" class="lbl" text-anchor="middle">Quality Officer</text>
+    <text x="175" y="240" class="lbl-s" text-anchor="middle">excursion evidence</text>
+
+    <rect x="60" y="320" width="230" height="56" rx="6" fill="#0f172a"/><rect x="60" y="320" width="230" height="56" rx="6" class="ext"/>
+    <text x="175" y="344" class="lbl" text-anchor="middle">Auditor / Evaluator</text>
+    <text x="175" y="360" class="lbl-s" text-anchor="middle">reproducible results</text>
+
+    <rect x="1110" y="80"  width="230" height="56" rx="6" fill="#0f172a"/><rect x="1110" y="80"  width="230" height="56" rx="6" class="ext"/>
+    <text x="1225" y="104" class="lbl" text-anchor="middle">Gemini / OpenAI</text>
+    <text x="1225" y="120" class="lbl-s" text-anchor="middle">design assets only</text>
+
+    <rect x="1110" y="200" width="230" height="56" rx="6" fill="#0f172a"/><rect x="1110" y="200" width="230" height="56" rx="6" class="ext"/>
+    <text x="1225" y="224" class="lbl" text-anchor="middle">Vehicle Telemetry</text>
+    <text x="1225" y="240" class="lbl-s" text-anchor="middle">simulated sensor feed</text>
+
+    <rect x="1110" y="320" width="230" height="56" rx="6" fill="#0f172a"/><rect x="1110" y="320" width="230" height="56" rx="6" class="ext"/>
+    <text x="1225" y="344" class="lbl" text-anchor="middle">Driver</text>
+    <text x="1225" y="360" class="lbl-s" text-anchor="middle">recovery instruction</text>
+  </g>
+
+  <!-- flows -->
+  <path d="M290 108 L530 190" class="flow"/>
+  <text x="410" y="140" class="lbl-t" fill="#34d399">commands / queries</text>
+
+  <path d="M290 228 L530 250" class="flow"/>
+  <text x="410" y="235" class="lbl-t" fill="#34d399">status, reports</text>
+
+  <path d="M290 348 L530 296" class="flow"/>
+  <text x="400" y="336" class="lbl-t" fill="#34d399">evidence, replay</text>
+
+  <path d="M1340 108 L870 200" class="flowq"/>
+  <text x="1050" y="132" class="lbl-t" fill="#fb7185">design references</text>
+  <text x="1050" y="145" class="lbl-t" fill="#fb7185">(outside decision loop)</text>
+
+  <path d="M1340 228 L870 250" class="flow"/>
+  <text x="1060" y="234" class="lbl-t" fill="#34d399">sensor readings</text>
+
+  <path d="M1340 348 L870 296" class="flow"/>
+  <text x="1075" y="330" class="lbl-t" fill="#34d399">routing / transfer</text>
+</svg>
+</div>
+
+<!-- ================= LEVEL 1 ================= -->
+<div class="card hide" id="l1">
+<svg viewBox="0 0 1400 760" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="760" fill="url(#g0)"/>
+
+  <!-- ==== left: telemetry in ==== -->
+  <rect x="40" y="120" width="180" height="54" rx="6" fill="#0f172a"/><rect x="40" y="120" width="180" height="54" rx="6" class="ext"/>
+  <text x="130" y="143" class="lbl" text-anchor="middle">Vehicle Telemetry</text>
+  <text x="130" y="159" class="lbl-s" text-anchor="middle">external · simulated</text>
+
+  <rect x="40" y="330" width="180" height="54" rx="6" fill="#0f172a"/><rect x="40" y="330" width="180" height="54" rx="6" class="ext"/>
+  <text x="130" y="353" class="lbl" text-anchor="middle">Dispatcher</text>
+  <text x="130" y="369" class="lbl-s" text-anchor="middle">external</text>
+
+  <rect x="40" y="560" width="180" height="54" rx="6" fill="#0f172a"/><rect x="40" y="560" width="180" height="54" rx="6" class="ext"/>
+  <text x="130" y="583" class="lbl" text-anchor="middle">Driver</text>
+  <text x="130" y="599" class="lbl-s" text-anchor="middle">external</text>
+
+  <!-- ==== processes ==== -->
+  <g>
+    <rect x="300" y="110" width="220" height="70" rx="10" fill="#0f172a"/><rect x="300" y="110" width="220" height="70" rx="10" class="proc"/>
+    <text x="410" y="134" class="lbl" text-anchor="middle">1.0 · Simulate &amp; Tick</text>
+    <text x="410" y="152" class="lbl-s" text-anchor="middle">engine · clock · traffic</text>
+    <text x="410" y="168" class="lbl-s" text-anchor="middle">world events: heatwave/rain/fog</text>
+
+    <rect x="600" y="110" width="220" height="70" rx="10" fill="#0f172a"/><rect x="600" y="110" width="220" height="70" rx="10" class="proc"/>
+    <text x="710" y="134" class="lbl" text-anchor="middle">2.0 · Evaluate Risk</text>
+    <text x="710" y="152" class="lbl-s" text-anchor="middle">6 deterministic agents</text>
+    <text x="710" y="168" class="lbl-s" text-anchor="middle">anomaly · risk · cargo band</text>
+
+    <rect x="900" y="110" width="220" height="70" rx="10" fill="#0f172a"/><rect x="900" y="110" width="220" height="70" rx="10" class="proc"/>
+    <text x="1010" y="134" class="lbl" text-anchor="middle">3.0 · Raise Incident</text>
+    <text x="1010" y="152" class="lbl-s" text-anchor="middle">fleet_orchestrator</text>
+    <text x="1010" y="168" class="lbl-s" text-anchor="middle">cause · peak · tick</text>
+
+    <rect x="900" y="260" width="220" height="70" rx="10" fill="#0f172a"/><rect x="900" y="260" width="220" height="70" rx="10" class="proc"/>
+    <text x="1010" y="284" class="lbl" text-anchor="middle">4.0 · Decide Action</text>
+    <text x="1010" y="302" class="lbl-s" text-anchor="middle">routing · fleet_ops</text>
+    <text x="1010" y="318" class="lbl-s" text-anchor="middle">reroute | service | transfer</text>
+
+    <rect x="900" y="410" width="220" height="70" rx="10" fill="#0f172a"/><rect x="900" y="410" width="220" height="70" rx="10" class="proc"/>
+    <text x="1010" y="434" class="lbl" text-anchor="middle">5.0 · Verify Recovery</text>
+    <text x="1010" y="452" class="lbl-s" text-anchor="middle">RecoveryVerifier</text>
+    <text x="1010" y="468" class="lbl-s" text-anchor="middle" fill="#34d399">verified ⇒ RESOLVED</text>
+
+    <rect x="600" y="260" width="220" height="70" rx="10" fill="#0f172a"/><rect x="600" y="260" width="220" height="70" rx="10" class="proc"/>
+    <text x="710" y="284" class="lbl" text-anchor="middle">6.0 · Persist &amp; Report</text>
+    <text x="710" y="302" class="lbl-s" text-anchor="middle">analytics · reports</text>
+    <text x="710" y="318" class="lbl-s" text-anchor="middle">priority queue</text>
+
+    <rect x="300" y="260" width="220" height="70" rx="10" fill="#0f172a"/><rect x="300" y="260" width="220" height="70" rx="10" class="proc"/>
+    <text x="410" y="284" class="lbl" text-anchor="middle">7.0 · Replay &amp; Twin</text>
+    <text x="410" y="302" class="lbl-s" text-anchor="middle">state reconstruction</text>
+    <text x="410" y="318" class="lbl-s" text-anchor="middle">GET /replay/{id}</text>
+
+    <rect x="300" y="410" width="220" height="70" rx="10" fill="#0f172a"/><rect x="300" y="410" width="220" height="70" rx="10" class="proc"/>
+    <text x="410" y="434" class="lbl" text-anchor="middle">8.0 · Explain Decision</text>
+    <text x="410" y="452" class="lbl-s" text-anchor="middle">deterministic rationale</text>
+    <text x="410" y="468" class="lbl-s" text-anchor="middle" fill="#fb7185">NOT a model call</text>
+  </g>
+
+  <!-- ==== data stores ==== -->
+  <g>
+    <rect x="1180" y="90" width="190" height="46" rx="6" fill="#0f172a"/><rect x="1180" y="90" width="190" height="46" rx="6" class="store"/>
+    <text x="1275" y="110" class="lbl-s" text-anchor="middle">D1 sensor_readings</text>
+    <text x="1275" y="126" class="lbl-t" text-anchor="middle">append-only time series</text>
+
+    <rect x="1180" y="180" width="190" height="46" rx="6" fill="#0f172a"/><rect x="1180" y="180" width="190" height="46" rx="6" class="store"/>
+    <text x="1275" y="200" class="lbl-s" text-anchor="middle">D2 fleet_vehicles</text>
+    <text x="1275" y="216" class="lbl-t" text-anchor="middle">live state + cargo</text>
+
+    <rect x="1180" y="270" width="190" height="46" rx="6" fill="#0f172a"/><rect x="1180" y="270" width="190" height="46" rx="6" class="store"/>
+    <text x="1275" y="290" class="lbl-s" text-anchor="middle">D3 incidents</text>
+    <text x="1275" y="306" class="lbl-t" text-anchor="middle" fill="#fb7185">two ID spaces</text>
+
+    <rect x="1180" y="360" width="190" height="46" rx="6" fill="#0f172a"/><rect x="1180" y="360" width="190" height="46" rx="6" class="store"/>
+    <text x="1275" y="380" class="lbl-s" text-anchor="middle">D4 recommended_actions</text>
+    <text x="1275" y="396" class="lbl-t" text-anchor="middle">audit trail</text>
+
+    <rect x="1180" y="450" width="190" height="46" rx="6" fill="#0f172a"/><rect x="1180" y="450" width="190" height="46" rx="6" class="store"/>
+    <text x="1275" y="470" class="lbl-s" text-anchor="middle">D5 fleet_cargo_transfers</text>
+    <text x="1275" y="486" class="lbl-t" text-anchor="middle">truck↔truck</text>
+
+    <rect x="1180" y="540" width="190" height="46" rx="6" fill="#0f172a"/><rect x="1180" y="540" width="190" height="46" rx="6" class="store"/>
+    <text x="1275" y="560" class="lbl-s" text-anchor="middle">D6 simulations</text>
+    <text x="1275" y="576" class="lbl-t" text-anchor="middle">RUNNERS reconciled</text>
+  </g>
+
+  <!-- ==== flows ==== -->
+  <path d="M220 147 L300 145" class="flow"/><text x="260" y="138" class="lbl-t" text-anchor="middle">readings</text>
+  <path d="M520 145 L600 145" class="flow"/><text x="560" y="138" class="lbl-t" text-anchor="middle">state</text>
+  <path d="M820 145 L900 145" class="flow"/><text x="860" y="138" class="lbl-t" text-anchor="middle">breach</text>
+
+  <path d="M1010 180 L1010 260" class="flow"/><text x="1030" y="224" class="lbl-t">incident</text>
+  <path d="M1010 330 L1010 410" class="flow"/><text x="1030" y="374" class="lbl-t">action applied</text>
+
+  <path d="M900 445 L820 445 L820 300 L820 300" class="flow" opacity="0"/>
+  <path d="M900 445 L830 445" class="flow"/><text x="865" y="438" class="lbl-t" text-anchor="middle">verified</text>
+
+  <path d="M600 295 L520 295" class="flow"/><text x="560" y="288" class="lbl-t" text-anchor="middle">KPIs</text>
+  <path d="M410 330 L410 370" class="flow"/><text x="440" y="360" class="lbl-t">history</text>
+
+  <path d="M220 357 L300 440" class="flow"/><text x="245" y="410" class="lbl-t">ask why</text>
+  <path d="M220 587 L300 470" class="flowq"/><text x="240" y="540" class="lbl-t" fill="#fbbf24">instruction</text>
+
+  <path d="M1120 145 L1180 113" class="flow"/><text x="1150" y="120" class="lbl-t" text-anchor="middle">D1</text>
+  <path d="M1120 145 L1180 203" class="flow"/>
+  <path d="M1010 180 L1180 293" class="flow"/><text x="1100" y="240" class="lbl-t">D3</text>
+  <path d="M1010 330 L1180 383" class="flow"/>
+  <path d="M1010 480 L1180 563" class="flow"/>
+  <path d="M900 295 L1180 293" class="flow" opacity="0.4"/>
+  <path d="M410 480 L300 470" class="flow" opacity="0"/>
+
+  <!-- store flow notes -->
+  <text x="1275" y="620" class="lbl-t" text-anchor="middle">D1..D6 = 6 of the 15 tables; the full ER set is in ARCHITECTURE.md §4</text>
+  <text x="1275" y="636" class="lbl-t" text-anchor="middle" fill="#fb7185">D3 holds two independent ID spaces: simulation_id=0 (fleet orchestrator)</text>
+  <text x="1275" y="650" class="lbl-t" text-anchor="middle" fill="#fb7185">and simulation_id=N (per-simulation). Counting them as one is a real bug.</text>
+
+  <text x="700" y="700" class="lbl-t" text-anchor="middle" fill="#34d399">Every process in this diagram is deterministic rule-based Python. No LLM participates.</text>
+  <text x="700" y="716" class="lbl-t" text-anchor="middle">Solid = synchronous data flow · Dashed amber = instruction / advisory out to a human</text>
+</svg>
+</div>
+
+<!-- ================= SEQUENCE ================= -->
+<div class="card hide" id="seq">
+<svg viewBox="0 0 1400 620" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="620" fill="url(#g0)"/>
+
+  <g>
+    <rect x="90"  y="40" width="150" height="46" rx="6" fill="#0f172a"/><rect x="90"  y="40" width="150" height="46" rx="6" class="ext"/>
+    <text x="165" y="60" class="lbl-s" text-anchor="middle">Dispatcher</text><text x="165" y="76" class="lbl-t" text-anchor="middle">actor</text>
+
+    <rect x="320" y="40" width="150" height="46" rx="6" fill="#0f172a"/><rect x="320" y="40" width="150" height="46" rx="6" class="proc"/>
+    <text x="395" y="60" class="lbl-s" text-anchor="middle">Sim Engine</text><text x="395" y="76" class="lbl-t" text-anchor="middle">1.0</text>
+
+    <rect x="550" y="40" width="150" height="46" rx="6" fill="#0f172a"/><rect x="550" y="40" width="150" height="46" rx="6" class="proc"/>
+    <text x="625" y="60" class="lbl-s" text-anchor="middle">6 Agents</text><text x="625" y="76" class="lbl-t" text-anchor="middle">2.0</text>
+
+    <rect x="780" y="40" width="150" height="46" rx="6" fill="#0f172a"/><rect x="780" y="40" width="150" height="46" rx="6" class="proc"/>
+    <text x="855" y="60" class="lbl-s" text-anchor="middle">Orchestrator</text><text x="855" y="76" class="lbl-t" text-anchor="middle">3.0</text>
+
+    <rect x="1010" y="40" width="150" height="46" rx="6" fill="#0f172a"/><rect x="1010" y="40" width="150" height="46" rx="6" class="proc"/>
+    <text x="1085" y="60" class="lbl-s" text-anchor="middle">Recovery</text><text x="1085" y="76" class="lbl-t" text-anchor="middle">4.0 / 5.0</text>
+
+    <rect x="1200" y="40" width="150" height="46" rx="6" fill="#0f172a"/><rect x="1200" y="40" width="150" height="46" rx="6" class="store"/>
+    <text x="1275" y="60" class="lbl-s" text-anchor="middle">SQLite</text><text x="1275" y="76" class="lbl-t" text-anchor="middle">D1 / D3</text>
+  </g>
+
+  <g stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4">
+    <line x1="165" y1="86" x2="165" y2="560"/>
+    <line x1="395" y1="86" x2="395" y2="560"/>
+    <line x1="625" y1="86" x2="625" y2="560"/>
+    <line x1="855" y1="86" x2="855" y2="560"/>
+    <line x1="1085" y1="86" x2="1085" y2="560"/>
+    <line x1="1275" y1="86" x2="1275" y2="560"/>
+  </g>
+
+  <g class="flow">
+    <path d="M165 130 L390 130"/><text x="277" y="122" class="lbl-t" text-anchor="middle">inject failure / observe</text>
+    <path d="M395 180 L620 180"/><text x="507" y="172" class="lbl-t" text-anchor="middle">tick state</text>
+    <path d="M625 230 L850 230"/><text x="737" y="222" class="lbl-t" text-anchor="middle">evaluate cargo band</text>
+    <path d="M855 280 L620 280"/><text x="737" y="272" class="lbl-t" text-anchor="middle" fill="#fbbf24">breach detected</text>
+    <path d="M855 320 L1080 320"/><text x="967" y="312" class="lbl-t" text-anchor="middle">create incident (cause, peak, tick)</text>
+    <path d="M1085 360 L1270 360"/><text x="1177" y="352" class="lbl-t" text-anchor="middle">persist D3</text>
+    <path d="M1085 400 L170 400"/><text x="627" y="392" class="lbl-t" text-anchor="middle">alert dispatcher (rail + table)</text>
+    <path d="M165 440 L1080 440"/><text x="622" y="432" class="lbl-t" text-anchor="middle">approve action</text>
+    <path d="M1085 480 L1270 480"/><text x="1177" y="472" class="lbl-t" text-anchor="middle">apply + persist D4/D5</text>
+    <path d="M1085 520 L855 520"/><text x="970" y="512" class="lbl-t" text-anchor="middle" fill="#34d399">RecoveryVerifier → verified</text>
+    <path d="M855 556 L165 556"/><text x="510" y="548" class="lbl-t" text-anchor="middle" fill="#34d399">status = RESOLVED</text>
+  </g>
+
+  <text x="700" y="595" class="lbl-t" text-anchor="middle" fill="#34d399">Verified live: compressor failure drove 4.05°C → 10.25°C, compressor FAILED, risk HIGH, exactly 1 incident created.</text>
+  <text x="700" y="610" class="lbl-t" text-anchor="middle" fill="#fb7185">Step 5.0 is NOT timeout-based. Without a positive verifier result the incident stays open.</text>
+</svg>
+</div>
+
+<div class="cards">
+  <div class="ic">
+    <h3><span class="d" style="background:#34d399"></span>Reading the DFD</h3>
+    <ul>
+      <li>Level 0: the system as one process</li>
+      <li>Level 1: 8 processes, 6 stores shown</li>
+      <li>Sequence: the incident path end to end</li>
+      <li>Green = internal · violet =data store · slate dashed = external</li>
+    </ul>
+  </div>
+  <div class="ic">
+    <h3><span class="d" style="background:#fb7185"></span>What the diagram records</h3>
+    <ul>
+      <li>No LLM in any operational process</li>
+      <li><code>D3</code> holds two independent incident ID spaces</li>
+      <li>Recovery is verified, never assumed</li>
+      <li>Telemetry is external &amp; simulated — a stated limitation</li>
+    </ul>
+  </div>
+  <div class="ic">
+    <h3><span class="d" style="background:#a78bfa"></span>Provenance</h3>
+    <ul>
+      <li>Processes map to real modules in <code>backend/app/simulation/</code></li>
+      <li>Stores map to real tables in <code>backend/app/models/</code></li>
+      <li>Full 15-table ER set in <code>ARCHITECTURE.md</code> §4</li>
+      <li>External flows trace to the 54 mapped endpoints</li>
+    </ul>
+  </div>
+</div>
+
+<div class="foot">
+  ColdChain Rescue · CBCA301 Capstone · Bennett University · BCA Semester V<br>
+  DFD derived from <code>backend/app/simulation/</code> and <code>backend/app/models/</code>.
+  Use-case diagram: <code>docs/use-case-diagram.html</code>. Design rationale: <code>docs/ARCHITECTURE.md</code>.
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on')});
+      document.querySelectorAll('.card').forEach(function(c){c.classList.add('hide')});
+      t.classList.add('on');
+      document.getElementById(t.dataset.t).classList.remove('hide');
+    });
+  });
+</script>
+</body>
+</html>

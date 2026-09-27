@@ -10,6 +10,12 @@ backend/simulation modules** (11 API route groups + 15 simulation modules),
 
 *Counts verified against the source on 27 Sep 2026; see §2.*
 
+**Diagrams** (self-contained HTML, inline SVG, no dependencies):
+- [`use-case-diagram.html`](use-case-diagram.html) — UML use case: 5 actors,
+  12 use cases, all 54 endpoints mapped
+- [`data-flow-diagram.html`](data-flow-diagram.html) — Level 0 context,
+  Level 1 processes + data stores, and the incident sequence
+
 ---
 
 ## 1. Architecture at a glance

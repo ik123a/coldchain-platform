@@ -66,6 +66,16 @@ string, so the product cannot claim an AI it does not use. This is deliberate:
 the rubric scores *reproducible results*, which an LLM decision layer would
 forfeit. Full detail in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+### Diagrams
+
+| Diagram | File |
+|---|---|
+| Use-case (UML) — 5 actors, 12 use cases, 54 endpoints mapped | [`docs/use-case-diagram.html`](docs/use-case-diagram.html) |
+| Data flow — Level 0 context, Level 1 processes/stores, incident sequence | [`docs/data-flow-diagram.html`](docs/data-flow-diagram.html) |
+
+Both are self-contained HTML with inline SVG — open them directly in any
+browser, no server or dependencies required.
+
 ## Documentation
 
 | Document | Rubric item it serves |
