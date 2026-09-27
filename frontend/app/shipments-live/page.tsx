@@ -29,12 +29,12 @@ export default function ShipmentsLive() {
   return (
     <div className="fade-in space-y-4 h-[calc(100vh-120px)] flex flex-col">
       <div className="flex items-center gap-3">
-        <h2 className="text-xl font-bold headline flex items-center gap-2 flex-1">
+        <h2 className="t-metric font-bold headline flex items-center gap-2 flex-1">
           <Truck size={18} className="text-[var(--accent)]" /> Fleet Shipments
         </h2>
         <div className="flex gap-1">
-          <button onClick={() => setTab("shipments")} className={`chip text-[11px] ${tab === "shipments" ? "on" : ""}`}>Shipments</button>
-          <button onClick={() => setTab("drivers")} className={`chip text-[11px] ${tab === "drivers" ? "on" : ""}`}>Driver Leaderboard</button>
+          <button onClick={() => setTab("shipments")} className={`chip t-label ${tab === "shipments" ? "on" : ""}`}>Shipments</button>
+          <button onClick={() => setTab("drivers")} className={`chip t-label ${tab === "drivers" ? "on" : ""}`}>Driver Leaderboard</button>
         </div>
       </div>
 
@@ -47,7 +47,7 @@ export default function ShipmentsLive() {
         ) : (
           <table className="tbl w-full">
             <thead>
-              <tr className="text-[9.5px] text-[var(--text3)] uppercase">
+              <tr className="t-micro text-[var(--text3)] uppercase">
                 <th>#</th><th>Driver</th><th>Vehicle</th><th>Driving Score</th><th>Safety</th><th>Efficiency</th><th>On-Time Safe</th><th>Adherence</th>
               </tr>
             </thead>
@@ -56,13 +56,13 @@ export default function ShipmentsLive() {
                 <tr key={d.vehicle_id} className="cursor-pointer"
                     onClick={() => router.push(`/live-map?focus=${d.vehicle_id}`)}>
                   <td className="text-[var(--text3)]">{i + 1}</td>
-                  <td><b className="text-[11.5px]">{d.name}</b></td>
-                  <td className="text-[11px]">{d.vehicle_id}</td>
+                  <td><b className="t-label">{d.name}</b></td>
+                  <td className="t-label">{d.vehicle_id}</td>
                   <td><span className={`badge ${d.driving_score >= 90 ? "badge-green" : d.driving_score >= 70 ? "badge-amber" : "badge-red"} kpi-num`}>{d.driving_score}</span></td>
-                  <td className="text-[11px] kpi-num">{d.safety}</td>
-                  <td className="text-[11px] kpi-num">{d.efficiency}</td>
-                  <td><span className={`badge ${d.on_time ? "badge-green" : "badge-amber"} text-[9px]`}>{d.on_time ? "YES" : "AT RISK"}</span></td>
-                  <td className="text-[11px] kpi-num">{d.route_adherence}%</td>
+                  <td className="t-label kpi-num">{d.safety}</td>
+                  <td className="t-label kpi-num">{d.efficiency}</td>
+                  <td><span className={`badge ${d.on_time ? "badge-green" : "badge-amber"} t-micro`}>{d.on_time ? "YES" : "AT RISK"}</span></td>
+                  <td className="t-label kpi-num">{d.route_adherence}%</td>
                 </tr>
               ))}
               {!drivers.length && (

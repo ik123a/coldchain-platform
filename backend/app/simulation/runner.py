@@ -25,7 +25,7 @@ class Broadcast:
     def add(self, q): self.subs.add(q)
     def discard(self, q): self.subs.discard(q)
     async def emit(self, sim_id: int, etype: str, payload: dict):
-        msg = json.dumps({"type": etype, "simulation_id": sim_id, "ts": datetime.utcnow().isoformat(), **payload})
+        msg = json.dumps({**payload, "type": etype, "simulation_id": sim_id, "ts": datetime.utcnow().isoformat()})
         for q in list(self.subs):
             try:
                 q.put_nowait(msg)

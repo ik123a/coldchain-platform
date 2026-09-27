@@ -18,10 +18,10 @@ export function RiskGauge({ score, level }: { score: number | null; level: strin
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center pt-3">
         <div>
-          <div className="text-xl font-bold kpi-num" style={{ color: c }}>
+          <div className="t-metric font-bold kpi-num" style={{ color: c }}>
             {score == null ? "—" : Math.round(s)}
           </div>
-          <div className="text-[9px] tracking-widest" style={{ color: c }}>{level || "…"}</div>
+          <div className="t-micro tracking-widest" style={{ color: c }}>{level || "…"}</div>
         </div>
       </div>
     </div>

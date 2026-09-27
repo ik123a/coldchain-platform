@@ -18,7 +18,7 @@ export default function Shipments() {
   return (
     <div className="fade-in space-y-4">
       <div className="flex items-center gap-3">
-        <h2 className="text-xl font-bold headline flex-1">Shipments</h2>
+        <h2 className="t-metric font-bold headline flex-1">Shipments</h2>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="search shipments / cargo…" className="w-64" />
         <select value={status} onChange={e => setStatus(e.target.value)}>
           <option value="">any status</option>
@@ -48,22 +48,22 @@ export default function Shipments() {
       {open && (
         <div className="base-card p-5 fade-in">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold">{open.name} <span className="badge badge-cyan ml-2">{open.cargo_type.replace("_", " ")}</span></h3>
+            <h3 className="t-section font-bold">{open.name} <span className="badge badge-cyan ml-2">{open.cargo_type.replace("_", " ")}</span></h3>
             <button onClick={() => setOpen(null)} className="chip">close ✕</button>
           </div>
-          <div className="grid grid-cols-5 gap-3 mt-4 text-[12px]">
+          <div className="grid grid-cols-5 gap-3 mt-4 t-body-sm">
             <KV k="Quantity" v={open.quantity + " units"} />
             <KV k="Route" v={`${open.origin} → ${open.destination}`} />
             <KV k="Declared value" v={"₹" + open.cargo_value.toLocaleString()} />
             <KV k="Status" v={open.status} />
             <KV k="Accepted temp" v={"per zone profile"} />
           </div>
-          <div className="mt-5 text-[13px] font-semibold mb-2">Journey timeline</div>
+          <div className="mt-5 t-body font-semibold mb-2">Journey timeline</div>
           <div className="flex gap-0">
             {["preparing", "loading", "storage", "transport", "incident", "recovery", "arrival"].map((s, i) => (
               <div key={s} className="flex-1 text-center">
                 <div className={`h-1.5 ${i === 0 ? "rounded-l-full" : ""} ${i === 6 ? "rounded-r-full" : ""} ${open.status === "IN TRANSIT" && i <= 3 ? "bg-[var(--accent)]" : "bg-[#1d2a3a]"}`} />
-                <div className="text-[10px] text-[var(--text3)] mt-1.5">{s}</div>
+                <div className="t-micro text-[var(--text3)] mt-1.5">{s}</div>
               </div>
             ))}
           </div>
@@ -74,5 +74,5 @@ export default function Shipments() {
 }
 
 function KV({ k, v }: { k: string; v: string }) {
-  return <div><div className="text-[10px] text-[var(--text3)] uppercase">{k}</div><div className="mt-0.5 font-semibold">{v}</div></div>;
+  return <div><div className="t-micro text-[var(--text3)] uppercase">{k}</div><div className="mt-0.5 font-semibold">{v}</div></div>;
 }

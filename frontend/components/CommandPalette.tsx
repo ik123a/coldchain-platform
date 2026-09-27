@@ -103,14 +103,6 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
       icon: AlertTriangle,
       run: async ({ router }) => router.push("/incidents") 
     },
-    { 
-      key: "nav-references", 
-      category: "NAVIGATION",
-      label: "Open Gemini & Veo Reference Board", 
-      hint: "/design-references", 
-      icon: ShieldCheck,
-      run: async ({ router }) => router.push("/design-references") 
-    },
   ];
 
   // Dynamic vehicle quick jumps from store
@@ -182,15 +174,15 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
             onChange={e => { setQ(e.target.value); setCursor(0); }}
             placeholder="Type a command or search vehicles, hubs, emergency actions..."
             aria-label="Command search"
-            className="w-full bg-transparent text-sm text-white focus:outline-none placeholder-slate-500 font-mono" 
+            className="w-full bg-transparent t-body text-white focus:outline-none placeholder-slate-500 font-mono" 
           />
-          <kbd className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-[#141B26] border border-[#1E2638] text-slate-400">
+          <kbd className="hidden sm:inline-block t-micro font-mono px-2 py-0.5 rounded bg-[#141B26] border border-[#1E2638] text-slate-400">
             ESC to close
           </kbd>
         </div>
 
         {/* Category Pills */}
-        <div className="flex items-center gap-1.5 px-2 pt-2.5 pb-2 text-[11px] font-mono">
+        <div className="flex items-center gap-1.5 px-2 pt-2.5 pb-2 t-label font-mono">
           {["ALL", "ACTIONS", "VEHICLES", "WAREHOUSES", "NAVIGATION"].map(cat => (
             <button
               key={cat}
@@ -209,7 +201,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
             return (
               <button 
                 key={c.key}
-                className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition-all text-xs font-mono ${isSelected ? "bg-[#141B26] border border-cyan-500/40 text-white" : "text-slate-300 hover:bg-[#141B26]/60 border border-transparent"}`}
+                className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition-all t-body-sm font-mono ${isSelected ? "bg-[#141B26] border border-cyan-500/40 text-white" : "text-slate-300 hover:bg-[#141B26]/60 border border-transparent"}`}
                 onMouseEnter={() => setCursor(i)}
                 onClick={() => { c.run({ router, dispatch, st }); onClose(); }}>
                 <div className="flex items-center gap-2.5 truncate">
@@ -218,21 +210,21 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
                   </div>
                   <span className="truncate">{c.label}</span>
                 </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded shrink-0 font-semibold border ${c.hint === "CRITICAL" || c.hint === "CRITICAL REEFER" ? "bg-rose-950/60 text-rose-400 border-rose-800/50" : c.hint === "AUTOPILOT" ? "bg-cyan-950/60 text-cyan-400 border-cyan-800/50" : "bg-[#141B26] text-slate-400 border-[#1E2638]"}`}>
+                <span className={`t-micro px-2 py-0.5 rounded shrink-0 font-semibold border ${c.hint === "CRITICAL" || c.hint === "CRITICAL REEFER" ? "bg-rose-950/60 text-rose-400 border-rose-800/50" : c.hint === "AUTOPILOT" ? "bg-cyan-950/60 text-cyan-400 border-cyan-800/50" : "bg-[#141B26] text-slate-400 border-[#1E2638]"}`}>
                   {c.hint}
                 </span>
               </button>
             );
           })}
           {!filtered.length && (
-            <div className="text-xs font-mono text-slate-500 p-6 text-center">
+            <div className="t-body-sm font-mono text-slate-500 p-6 text-center">
               No matching commands or resources found for "{q}"
             </div>
           )}
         </div>
 
         {/* Footer shortcuts */}
-        <div className="border-t border-[#1E2638] pt-2 px-2 flex items-center justify-between text-[10px] font-mono text-slate-500">
+        <div className="border-t border-[#1E2638] pt-2 px-2 flex items-center justify-between t-micro font-mono text-slate-500">
           <div className="flex items-center gap-3">
             <span><kbd className="px-1 py-0.5 rounded bg-[#141B26] border border-[#1E2638] text-slate-300">↑</kbd> <kbd className="px-1 py-0.5 rounded bg-[#141B26] border border-[#1E2638] text-slate-300">↓</kbd> navigate</span>
             <span><kbd className="px-1 py-0.5 rounded bg-[#141B26] border border-[#1E2638] text-slate-300">↵</kbd> select</span>

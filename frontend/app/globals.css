@@ -1,60 +1,210 @@
 @import "tailwindcss";
 
+/* ============================================================
+   DESIGN TOKENS — single source of truth
+   Mirrors design-system/{colors,typography,spacing,components}.md
+   ============================================================ */
 :root {
-  --bg: #080a0f;
-  --bg2: #0e121a;
-  --panel: #141b26;
+  /* Surfaces */
+  --canvas: #080a0f;
+  --surface-subtle: #0a0d14;
+  --surface-raised: #0e121a;
+  --surface-card: #141b26;
+  --surface-elevated: #1c2433;
+  --surface-inset: #0d141f;
+
+  /* Structure */
   --border: #1e2638;
-  --border-hi: #2d3a52;
-  --highlight-edge: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --border-strong: #2d3a52;
+  --border-accent: #2b5b8b;
+  --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+
+  /* Type */
   --text: #f1f5f9;
-  --text2: #94a3b8;
-  --text3: #64748b;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-dim: #475569;
+
+  /* Semantic status */
+  --nominal: #10b981;
+  --nominal-soft: #34d399;
+  --warning: #f59e0b;
+  --warning-soft: #fbbf24;
+  --critical: #f43f5e;
+  --critical-soft: #f87171;
+  --ai: #06b6d4;
+  --ai-soft: #22d3ee;
+
   --accent: #38bdf8;
-  --green: #10b981;
-  --amber: #f59e0b;
-  --red: #f43f5e;
-  --cyan: #06b6d4;
+  --accent-ink: #8dccff;
+  --accent-ink-hover: #a9dbff;
+
+  /* Radii */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 10px;
+  --r-card: 14px;
+  --r-pill: 999px;
+
+  /* Motion */
   --ease-default: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Legacy aliases — retained so the 130+ existing var() reads keep working */
+  --bg: var(--canvas);
+  --bg2: var(--surface-raised);
+  --panel: var(--surface-card);
+  --border-hi: var(--border-strong);
+  --text2: var(--text-secondary);
+  --text3: var(--text-muted);
+  --green: var(--nominal);
+  --amber: var(--warning);
+  --red: var(--critical);
+  --cyan: var(--ai);
+  --highlight-edge: var(--edge-light);
+
+  /* Type families — populated by next/font in app/layout.tsx */
+  --font-sans: var(--font-inter), "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono-stack: var(--font-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
-html, body { background: var(--bg); color: var(--text); font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; margin: 0; }
+/* Tailwind theme bridge so utility classes resolve to the same tokens */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-card: var(--surface-card);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-ink: var(--text);
+  --color-ink-muted: var(--text-secondary);
+  --color-ink-faint: var(--text-muted);
+  --color-nominal: var(--nominal);
+  --color-warn: var(--warning);
+  --color-crit: var(--critical);
+  --color-ai: var(--ai);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono-stack);
+}
+
+html, body {
+  background: var(--canvas);
+  color: var(--text);
+  font-family: var(--font-sans);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 ::selection { background: #06b6d433; }
 
+/* Telemetry readouts must align on the decimal or digits jitter on update */
+.kpi-num, .font-mono, [class*="font-mono"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+input::placeholder { color: var(--text-dim); }
+
+
 .base-card { 
-  background-color: var(--panel); 
+  background-color: var(--surface-card); 
   border: 1px solid var(--border); 
-  border-radius: 14px; 
-  box-shadow: var(--highlight-edge), 0 8px 32px -4px rgba(0, 0, 0, 0.65);
+  border-radius: var(--r-card); 
+  box-shadow: var(--edge-light), 0 8px 32px -4px rgba(0, 0, 0, 0.65);
   transition: transform 0.2s var(--ease-default), border-color 0.2s var(--ease-default), box-shadow 0.2s var(--ease-default);
 }
 .base-card:hover {
-  border-color: var(--border-hi);
+  border-color: var(--border-strong);
 }
 .zone-glass { 
   background: linear-gradient(160deg, #141f2e 0%, #0d1420 70%); 
   border: 1px solid var(--border); 
-  border-radius: 10px; 
-  box-shadow: var(--highlight-edge);
+  border-radius: var(--r-lg); 
+  box-shadow: var(--edge-light);
   backdrop-filter: blur(8px); 
 }
-.headline { letter-spacing: -0.03em; }
-.kpi-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 
-.badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; font-size: 10.5px; border-radius: 999px; border: 1px solid var(--border); color: var(--text2); text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
-.badge-green { color: var(--green); border-color: #34d3994d; background: #34d39914; }
-.badge-amber { color: var(--amber); border-color: #fbbf244d; background: #fbbf2414; }
-.badge-red { color: var(--red); border-color: #f871714d; background: #f8717114; }
-.badge-cyan { color: var(--cyan); border-color: #22d3ee4d; background: #22d3ee14; }
+/* ============================================================
+   TYPE SCALE — 7 steps, ratio-driven, 10px hard floor.
+   Audited 2026-09-27: the UI previously rendered only 10/10.5/11/
+   12/12.5px — five ad-hoc steps with no display level, so every
+   screen read as one undifferentiated wall of small type.
+   Steps below are the only sizes; see design-system/typography.md.
+   ============================================================ */
+.t-display  { font-size: 34px; font-weight: 700; line-height: 1.1;  letter-spacing: -0.025em; }
+.t-hero     { font-size: 26px; font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; }
+.t-section  { font-size: 19px; font-weight: 650; line-height: 1.25; letter-spacing: -0.015em; }
+.t-metric-lg{ font-size: 30px; font-weight: 700; line-height: 1.1;  letter-spacing: -0.02em;
+              font-variant-numeric: tabular-nums; }
+.t-metric   { font-size: 21px; font-weight: 650; line-height: 1.2;  letter-spacing: -0.01em;
+              font-variant-numeric: tabular-nums; }
+.t-title    { font-size: 15px; font-weight: 600; line-height: 1.35; letter-spacing: -0.005em; }
+.t-body     { font-size: 13.5px; font-weight: 400; line-height: 1.5; }
+.t-body-sm  { font-size: 12.5px; font-weight: 400; line-height: 1.45; }
+.t-label    { font-size: 11px;   font-weight: 600; line-height: 1.2; letter-spacing: 0.06em; }
+.t-micro    { font-size: 10px;   font-weight: 600; line-height: 1.2; letter-spacing: 0.09em;
+              text-transform: uppercase; }
 
-.status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 999px; background: var(--green); }
+/* Section heading: uppercase micro label + hairline rule, reads as an
+   instrument panel header rather than prose. */
+.t-eyebrow {
+  font-size: 10px; font-weight: 700; line-height: 1.2;
+  letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* Telemetry rail — the page's signature device. A 2px left-edge spine whose
+   colour encodes fleet health, so an operator scanning the viewport sees
+   "all nominal" or "breach" without reading a single number. Pairs with the
+   h1 as the page's primary hierarchy anchor. */
+.telemetry-rail {
+  position: relative;
+  padding-left: 14px;
+}
+.telemetry-rail::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--rail, var(--nominal));
+  box-shadow: 0 0 6px -1px var(--rail, var(--nominal));
+  transition: background 0.4s var(--ease-default), box-shadow 0.4s var(--ease-default);
+}
+.telemetry-rail[data-state="warning"] { --rail: var(--warning); }
+.telemetry-rail[data-state="critical"] { --rail: var(--critical); }
+.telemetry-rail[data-state="critical"]::before {
+  animation: rail-pulse 1.6s ease-in-out infinite;
+}
+@keyframes rail-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.headline { letter-spacing: -0.02em; }
+
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; font-size: 10.5px; border-radius: var(--r-pill); border: 1px solid var(--border); color: var(--text-secondary); text-transform: uppercase; letter-spacing: .4px; font-weight: 600; white-space: nowrap; }
+.badge-green { color: var(--nominal-soft); border-color: #34d3994d; background: #34d39914; }
+.badge-amber { color: var(--warning-soft); border-color: #fbbf244d; background: #fbbf2414; }
+.badge-red { color: var(--critical-soft); border-color: #f871714d; background: #f8717114; }
+.badge-cyan { color: var(--ai-soft); border-color: #22d3ee4d; background: #22d3ee14; }
+
+.status-dot { display: inline-block; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--nominal); flex: none; }
 .status-dot.pulse { animation: pulse 2s infinite; }
-.status-dot.amber { background: var(--amber); }
-.status-dot.red { background: var(--red); }
+.status-dot.amber { background: var(--warning); }
+.status-dot.red { background: var(--critical); }
 @keyframes pulse { 50% { opacity: .45; } }
 @keyframes pulse2 { 0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,.5);} 70% { box-shadow: 0 0 0 12px rgba(248,113,113,0);} }
 .pulse-red { animation: pulse2 1.6s infinite; }
+@keyframes pulse-ring {
+  0%   { transform: translate(-50%,-50%) scale(0.55); opacity: .85; }
+  70%  { transform: translate(-50%,-50%) scale(1.5);  opacity: 0; }
+  100% { transform: translate(-50%,-50%) scale(1.5);  opacity: 0; }
+}
 @keyframes fadeInUp { 0% { opacity: 0; transform: translateY(8px);} 100% { opacity:1; transform: none;} }
 .fade-in-up { animation: fadeInUp .35s ease-out; }
 @keyframes fadeIn { 0% {opacity:0} 100% {opacity:1} }
@@ -62,31 +212,266 @@ html, body { background: var(--bg); color: var(--text); font-family: "Inter", "S
 @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 .floaty { animation: floaty 6s ease-in-out infinite; }
 
-.btn { border:1px solid var(--border); background: linear-gradient(180deg, #131d2b, #0c141f); color: var(--text); padding: 7px 14px; font-size: 12.5px; font-weight: 500; border-radius: 8px; transition: .15s ease; cursor: pointer; }
-.btn:hover { border-color: var(--border-hi); background: linear-gradient(180deg, #162334, #101a2a); }
-.btn-primary { background: linear-gradient(180deg, #1e3a5f, #102540); border-color: #2b5b8b; color: #8dccff; text-shadow: 0 1px 0 #0c1c2f; box-shadow: inset 0 1px 0 #2b5b8b66, 0 1px 6px #00000033; }
-.btn-primary:hover { border-color: #3ea7e0; color: #a9dbff; }
+.btn { border:1px solid var(--border); background: linear-gradient(180deg, #131d2b, #0c141f); color: var(--text); padding: 7px 14px; font-size: 12.5px; font-weight: 500; border-radius: var(--r-md); transition: .15s ease; cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--border-strong); background: linear-gradient(180deg, #162334, #101a2a); }
+.btn-primary { background: linear-gradient(180deg, #1e3a5f, #102540); border-color: var(--border-accent); color: var(--accent-ink); text-shadow: 0 1px 0 #0c1c2f; box-shadow: inset 0 1px 0 #2b5b8b66, 0 1px 6px #00000033; }
+.btn-primary:hover { border-color: #3ea7e0; color: var(--accent-ink-hover); }
 .btn-red { border-color: #f8717177; color: #fca5a5; background: linear-gradient(180deg, #3a1416, #1a090a); }
 .btn-green { border-color: #34d39977; color: #6ee7b7; background: linear-gradient(180deg, #0c3724, #081a10); }
 .btn-amber { border-color: #fbbf2477; color: #fcd34d; background: linear-gradient(180deg, #3a2d06, #1a1403); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
-.chip { border: 1px solid var(--border); padding: 3px 10px; border-radius: 999px; font-size: 11px; color: var(--text2); cursor: pointer; }
-.chip:hover, .chip.on { border-color: var(--border-hi); color: var(--text); }
+.chip { border: 1px solid var(--border); padding: 3px 10px; border-radius: var(--r-pill); font-size: 11px; color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
+.chip:hover, .chip.on { border-color: var(--border-strong); color: var(--text); }
 
-.route { font-size: 11.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--text3); font-weight: 600; }
+.route { font-size: 11.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); font-weight: 600; }
 .route.active { color: var(--accent); }
 
 .tbl { border-collapse: collapse; width: 100%; }
 .tbl td, .tbl th { padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 12.5px; text-align: left; }
-.tbl thead th { color: var(--text2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+.tbl thead th { color: var(--text-secondary); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
 .tbl tbody tr:hover { background: #14213155; }
 
 .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-.scroll-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--r-pill); }
 .scroll-thin::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar { width: 9px; }
 ::-webkit-scrollbar-thumb { background: #1c2a3c; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #273d57; }
 
-input, select { background: #0d141f; border: 1px solid var(--border); color: var(--text); border-radius: 7px; padding: 7px 10px; font-size: 12.5px; outline: none; }
+input, select { background: var(--surface-inset); border: 1px solid var(--border); color: var(--text); border-radius: 7px; padding: 7px 10px; font-size: 12.5px; outline: none; font-family: inherit; }
 input:focus, select:focus { border-color: var(--accent); }
+
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100% - var(--gap, 1.5rem))); }
+}
+@keyframes marquee-vertical {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(-100% - var(--gap, 1.5rem))); }
+}
+.animate-marquee {
+  animation: marquee var(--duration, 40s) linear infinite;
+}
+.animate-marquee-vertical {
+  animation: marquee-vertical var(--duration, 40s) linear infinite;
+}
+
+
+/* ============================================================
+   SIMULATED ANIMATION SYSTEM — Client-Side Effects
+   ============================================================ */
+
+/* Breathing glow for status indicators */
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 4px 1px var(--glow-color, rgba(56,189,248,0.3)); }
+  50% { box-shadow: 0 0 16px 4px var(--glow-color, rgba(56,189,248,0.5)); }
+}
+.breathe { animation: breathe 3s ease-in-out infinite; }
+
+/* Scanning line for active monitoring cards */
+@keyframes scan-line {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+.scan-line {
+  position: absolute;
+  inset-inline: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
+  animation: scan-line 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Shimmer loading effect for skeleton states */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--panel) 25%, #1C2638 50%, var(--panel) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Subtle gradient shift for active cards */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.gradient-shift {
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease-in-out infinite;
+}
+
+/* Heatwave shimmer distortion */
+@keyframes heatwave {
+  0%, 100% { transform: translateX(0) skewX(0deg); }
+  25% { transform: translateX(1px) skewX(0.3deg); }
+  75% { transform: translateX(-1px) skewX(-0.3deg); }
+}
+.heatwave-distort {
+  animation: heatwave 2s ease-in-out infinite;
+}
+
+/* Rain streaks */
+@keyframes rain-fall {
+  0% { transform: translateY(-100vh); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Lightning flash */
+@keyframes lightning {
+  0%, 94%, 96%, 100% { opacity: 0; }
+  95% { opacity: 0.15; }
+}
+
+/* Ripple expanding rings */
+@keyframes ripple {
+  0% { transform: scale(0.5); opacity: 0.6; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+.ripple-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  animation: ripple 2s ease-out infinite;
+  pointer-events: none;
+}
+
+/* Data feed line entry */
+@keyframes feed-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.feed-line-enter { animation: feed-in 0.3s ease-out; }
+
+/* Slow spin for loading/processing indicators */
+@keyframes slow-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.slow-spin { animation: slow-spin 8s linear infinite; }
+
+/* Counter tick animation for numeric displays */
+@keyframes tick-up {
+  0% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.tick-up { animation: tick-up 0.3s ease-out; }
+
+/* Micro-interaction: button press */
+.press-effect:active {
+  transform: scale(0.97);
+  transition: transform 0.05s ease;
+}
+
+/* Glassmorphism panel variant */
+.glass-panel {
+  background: linear-gradient(160deg, rgba(20, 27, 38, 0.85) 0%, rgba(14, 18, 26, 0.92) 100%);
+  backdrop-filter: blur(12px) saturate(1.2);
+  border: 1px solid rgba(30, 38, 56, 0.6);
+  box-shadow: var(--highlight-edge), 0 8px 32px -4px rgba(0, 0, 0, 0.5);
+}
+
+/* Progress bar animation */
+@keyframes progress-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.progress-bar {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--border);
+}
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Telemetry sparkle dots */
+@keyframes sparkle {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+/* Route trail glow */
+.route-glow {
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.4));
+}
+
+/* Card hover lift (anti-slop: no scale, only translateY) */
+.card-lift {
+  transition: transform 0.2s var(--ease-default), border-color 0.2s var(--ease-default);
+}
+.card-lift:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-hi);
+}
+
+/* Shine border animation for Awwwards / MagicUI craft */
+@keyframes shine {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  to {
+    background-position: 0% 0%;
+  }
+}
+.animate-shine {
+  animation: shine var(--duration, 14s) infinite linear;
+}
+
+/* Shimmer Pan for ShimmerText */
+@keyframes shimmer-pan {
+  from { background-position: 200% center; }
+  to { background-position: -200% center; }
+}
+.animate-shimmer-pan {
+  animation: shimmer-pan 3s linear infinite;
+}
+
+/* Retro Grid Keyframes */
+@keyframes retro-grid-scroll {
+  0% { transform: rotateX(65deg) translateY(-50px); }
+  100% { transform: rotateX(65deg) translateY(0); }
+}
+.animate-retro-grid {
+  animation: retro-grid-scroll 3s linear infinite;
+}
+
+/* Weather Keyframes */
+@keyframes heatwave-keyframes {
+  0%, 100% { transform: scale(1) translateY(0); opacity: 0.3; }
+  50% { transform: scale(1.05) translateY(-2%); opacity: 0.5; }
+}
+.animate-heatwave-distort { animation: heatwave-keyframes 4s ease-in-out infinite alternate; }
+
+@keyframes rain-keyframes {
+  0% { background-position: 0% -100px; }
+  100% { background-position: 20% 100vh; }
+}
+.animate-rain-stream { animation: rain-keyframes 0.6s linear infinite; }
+
+@keyframes drift-fog-keyframes {
+  0% { transform: translateX(-5%); }
+  50% { transform: translateX(5%); }
+  100% { transform: translateX(-5%); }
+}
+.animate-drift-fog { animation: drift-fog-keyframes 20s ease-in-out infinite; }
+
+@keyframes lightning-keyframes {
+  0%, 95%, 98%, 100% { opacity: 0; }
+  96%, 99% { opacity: 0.3; }
+}
+.animate-lightning-flash { animation: lightning-keyframes 7s infinite; }

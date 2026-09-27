@@ -1,15 +1,22 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { Map as MLMap, GeoJSONSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useStore } from "@/lib/store";
 import { api, post } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, Maximize2, Minimize2, Pause, Play, Search, Truck, Zap } from "lucide-react";
+import { Bot, Maximize2, Minimize2, Pause, Play, Radio, RotateCcw, Search, Truck, Zap } from "lucide-react";
 import { FleetTable } from "@/components/live-map/FleetTable";
 import { FloatingVehicleInspector } from "@/components/live-map/FloatingVehicleInspector";
 import { DeepTelemetryDrawer } from "@/components/live-map/DeepTelemetryDrawer";
+import { BorderBeam } from "@/components/ui/border-beam";
+import { NumberTicker } from "@/components/ui/number-ticker";
+import { StatusBeacon } from "@/components/ui/status-beacon";
+import { ShimmerText } from "@/components/ui/shimmer-text";
+import { WeatherOverlay } from "@/components/ui/weather-overlay";
+import { MapMarkers, type MapPoint } from "@/components/ui/map-markers";
+import { MapOverlay, type IncidentPin, type LL, type RouteGeom } from "@/components/ui/map-overlay";
 
 const RISK_COLORS: Record<string, string> = {
   LOW: "#34d399", MEDIUM: "#fbbf24", HIGH: "#f97316", CRITICAL: "#f87171",
@@ -18,12 +25,36 @@ const RISK_COLORS: Record<string, string> = {
 interface VSnap {
   vehicle_id: string; lat: number; lng: number; heading: number; speed_kmh: number;
   status: string; energy_type: string; type: string;
-  trip: { eta_min: number; distance_remaining_km: number; destination_id: string; origin_id: string; route_progress_percent: number };
+  trip: { route_id: string; eta_min: number; distance_remaining_km: number; destination_id: string; origin_id: string; route_progress_percent: number };
   refrigeration: { temperature: number; compressor_status: string; door_open: boolean };
   cargo: { cargo_type: string; load_percent: number; cargo_health: number; risk_level: string; risk_score: number; time_to_critical_min: number | null };
   driver: { name: string; driving_score: number };
   vehicle: { fuel_percent: number; battery_percent: number; vehicle_health: number };
   outside_temperature: number;
+  alerts?: number;
+}
+
+/** Accepts epoch seconds, epoch millis, or an ISO string; never renders "Invalid Date". */
+function formatEventTime(ts: unknown): string {
+  if (ts === null || ts === undefined || ts === "") return "";
+  let d: Date;
+  if (typeof ts === "number") {
+    d = new Date(ts > 1e12 ? ts : ts * 1000);
+  } else if (typeof ts === "string" && /^\d+$/.test(ts)) {
+    const n = Number(ts);
+    d = new Date(n > 1e12 ? n : n * 1000);
+  } else {
+    d = new Date(ts as string);
+  }
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function formatSimClock(simMinute: unknown): string {
+  const m = typeof simMinute === "number" && Number.isFinite(simMinute) ? simMinute : 0;
+  const total = Math.floor(m);
+  const h = Math.floor(total / 60);
+  const mm = total % 60;
+  return `${h}h ${String(mm).padStart(2, "0")}m`;
 }
 
 /** Split a route polyline at progress% into completed (solid) + upcoming (dashed). */
@@ -56,9 +87,164 @@ export default function LiveMapPage() {
   const [vehicleHistory, setVehicleHistory] = useState<any[]>([]);
   const [clock, setClock] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
   const vehicles = (st.fleetVehicles || []) as VSnap[];
   const fleetEvents = (st.fleetEvents || []) as any[];
+
+  // v.geom is not part of the vehicle snapshot, so it is fetched per vehicle and
+  // re-fetched whenever trip.route_id changes (rebuild, divert, respawn).
+  const [routeGeom, setRouteGeom] = useState<Map<string, { coords: LL[]; routeId: string }>>(new Map());
+  const [staleGeom, setStaleGeom] = useState<Map<string, LL[]>>(new Map());
+  const geomBusy = useRef<Set<string>>(new Set());
+
+  const kpis = useMemo(() => {
+    const atRisk = vehicles.filter(v => ["HIGH", "CRITICAL"].includes(v.cargo?.risk_level || "")).length;
+    const excursions = vehicles.filter(v => typeof v.refrigeration?.temperature === "number" && (v.refrigeration.temperature as number) > 8).length;
+    const tally = (t: string) => fleetEvents.filter((e: any) => e.type === t).length;
+    return {
+      activeTrucks: vehicles.length,
+      inTransit: vehicles.filter(v => v.status === "IN_TRANSIT").length,
+      atRisk,
+      activeIncidents: vehicles.filter(v => (v.alerts || 0) > 0).length,
+      excursions,
+      reroutes: tally("vehicle.route.changed") + tally("ai.route.decision"),
+      transfers: tally("cargo.transferred"),
+      deliveries: fleetEvents.filter((e: any) => String(e.text || "").includes("delivered")).length,
+    };
+  }, [vehicles, fleetEvents]);
+
+  /* Telemetry rail state — the signature device. Derived from the same
+     counts the KPI bar shows, so the spine can never contradict a number.
+     Precedence: temperature excursion (physical spoilage risk) beats risk
+     score (predictive), which beats an open incident. */
+  const { railState, railLabel } = useMemo(() => {
+    const excursions = vehicles.filter(
+      (v) => typeof v.refrigeration?.temperature === "number" &&
+             (v.refrigeration.temperature as number) > 8
+    ).length;
+    const atRisk = vehicles.filter(
+      (v) => ["HIGH", "CRITICAL"].includes(v.cargo?.risk_level || "")
+    ).length;
+    const alerting = vehicles.filter((v) => (v.alerts || 0) > 0).length;
+
+    if (excursions > 0) {
+      return {
+        railState: "critical" as const,
+        railLabel: `Fleet status: critical — ${excursions} vehicle${
+          excursions === 1 ? "" : "s"
+        } above the 8 degree Celsius cold-chain limit.`,
+      };
+    }
+    if (atRisk > 0) {
+      return {
+        railState: "warning" as const,
+        railLabel: `Fleet status: warning — ${atRisk} vehicle${
+          atRisk === 1 ? "" : "s"
+        } flagged at elevated cargo risk.`,
+      };
+    }
+    if (alerting > 0) {
+      return {
+        railState: "warning" as const,
+        railLabel: `Fleet status: warning — ${alerting} vehicle${
+          alerting === 1 ? "" : "s"
+        } carrying open alerts.`,
+      };
+    }
+    return {
+      railState: "nominal" as const,
+      railLabel: "Fleet status: nominal — all vehicles within the cold-chain corridor.",
+    };
+  }, [vehicles]);
+
+  const [simSpeed, setSimSpeed] = useState(1);
+  const setSpeed = async (n: number) => {
+    setSimSpeed(n);
+    await post("/api/fleet/speed", { speed: n }).catch(() => {});
+  };
+
+  const mapPoints = useMemo<MapPoint[]>(() => {    const wh: MapPoint[] = (geo?.warehouses || []).map((w: any) => ({
+      id: `wh-${w.id}`,
+      lng: Number(w.lng),
+      lat: Number(w.lat),
+      tone: "selected" as const,
+      label: w.id,
+      sublabel: w.name,
+      kind: "warehouse" as const,
+    }));
+    const fleet: MapPoint[] = vehicles.map((v: any) => {
+      const temp = v.refrigeration?.temperature;
+      const isSel = v.vehicle_id === selected;
+      const tone: MapPoint["tone"] = isSel
+        ? "selected"
+        : typeof temp === "number" && temp > 8
+        ? "critical"
+        : v.cargo?.risk_level === "HIGH" || v.cargo?.risk_level === "MEDIUM"
+        ? "warning"
+        : "nominal";
+      return {
+        id: v.vehicle_id,
+        lng: Number(v.lng),
+        lat: Number(v.lat),
+        tone,
+        label: isSel ? v.vehicle_id : undefined,
+        sublabel: typeof temp === "number" ? `${temp.toFixed(1)}°C core` : undefined,
+        heading: Number(v.heading) || 0,
+        kind: (v.type === "SERVICE_TRUCK" ? "service" : "vehicle") as "vehicle" | "service",
+      };
+    });
+    return [...wh, ...fleet];
+  }, [geo?.warehouses, vehicles, selected]);
+
+  const overlayRoutes = useMemo<Map<string, RouteGeom>>(() => {
+    const out = new Map<string, RouteGeom>();
+    for (const v of vehicles) {
+      if (!v.vehicle_id.startsWith("TRUCK")) continue;
+      const stale = staleGeom.get(v.vehicle_id);
+      if (stale && stale.length > 1) {
+        out.set(`${v.vehicle_id}::stale`, { done: stale, todo: [], tone: "stale" });
+      }
+      const g = routeGeom.get(v.vehicle_id);
+      if (!g || g.coords.length < 2) continue;
+      const pct = v.trip?.route_progress_percent ?? 0;
+      const { done, todo } = splitRoute(g.coords, pct);
+      const risk = v.cargo?.risk_level || "LOW";
+      const tone: RouteGeom["tone"] = stale
+        ? "reroute"
+        : risk === "CRITICAL" ? "critical"
+        : risk === "HIGH" || risk === "MEDIUM" ? "warning"
+        : "normal";
+      out.set(v.vehicle_id, { done, todo, tone });
+    }
+    return out;
+  }, [vehicles, routeGeom, staleGeom]);
+
+  const overlayTrails = useMemo<Map<string, LL[]>>(() => {
+    const out = new Map<string, LL[]>();
+    for (const [id, pts] of trailsRef.current) if (pts.length > 1) out.set(id, pts);
+    return out;
+  }, [clock]);
+
+  const overlayIncidents = useMemo<IncidentPin[]>(() => {
+    const risky = new Set(vehicles.filter(v => ["HIGH", "CRITICAL"].includes(v.cargo?.risk_level || "")).map(v => v.vehicle_id));
+    return fleetEvents
+      .filter((e: any) => e.type === "fleet.incident.created")
+      .slice(-5)
+      .map((e: any) => {
+        const s = e.snapshot || {};
+        const resolved = !risky.has(e.vehicle_id);
+        return {
+          id: `inc-${e.incident_id ?? e.vehicle_id}`,
+          lng: Number(s.lng) || 0,
+          lat: Number(s.lat) || 0,
+          severity: resolved ? "RESOLVED" : String(e.severity || "MEDIUM").toUpperCase(),
+          vehicle_id: e.vehicle_id,
+          cause: e.root_cause,
+        } satisfies IncidentPin;
+      })
+      .filter(p => p.lng !== 0 && p.lat !== 0);
+  }, [fleetEvents.length, vehicles]);
 
   useEffect(() => {
     api("/api/fleet/state").then((s: any) =>
@@ -79,6 +265,59 @@ export default function LiveMapPage() {
     }
     setClock(c => c + 1);
   }, [st.fleetVehicles]);
+
+  // ---------- route geometry (real backend data) ----------
+  const lastRouteChange = useMemo(() => {
+    const evs = fleetEvents.filter((e: any) => e.type === "vehicle.route.changed");
+    return evs.length ? (evs[evs.length - 1] as any) : null;
+  }, [fleetEvents]);
+
+  useEffect(() => {
+    const c = lastRouteChange;
+    if (!c?.vehicle_id || !Array.isArray(c.geometry) || c.geometry.length < 2) return;
+    const vid: string = c.vehicle_id;
+    const prevEntry = routeGeom.get(vid);
+    if (prevEntry) {
+      setStaleGeom(s => { const n = new Map(s); n.set(vid, prevEntry.coords); return n; });
+      window.setTimeout(() => {
+        setStaleGeom(s => { const n = new Map(s); n.delete(vid); return n; });
+      }, 15000);
+    }
+    setRouteGeom(prev => {
+      const n = new Map(prev);
+      n.set(vid, { coords: c.geometry as LL[], routeId: String(c.new_target ?? "") });
+      return n;
+    });
+  }, [lastRouteChange]);
+
+  useEffect(() => {
+    const want: Array<{ id: string; routeId: string }> = [];
+    for (const v of vehicles) {
+      if (!v.vehicle_id.startsWith("TRUCK")) continue;
+      const rid = String(v.trip?.route_id ?? "");
+      const have = routeGeom.get(v.vehicle_id);
+      if (!have || (rid && have.routeId !== rid)) want.push({ id: v.vehicle_id, routeId: rid });
+    }
+    if (!want.length) return;
+    const fresh = want.filter(w => !geomBusy.current.has(w.id));
+    if (!fresh.length) return;
+    for (const w of fresh) geomBusy.current.add(w.id);
+    let alive = true;
+    Promise.all(fresh.map(w =>
+      api(`/api/fleet/vehicle/${w.id}`)
+        .then((d: any) => {
+          if (!alive || !Array.isArray(d?.geometry) || d.geometry.length < 2) return;
+          setRouteGeom(prev => {
+            const n = new Map(prev);
+            if (!n.has(w.id)) n.set(w.id, { coords: d.geometry as LL[], routeId: w.routeId });
+            return n;
+          });
+        })
+        .catch(() => {})
+        .finally(() => geomBusy.current.delete(w.id))
+    ));
+    return () => { alive = false; };
+  }, [vehicles, routeGeom]);
 
   // ---------- map init ----------
   useEffect(() => {
@@ -101,25 +340,32 @@ export default function LiveMapPage() {
       style: {
         version: 8,
         sources: {
-          carto: {
+          esriBase: {
             type: "raster",
-            tiles: [
-              "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-              "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png"
-            ],
+            tiles: ["https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"],
             tileSize: 256,
-            attribution: "© CARTO, © OpenStreetMap"
+            attribution: "© Esri, HERE, Garmin, © OpenStreetMap contributors",
+          },
+          esriLabels: {
+            type: "raster",
+            tiles: ["https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"],
+            tileSize: 256,
           },
         },
         layers: [
           { id: "bg", type: "background", paint: { "background-color": "#080A0F" } },
-          { id: "carto-tiles", type: "raster", source: "carto", paint: { "raster-opacity": 0.95 } },
+          { id: "esri-base", type: "raster", source: "esriBase" },
+          { id: "esri-labels", type: "raster", source: "esriLabels" },
         ],
       } as any,
       attributionControl: false,
     });
     mapRef.current = map;
+    setMapReady(false);
+    const ro = new ResizeObserver(() => map.resize());
+    ro.observe(containerRef.current);
     map.on("load", () => {
+      setMapReady(true);
       map.addImage("truck-icon", img);
       map.addSource("wh", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addSource("dest", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
@@ -198,7 +444,7 @@ export default function LiveMapPage() {
         map.on("mouseleave", lyr, () => (map.getCanvas().style.cursor = ""));
       }
     });
-    return () => { map.remove(); mapRef.current = null; };
+    return () => { ro.disconnect(); setMapReady(false); map.remove(); mapRef.current = null; };
   }, []);
 
   // static geo
@@ -253,7 +499,7 @@ export default function LiveMapPage() {
         (map.getSource("trail") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: tfeats } as any);
         if (followRef.current) {
           const nxt = nextRef.current.get(followRef.current);
-          if (nxt) map.easeTo({ center: [nxt.lng, nxt.lat], duration: 320 });
+          if (nxt) map.easeTo({ center: [nxt.lng, nxt.lat], duration: 80 });
         }
       }
       raf = requestAnimationFrame(loop);
@@ -331,25 +577,76 @@ export default function LiveMapPage() {
 
   return (
     <div className="fade-in h-[calc(100vh-88px)] flex flex-col gap-3">
-      {/* top bar */}
-      <div className="flex items-center gap-2.5 flex-wrap">
-        <b className="text-[15px] flex items-center gap-2"><Truck size={16} className="text-[var(--accent)]" /> LIVE FLEET</b>
-        <span className="badge badge-green">{vehicles.length} vehicles</span>
-        <span className={`badge ${vehicles.filter(v => v.cargo.risk_level === "CRITICAL").length ? "badge-red pulse-red" : "badge-green"}`}>
-          {vehicles.filter(v => ["HIGH", "CRITICAL"].includes(v.cargo.risk_level)).length} at risk
+      {/* Page header — h1 gives the document an outline; the rail is the
+          always-visible fleet-health spine described in design-system/motion.md */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <h1
+          className="telemetry-rail t-hero flex items-baseline gap-2.5 m-0"
+          data-state={railState}
+        >
+          <Truck size={18} className="text-[var(--accent)] translate-y-0.5" aria-hidden />
+          <span>Live Fleet</span>
+          <span className="t-label text-[var(--text-dim)] font-normal tracking-[0.14em] uppercase">
+            Delhi NCR Corridor
+          </span>
+          <span className="sr-only">{railLabel}</span>
+        </h1>
+        <span className="badge badge-green flex items-center gap-1.5">
+          <StatusBeacon status="online" size="sm" />
+          <NumberTicker value={vehicles.length} className="text-emerald-400 font-bold" />
+          <span>vehicles</span>
         </span>
-        <span className="badge">sim {Math.round((st as any).fleetMeta?.simMinute || 0)}m · {(st as any).fleetMeta?.weather || "…"}</span>
+        <span className={`badge flex items-center gap-1.5 ${vehicles.filter(v => v.cargo?.risk_level === "CRITICAL").length ? "badge-red pulse-red" : "badge-green"}`}>
+          <StatusBeacon status={vehicles.filter(v => v.cargo?.risk_level === "CRITICAL").length ? "critical" : "warning"} size="sm" />
+          <NumberTicker value={vehicles.filter(v => ["HIGH", "CRITICAL"].includes(v.cargo?.risk_level || "")).length} className={vehicles.filter(v => v.cargo?.risk_level === "CRITICAL").length ? "text-rose-400 font-bold" : "text-emerald-400 font-bold"} />
+          <span>at risk</span>
+        </span>
+        <span className="badge" title={`Simulation minute ${Math.round((st as any).fleetMeta?.simMinute || 0)}`}>
+          T+{formatSimClock((st as any).fleetMeta?.simMinute)}
+          {" · "}
+          {String((st as any).fleetMeta?.weather?.weather ?? "—").toUpperCase()}
+          {typeof (st as any).fleetMeta?.ambient === "number" ? ` ${(st as any).fleetMeta.ambient.toFixed(1)}°C` : ""}
+        </span>
         <div className="flex-1" />
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {([["ACTIVE", kpis.activeTrucks, ""], ["TRANSIT", kpis.inTransit, ""],
+             ["AT RISK", kpis.atRisk, kpis.atRisk ? "text-amber-400 font-bold" : "text-emerald-400 font-bold"],
+             ["INCID", kpis.activeIncidents, kpis.activeIncidents ? "text-amber-400 font-bold" : "text-emerald-400 font-bold"],
+             ["EXCURSION", kpis.excursions, kpis.excursions ? "text-rose-400 font-bold" : "text-emerald-400 font-bold"],
+             ["REROUTE", kpis.reroutes, ""], ["XFER", kpis.transfers, ""],
+             ["DELIV", kpis.deliveries, ""]] as Array<[string, number, string]>).map(([l, n, cls]) => (
+            <span key={l} className="badge" title={l}>
+              <span className="font-mono t-label text-slate-400">{l}</span>
+              <span className={`font-mono t-body-sm ${cls || "text-slate-200 font-bold"}`}>{n}</span>
+            </span>
+          ))}
+        </div>
+        <div className="flex-1" />
+        <div className="flex items-center gap-1">
+          {[1, 2, 5, 10].map(n => (
+            <button key={n} onClick={() => setSpeed(n)} title={`Set simulation speed to ${n}x`}
+                    className={`chip t-micro font-mono ${simSpeed === n ? "on" : ""}`}>{n}x</button>
+          ))}
+          <select defaultValue="NORMAL" title="Weather scenario"
+                  onChange={e => post("/api/fleet/weather", { weather: e.target.value })}
+                  className="chip t-micro">
+            {["NORMAL", "HEATWAVE", "RAIN", "FOG"].map(w => <option key={w} value={w}>{w}</option>)}
+          </select>
+          <button onClick={() => post("/api/fleet/inject-random")} title="Inject a random incident"
+                  className="btn btn-amber t-label"><Zap size={12} /> Incident</button>
+          <button onClick={() => post("/api/fleet/rebuild", { fleet_size: 12 })} title="Rebuild the fleet world"
+                  className="btn t-label"><RotateCcw size={12} /></button>
+        </div>
         <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && searchGo()}
-               placeholder="search TRUCK-104 / WH-001…" className="w-52 text-[12px]" />
-        <button onClick={searchGo} className="btn text-[11px]"><Search size={12} /></button>
-        <button onClick={togglePause} className="btn text-[11px] flex items-center gap-1">
+               placeholder="Search vehicle / warehouse" aria-label="Search vehicle or warehouse" className="w-44 t-body-sm" />
+        <button onClick={searchGo} className="btn t-label"><Search size={12} /></button>
+        <button onClick={togglePause} className="btn t-label flex items-center gap-1">
           {paused ? <><Play size={12} /> Resume</> : <><Pause size={12} /> Pause</>}
         </button>
-        <button onClick={doDemo} className="btn btn-amber text-[11px] flex items-center gap-1">
+        <button onClick={doDemo} className="btn btn-amber t-label flex items-center gap-1">
           <Zap size={12} /> Run Autonomous Demo
         </button>
-        <button onClick={toggleFullscreen} className="btn text-[11px] flex items-center gap-1">
+        <button onClick={toggleFullscreen} className="btn t-label flex items-center gap-1">
           {fullscreen ? <><Minimize2 size={12} /> Windowed</> : <><Maximize2 size={12} /> Fullscreen</>}
         </button>
       </div>
@@ -365,29 +662,45 @@ export default function LiveMapPage() {
         </div>
 
         {/* map + drawer column */}
-        <div className={`${mapSpan} flex flex-col gap-3 min-h-0`}>
+        <div className={`${mapSpan} relative flex flex-col gap-3 min-h-0`}>
           <div className="base-card overflow-hidden relative flex-1 min-h-0">
-            <div ref={containerRef} className="absolute inset-0" />
+            <div ref={containerRef} className="h-full w-full" />
+            <MapOverlay
+              map={mapReady ? mapRef.current : null}
+              routes={overlayRoutes}
+              trails={overlayTrails}
+              incidents={overlayIncidents}
+              selected={selected}
+              onIncidentClick={(p) => {
+                if (!p.vehicle_id) return;
+                setSelected(p.vehicle_id);
+                const v = vehicles.find((x) => x.vehicle_id === p.vehicle_id);
+                if (v) mapRef.current?.flyTo({ center: [v.lng, v.lat], zoom: 11 });
+              }}
+            />
+            <MapMarkers map={mapReady ? mapRef.current : null} points={mapPoints} onSelect={(id) => { if (!id.startsWith("wh-")) { setSelected(id); const v = vehicles.find((x) => x.vehicle_id === id); if (v) mapRef.current?.flyTo({ center: [v.lng, v.lat], zoom: 10.5 }); } }} />
+            {/* Simulated Weather Effect on Map */}
+            <WeatherOverlay condition="heatwave" intensity={0.25} className="z-10 rounded-xl" />
             <AnimatePresence>
               {following && (
                 <motion.div
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-[#0E121A]/95 backdrop-blur border border-cyan-500/40 shadow-xl flex items-center gap-3 text-xs font-mono">
+                  className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-[#0E121A]/95 backdrop-blur border border-cyan-500/40 shadow-xl flex items-center gap-3 t-body-sm font-mono">
                   <span className="flex items-center gap-1.5 text-cyan-300 font-bold">
-                    <Radio size={12} className="text-cyan-400 animate-pulse" />
+                    <Radio size={12} className="text-cyan-400 breathe" />
                     FOLLOWING {following}
                   </span>
                   <button
                     onClick={() => setFollowing(null)}
-                    className="text-[10px] uppercase font-bold text-slate-400 hover:text-white px-2 py-0.5 rounded bg-[#141B26] border border-[#1E2638] transition-colors">
+                    className="t-micro uppercase font-bold text-slate-400 hover:text-white px-2 py-0.5 rounded bg-[#141B26] border border-[#1E2638] transition-colors">
                     Stop Following
                   </button>
                 </motion.div>
               )}
             </AnimatePresence>
-            <div className="absolute bottom-2 left-2 text-[9.5px] text-[var(--text3)] bg-[#0b1018cc] px-2 py-1 rounded flex gap-3">
+            <div className="absolute bottom-2 left-2 t-micro text-[var(--text3)] bg-[#0b1018cc] px-2 py-1 rounded flex gap-3">
               <span>━ completed</span><span className="text-[var(--cyan)]">┅ upcoming</span>
               <span>🚚 vehicle</span><span>⚠ incident</span>
               <span className="text-[var(--cyan)]">SIMULATION ONLY</span>
@@ -426,10 +739,10 @@ export default function LiveMapPage() {
                   exit={{ opacity: 0 }}
                   className="absolute top-4 right-4 z-30 w-72 bg-[#0E121A]/95 backdrop-blur-md border border-[#1E2638] rounded-xl p-4 shadow-2xl text-slate-100 space-y-2.5">
                   <div className="flex items-center justify-between border-b border-[#1E2638] pb-2">
-                    <b className="text-sm font-mono text-white">{selWh.name}</b>
-                    <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-white text-xs">✕</button>
+                    <b className="t-body font-mono text-white">{selWh.name}</b>
+                    <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-white t-body-sm">✕</button>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs font-mono text-slate-300">
+                  <div className="grid grid-cols-2 gap-2 t-body-sm font-mono text-slate-300">
                     <Stat l="Status" v={selWh.status} />
                     <Stat l="Capacity" v={`${selWh.available_capacity}/${selWh.capacity}u`} />
                     <Stat l="Queue" v={`${selWh.queue_min} min`} />
@@ -443,14 +756,15 @@ export default function LiveMapPage() {
           </div>
 
           {/* timeline / events drawer */}
-          <div className="base-card p-3 shrink-0" style={{ height: showTimeline ? 132 : 40 }}>
+          <div className="base-card p-3 shrink-0 relative overflow-hidden" style={{ height: showTimeline ? 132 : 40 }}>
+            {showTimeline && <div className="scan-line opacity-20 pointer-events-none" />}
             <div className="flex items-center gap-2 mb-1.5">
-              <button onClick={() => setShowTimeline(s => !s)} className="chip text-[10px]">
+              <button onClick={() => setShowTimeline(s => !s)} className="chip t-micro">
                 {showTimeline ? "▾" : "▸"} {showTimeline ? "hide" : "show"}
               </button>
               <div className="flex gap-1">
-                <button onClick={() => setTimelineTab("events")} className={`chip text-[10px] ${timelineTab === "events" ? "on" : ""}`}>Live events</button>
-                <button onClick={() => setTimelineTab("timeline")} className={`chip text-[10px] ${timelineTab === "timeline" ? "on" : ""}`}>
+                <button onClick={() => setTimelineTab("events")} className={`chip t-micro ${timelineTab === "events" ? "on" : ""}`}>Live events</button>
+                <button onClick={() => setTimelineTab("timeline")} className={`chip t-micro ${timelineTab === "timeline" ? "on" : ""}`}>
                   {selected ? `${selected} timeline` : "vehicle timeline"}
                 </button>
               </div>
@@ -464,9 +778,9 @@ export default function LiveMapPage() {
                       ts: e.ts, vehicle_id: e.payload?.vehicle_id,
                     }))
                 ).map((e: any, i: number) => (
-                  <div key={i} className="text-[10.5px] flex gap-2 leading-snug">
-                    <span className="text-[var(--text3)] shrink-0">
-                      {e.ts ? new Date(e.ts * (e.ts > 1e12 ? 1 : 1000)).toLocaleTimeString() : ""}
+                  <div key={i} className="t-micro flex gap-2 leading-snug">
+                    <span className="text-[var(--text3)] shrink-0 tabular-nums">
+                      {formatEventTime(e.ts)}
                     </span>
                     <span className="text-[var(--text2)]">
                       {e.type === "vehicle.event" && (e.payload?.text || "")}
@@ -476,15 +790,15 @@ export default function LiveMapPage() {
                       {e.type === "cargo.transferred" && `📦 ${e.vehicle_id} delivered ${e.units}u to ${e.facility_id}`}
                       {e.type === "geofence.entered" && `📍 ${e.vehicle_id} entered ${e.type === "geofence.entered" ? e.fence : ""}`}
                       {e.type === "vehicle.failure.injected" && `⚡ ${e.vehicle_id}: ${e.failure} injected`}
-                      {e.type === "weather.changed" && `🌦 weather → ${e.weather} (ambient ${e.ambient_c}°C)`}
+                      {e.type === "weather.changed" && `🌦 weather → ${e.weather?.weather ?? e.weather} (ambient ${e.weather?.ambient_c ?? e.ambient_c}°C)`}
                       {e.type === "traffic.changed" && `🚦 traffic ${e.segment} → ${e.level}`}
                     </span>
                   </div>
                 ))}
                 {timelineTab === "timeline" && !vehicleHistory.length &&
-                  <div className="text-[11px] text-[var(--text3)]">select a vehicle to see its history</div>}
+                  <div className="t-label text-[var(--text3)]">select a vehicle to see its history</div>}
                 {timelineTab === "events" && !fleetEvents.length &&
-                  <div className="text-[11px] text-[var(--text3)]">waiting for events…</div>}
+                  <div className="t-label text-[var(--text3)]">waiting for events…</div>}
               </div>
             )}
           </div>
@@ -496,22 +810,35 @@ export default function LiveMapPage() {
         {decision && (
           <motion.div key={(decision.decision || "") + (decision.target || "") + (decision.vehicle_id || "")}
                       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                      className="fixed bottom-16 left-16 z-40 w-[340px] base-card p-3 border-[var(--cyan)]/40">
-            <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--cyan)] mb-1.5">
-              <Bot size={13} /> AI FLEET COORDINATOR {decision.manual && <span className="badge badge-cyan text-[9px]">manual query</span>}
-            </div>
-            <div className="text-[11px] text-[var(--text2)] mb-1">
-              <b>{decision.vehicle_id}</b> — <b className={decision.decision === "DIVERT" ? "text-[var(--amber)]" : "text-[var(--green)]"}>{decision.decision}</b>
-              {decision.target ? ` → ${decision.target}` : ""}
-            </div>
-            <div className="text-[10.5px] text-[var(--text3)] leading-relaxed">{decision.reason}</div>
-            {(decision.candidates || []).filter((c: any) => c.compatible).slice(0, 3).map((c: any) => (
-              <div key={c.id} className="flex justify-between text-[10px] text-[var(--text2)] mt-1 border-t border-[var(--border)] pt-1">
-                <span>{c.name}</span>
-                <span>ETA {c.eta_total_min}m · {c.distance_km}km · score {c.score}</span>
+                      className="fixed bottom-16 left-16 z-40 w-[340px] base-card p-3 border-[var(--cyan)]/40 relative overflow-hidden">
+            <BorderBeam
+              size={90}
+              duration={4}
+              colorFrom={decision.decision === "DIVERT" ? "#f59e0b" : "#38bdf8"}
+              colorTo={decision.decision === "DIVERT" ? "#06b6d4" : "#10b981"}
+              borderWidth={1.5}
+            />
+            <div className="relative z-10">
+              <div className="flex items-center gap-1.5 t-body-sm font-semibold text-[var(--cyan)] mb-1.5">
+                <Bot size={13} />
+                <ShimmerText className="t-body font-bold tracking-wide">
+                  AI EMERGENCY REROUTE
+                </ShimmerText>
+                {decision.manual && <span className="badge badge-cyan t-micro">manual query</span>}
               </div>
-            ))}
-            <button onClick={() => setDecision(null)} className="btn text-[10px] mt-2">close</button>
+              <div className="t-label text-[var(--text2)] mb-1">
+                <b>{decision.vehicle_id}</b> — <b className={decision.decision === "DIVERT" ? "text-[var(--amber)]" : "text-[var(--green)]"}>{decision.decision}</b>
+                {decision.target ? ` → ${decision.target}` : ""}
+              </div>
+              <div className="t-micro text-[var(--text3)] leading-relaxed">{decision.reason}</div>
+              {(decision.candidates || []).filter((c: any) => c.compatible).slice(0, 3).map((c: any) => (
+                <div key={c.id} className="flex justify-between t-micro text-[var(--text2)] mt-1 border-t border-[var(--border)] pt-1">
+                  <span>{c.name}</span>
+                  <span>ETA {c.eta_total_min}m · {c.distance_km}km · score {c.score}</span>
+                </div>
+              ))}
+              <button onClick={() => setDecision(null)} className="btn t-micro mt-2 cursor-pointer">close</button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

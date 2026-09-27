@@ -46,28 +46,28 @@ export default function Copilot() {
       <div className="base-card overflow-hidden">
         <div className="px-4 py-3 border-b border-[var(--border)] flex items-center gap-2">
           <Bot size={15} className="text-[var(--cyan)]" />
-          <b className="text-[14px]">AI Copilot</b>
+          <b className="t-body">AI Copilot</b>
           <span className="badge badge-cyan">context-aware · deterministic</span>
-          <span className="text-[10.5px] text-[var(--text3)] ml-auto">
+          <span className="t-micro text-[var(--text3)] ml-auto">
             incident context: #{st.selectedIncident ?? st.incidents[0]?.id ?? "—"}
           </span>
         </div>
         <div className="p-4 space-y-3 h-[52vh] overflow-y-auto scroll-thin">
           {msgs.map((m, i) => (
             <div key={i} className={`flex ${m.role === "u" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[78%] rounded-xl px-3.5 py-2.5 text-[12.5px] leading-relaxed ${m.role === "u" ? "bg-[#1e3a5f] text-[#cfe8ff]" : "base-card text-[var(--text2)]"}`}>
+              <div className={`max-w-[78%] rounded-xl px-3.5 py-2.5 t-body-sm leading-relaxed ${m.role === "u" ? "bg-[#1e3a5f] text-[#cfe8ff]" : "base-card text-[var(--text2)]"}`}>
                 {m.text}
               </div>
             </div>
           ))}
-          {busy && <div className="text-[11px] text-[var(--text3)]">thinking…</div>}
+          {busy && <div className="t-label text-[var(--text3)]">thinking…</div>}
         </div>
         <div className="p-3 border-t border-[var(--border)]">
           <div className="flex flex-wrap gap-1 mb-2">
-            {chips.map(c => <button key={c} className="chip text-[10px]" onClick={() => ask(c)}>{c}</button>)}
+            {chips.map(c => <button key={c} className="chip t-micro" onClick={() => ask(c)}>{c}</button>)}
           </div>
           <div className="flex gap-2 items-center">
-            <label htmlFor="inc" className="text-[10.5px] text-[var(--text3)]">incident</label>
+            <label htmlFor="inc" className="t-micro text-[var(--text3)]">incident</label>
             <select id="inc" value={st.selectedIncident ?? ""} onChange={e => dispatch({ type: "select_incident", payload: e.target.value ? +e.target.value : null })}>
               <option value="">latest</option>
               {st.incidents.slice(0, 8).map(i => <option key={i.id} value={i.id}>#{i.id} {(i.root_cause || "").replace(/_/g, " ")}</option>)}

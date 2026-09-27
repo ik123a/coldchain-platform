@@ -7,7 +7,7 @@ broadcasts everything over the existing BROADCAST hub.
 """
 from __future__ import annotations
 import asyncio, json, logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from .clock import SimClock
 from .traffic import TrafficWorld
 from .routing import RoutingService, nearest_node, haversine_km
@@ -19,7 +19,7 @@ from .events import make_event
 from .geo_data import WAREHOUSES, DESTINATIONS, POLYLINES, DRIVERS, CARGO_TYPES, REGION, GEOFENCES
 from .fleet_ops import pick_service, validate_transfer, apply_transfer, priority_queue, is_cargo_vehicle
 from .analytics import fleet_kpis
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from ..database.engine import SessionLocal
 from ..models.fleet import Vehicle, FleetRoute, VehicleEvent, RouteDecision, CargoTransfer
 from ..models.entities import Incident, AIAnalysis
@@ -29,6 +29,7 @@ from . import agents_d as A
 log = logging.getLogger("fleet")
 SUSTAIN_TICKS = 6            # consecutive over-band world-ticks → incident
 ARRIVE_KM = 0.3
+EVENT_RETENTION_HOURS = 6    # telemetry history window; incidents and reports are never pruned
 
 
 class FleetOrchestrator:
@@ -212,6 +213,8 @@ class FleetOrchestrator:
                     continue
                 self.sim_minute += dt
                 self._tick_n += 1
+                if self._tick_n % 2400 == 0:
+                    await self._prune_events()
                 self.traffic.maybe_weather()
                 await self._fail_world_tick()
                 snaps = []
@@ -290,12 +293,12 @@ class FleetOrchestrator:
             self._geo_state[v.id] = cur
             if cur is not None:
                 await BROADCAST.emit(0, "geofence.entered",
-                                     {"vehicle_id": v.id, "fence": cur["id"], "type": cur["type"]})
+                                     {"vehicle_id": v.id, "fence": cur["id"], "fence_type": cur["type"]})
                 sev = "warning" if cur["type"] == "RESTRICTED" else "info"
                 await self._evt(v, f"{v.id} entered {cur['type']} zone {cur['id']}", sev)
             elif prev is not None:
                 await BROADCAST.emit(0, "geofence.exited",
-                                     {"vehicle_id": v.id, "fence": prev["id"], "type": prev["type"]})
+                                     {"vehicle_id": v.id, "fence": prev["id"], "fence_type": prev["type"]})
 
     # ---------------- incidents ----------------
     async def _check_incident(self, v: VehicleTwin, snap: dict):
@@ -599,6 +602,26 @@ class FleetOrchestrator:
                 await s.commit()
         except Exception as e:
             log.warning("persist failed: %s", e)
+
+    async def _prune_events(self):
+        """Bound fleet_vehicle_events growth.
+
+        Only append-only telemetry history is removed; incidents, AI analyses,
+        route decisions and cargo transfers are deliberately left intact so that
+        reporting and replay keep working over the full retained horizon.
+        """
+        try:
+            cutoff = datetime.utcnow() - timedelta(hours=EVENT_RETENTION_HOURS)
+            async with SessionLocal() as s:
+                res = await s.execute(
+                    delete(VehicleEvent).where(VehicleEvent.created_at < cutoff))
+                await s.commit()
+                removed = res.rowcount or 0
+            if removed:
+                log.info("pruned %d vehicle events older than %dh",
+                         removed, EVENT_RETENTION_HOURS)
+        except Exception as e:
+            log.warning("event prune failed: %s", e)
 
     # ---------------- introspection ----------------
     def state(self) -> dict:

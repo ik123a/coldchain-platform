@@ -4,10 +4,10 @@ import { useStore } from "@/lib/store";
 import { Battery, DoorOpen, Snowflake, Zap } from "lucide-react";
 
 const ZONES = [
-  { id: "Z1", name: "Zone A", band: "2–8°C" },
-  { id: "Z2", name: "Zone B", band: "2–6°C" },
-  { id: "Z3", name: "Zone C", band: "-22 to -15°C" },
-  { id: "Z4", name: "Zone D", band: "2–8°C" },
+  { id: "Z1", name: "Zone A", band: "2–8°C", target: 4.0 },
+  { id: "Z2", name: "Zone B", band: "2–6°C", target: 4.0 },
+  { id: "Z3", name: "Zone C", band: "-22 to -15°C", target: -18.0 },
+  { id: "Z4", name: "Zone D", band: "2–8°C", target: 5.0 },
 ];
 
 export default function Twin() {
@@ -29,8 +29,8 @@ export default function Twin() {
     <div className="fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold headline">Digital twin — Live Gate</h2>
-          <div className="text-[12px] text-[var(--text3)]">Facility: Delhi Central Cold Storage · live status driven by backend simulation</div>
+          <h2 className="t-metric font-bold headline">Digital twin — Live Gate</h2>
+          <div className="t-body-sm text-[var(--text3)]">Facility: Delhi Central Cold Storage · live status driven by backend simulation</div>
         </div>
         <span className="badge badge-cyan">SIMULATION ENVIRONMENT</span>
       </div>
@@ -58,22 +58,28 @@ export default function Twin() {
                              initial={false}
                              animate={{ stroke: cc }} transition={{ duration: 0.4 }} />
                 <text x={x + 16} y={y + 24} fill="#c9d5e4" fontSize="12" fontWeight="600">{ZONES[i].name}</text>
-                <text x={x + 16} y={y + 40} fill="#5b6b80" fontSize="9">band {ZONES[i].band}</text>
+                <text x={x + 16} y={y + 40} fill="#5b6b80" fontSize="10">band {ZONES[i].band}</text>
                 {i === 0 ? (
                   <text x={x + 16} y={y + 66} fill={cc} fontSize="15" fontWeight="700" className="kpi-num">
-                    {sim ? sim.true_temperature.toFixed(1) : "—"}°C
+                    {sim && typeof t === "number" ? `${t.toFixed(1)}°C` : "—"}
                   </text>
                 ) : (
-                  <text x={x + 16} y={y + 66} fill="#93a3b8" fontSize="13" className="kpi-num">{(4 + i % 3).toFixed(1)}°C</text>
+                  <>
+                    <text x={x + 16} y={y + 62} fill="#5b6b80" fontSize="10">target</text>
+                    <text x={x + 16} y={y + 80} fill="#93a3b8" fontSize="13" className="kpi-num">{ZONES[i].target.toFixed(1)}°C</text>
+                  </>
                 )}
                 <motion.circle cx={x + 272} cy={y + 85} r="6" fill={cc}
                                animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: s === "critical" ? Infinity : 0, duration: 0.8 }}
                                initial={false} />
+                <text x={x + 262} y={y + 89} fill="#5b6b80" fontSize="10" textAnchor="end">
+                  {s === "critical" ? "OUT OF BAND" : s === "warn" ? "NEAR LIMIT" : "IN BAND"}
+                </text>
                 {i === 0 && sim && (
                   <>
-                    {sim.door_open && <text x={x + 16} y={y + 88} fill="#fbbf24" fontSize="9">door OPEN</text>}
-                    {!sim.compressor_on && !sim.backup_cooling && <text x={x + 60} y={y + 88} fill="#f87171" fontSize="9">compressor OFF</text>}
-                    {sim.backup_cooling && <text x={x + 60} y={y + 88} fill="#34d399" fontSize="9">backup ON</text>}
+                    {sim.door_open && <text x={x + 16} y={y + 100} fill="#fbbf24" fontSize="10">door OPEN</text>}
+                    {!sim.compressor_on && !sim.backup_cooling && <text x={x + 80} y={y + 100} fill="#f87171" fontSize="10">compressor OFF</text>}
+                    {sim.backup_cooling && <text x={x + 80} y={y + 100} fill="#34d399" fontSize="10">backup ON</text>}
                   </>
                 )}
               </g>
@@ -83,15 +89,15 @@ export default function Twin() {
           {/* infrastructure icons */}
           <g transform="translate(520, 338)">
             <rect width="110" height="44" rx="6" fill="#0d1623" stroke={sim?.backup_cooling ? "#34d399" : "#1d2a3a"} />
-            <text x="10" y="18" fill={sim?.backup_cooling ? "#34d399" : "#93a3b8"} fontSize="8.5">Backup cooling {sim?.backup_cooling ? "ON" : "STANDBY"}</text>
-            <text x="10" y="30" fill="#5b6b80" fontSize="8">loop B east</text>
+            <text x="10" y="18" fill={sim?.backup_cooling ? "#34d399" : "#93a3b8"} fontSize="10">Backup: {sim?.backup_cooling ? "ON" : "STANDBY"}</text>
+            <text x="10" y="30" fill="#5b6b80" fontSize="10">loop B east</text>
           </g>
           <g transform="translate(650, 338)">
             <rect width="110" height="44" rx="6" fill="#0d1623" stroke={sim?.power_ok === false ? "#f87171" : "#1d2a3a"} />
-            <text x="10" y="18" fill={sim?.power_ok === false ? "#f87171" : "#93a3b8"} fontSize="8.5">
-              Power {sim?.power_ok === false ? "BATTERY " + Math.round(sim.battery_level) + "%" : "GRID OK"}
+            <text x="10" y="18" fill={sim?.power_ok === false ? "#f87171" : "#93a3b8"} fontSize="10">
+              Power: {sim?.power_ok === false ? "BATTERY " + Math.round(sim.battery_level) + "%" : "GRID"}
             </text>
-            <text x="10" y="30" fill="#5b6b80" fontSize="8">substation S1</text>
+            <text x="10" y="30" fill="#5b6b80" fontSize="10">substation S1</text>
           </g>
         </svg>
       </div>
@@ -106,8 +112,8 @@ export default function Twin() {
           { l: "BACKUP-001", v: sim ? (sim.backup_cooling ? "ACTIVE" : "STANDBY") : "STANDBY", icon: Zap, hot: false },
         ].map(s => (
           <div key={s.l} className={`base-card p-3 ${s.hot ? "border-[var(--red)]/50" : ""}`}>
-            <div className="text-[9.5px] text-[var(--text3)] uppercase">{s.l}</div>
-            <div className={`text-[12.5px] font-semibold mt-0.5 ${s.hot ? "text-[var(--red)]" : s.v === "GRID" || s.v === "ON" || s.v === "OK" || s.v === "CLOSED" ? "text-[var(--green)]" : "text-[var(--text2)]"}`}>{s.v}</div>
+            <div className="t-micro text-[var(--text3)] uppercase">{s.l}</div>
+            <div className={`t-body-sm font-semibold mt-0.5 ${s.hot ? "text-[var(--red)]" : s.v === "GRID" || s.v === "ON" || s.v === "OK" || s.v === "CLOSED" ? "text-[var(--green)]" : "text-[var(--text2)]"}`}>{s.v}</div>
           </div>
         ))}
       </div>

@@ -91,7 +91,14 @@ class VehicleTwin:
         self.max_excess_kmh = 0.0
         self.stops: list[dict] = []
         self._open_stop: dict | None = None
+        # Per-counter alert baselines — see alerts_delta(). These shadow
+        # lifetime counters, so each needs its own previous value.
         self._last_alerts = 0
+        self._last_harsh_brakes = 0
+        self._last_harsh_accels = 0
+        self._last_speed_events = 0
+        self._last_low_energy = False
+        self._last_in_risk = False
         self.original_eta_min = 0.0  # set at first step
 
         # connectivity
@@ -404,13 +411,33 @@ class VehicleTwin:
 
     def alerts_delta(self) -> int:
         """New alert-worthy readings since last poll: harsh events + risk escalation
-        + energy below 20%. Used by orchestrator for per-vehicle alert counts."""
-        n = self.harsh_brakes + self.harsh_accels + self.speed_events
+        + energy below 20%. Used by orchestrator for per-vehicle alert counts.
+
+        `harsh_brakes`/`harsh_accels`/`speed_events` are LIFETIME counters (they
+        also feed the driver scorecard at line ~386), so the running total grows
+        forever. Summing them and subtracting the previous sum therefore reports
+        every event ever as a fresh alert — that produced per-vehicle counts in
+        the hundreds on a healthy fleet. Each counter is therefore differenced
+        against its own previous value, and the risk/energy conditions are edge
+        triggered so a vehicle that stays in breach does not report every tick.
+        """
         energy = self.battery_pct if self.energy == "ELECTRIC" else self.fuel_pct
-        if energy < 20.0:
-            n += 1
-        if self.risk.get("level") in ("HIGH", "CRITICAL"):
-            n += 1
-        d = max(0, n - self._last_alerts)
-        self._last_alerts = n
+        in_risk = self.risk.get("level") in ("HIGH", "CRITICAL")
+        low_energy = energy < 20.0
+
+        d = (
+            max(0, self.harsh_brakes - self._last_harsh_brakes)
+            + max(0, self.harsh_accels - self._last_harsh_accels)
+            + max(0, self.speed_events - self._last_speed_events)
+        )
+        if low_energy and not self._last_low_energy:
+            d += 1
+        if in_risk and not self._last_in_risk:
+            d += 1
+
+        self._last_harsh_brakes = self.harsh_brakes
+        self._last_harsh_accels = self.harsh_accels
+        self._last_speed_events = self.speed_events
+        self._last_low_energy = low_energy
+        self._last_in_risk = in_risk
         return d

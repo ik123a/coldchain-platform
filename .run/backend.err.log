@@ -1,20 +1,612 @@
-INFO:     Started server process [29212]
+INFO:     Started server process [17856]
 INFO:     Waiting for application startup.
-2026-09-17 18:35:54,592 INFO coldchain: database ready (auto-created tables)
-2026-09-17 18:35:54,594 INFO coldchain: fleet world started (12 vehicles)
-2026-09-17 18:36:10,589 INFO fleet: fleet started with 14 vehicles
+2026-09-26 23:26:28,965 INFO coldchain: database ready (auto-created tables)
+2026-09-26 23:26:28,966 INFO coldchain: fleet world started (12 vehicles)
+2026-09-26 23:26:37,692 INFO fleet: fleet started with 14 vehicles
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-2026-09-17 19:13:52,574 ERROR fleet: fleet loop unhandled error: 
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-09-26 23:37:33,952 INFO fleet: pruned 159870 vehicle events older than 6h
+INFO:     127.0.0.1:56400 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:61368 - "WebSocket /ws" [accepted]
+INFO:     connection open
+2026-09-26 23:48:09,574 INFO fleet: pruned 426 vehicle events older than 6h
+INFO:     127.0.0.1:59176 - "WebSocket /ws" [accepted]
+INFO:     connection open
+2026-09-26 23:58:37,064 INFO fleet: pruned 930 vehicle events older than 6h
+2026-09-27 00:09:01,242 INFO fleet: pruned 1007 vehicle events older than 6h
+2026-09-27 00:19:24,976 INFO fleet: pruned 1001 vehicle events older than 6h
+2026-09-27 00:29:47,403 INFO fleet: pruned 974 vehicle events older than 6h
+2026-09-27 00:40:09,920 INFO fleet: pruned 988 vehicle events older than 6h
+2026-09-27 00:50:32,547 INFO fleet: pruned 849 vehicle events older than 6h
+2026-09-27 01:00:55,099 INFO fleet: pruned 786 vehicle events older than 6h
+2026-09-27 01:11:18,060 INFO fleet: pruned 853 vehicle events older than 6h
+2026-09-27 01:21:40,895 INFO fleet: pruned 811 vehicle events older than 6h
+2026-09-27 01:32:02,921 INFO fleet: pruned 871 vehicle events older than 6h
+2026-09-27 01:42:37,306 INFO fleet: pruned 952 vehicle events older than 6h
+2026-09-27 01:53:00,405 INFO fleet: pruned 885 vehicle events older than 6h
+2026-09-27 02:03:22,672 INFO fleet: pruned 933 vehicle events older than 6h
+2026-09-27 02:13:45,045 INFO fleet: pruned 954 vehicle events older than 6h
+2026-09-27 02:24:07,632 INFO fleet: pruned 923 vehicle events older than 6h
+2026-09-27 02:34:30,468 INFO fleet: pruned 913 vehicle events older than 6h
+2026-09-27 02:44:53,308 INFO fleet: pruned 898 vehicle events older than 6h
+2026-09-27 02:55:15,717 INFO fleet: pruned 935 vehicle events older than 6h
+2026-09-27 03:05:38,104 INFO fleet: pruned 902 vehicle events older than 6h
+2026-09-27 03:16:00,657 INFO fleet: pruned 949 vehicle events older than 6h
+2026-09-27 03:26:23,558 INFO fleet: pruned 942 vehicle events older than 6h
+2026-09-27 03:36:46,405 INFO fleet: pruned 907 vehicle events older than 6h
+2026-09-27 03:47:09,749 INFO fleet: pruned 932 vehicle events older than 6h
+2026-09-27 03:57:32,477 INFO fleet: pruned 909 vehicle events older than 6h
+2026-09-27 04:07:55,053 INFO fleet: pruned 915 vehicle events older than 6h
+2026-09-27 04:18:18,199 INFO fleet: pruned 911 vehicle events older than 6h
+2026-09-27 04:28:41,288 INFO fleet: pruned 937 vehicle events older than 6h
+2026-09-27 04:39:04,398 INFO fleet: pruned 935 vehicle events older than 6h
+2026-09-27 04:49:27,032 INFO fleet: pruned 952 vehicle events older than 6h
+2026-09-27 04:59:50,306 INFO fleet: pruned 892 vehicle events older than 6h
+2026-09-27 05:10:14,155 INFO fleet: pruned 1032 vehicle events older than 6h
+2026-09-27 05:20:36,882 INFO fleet: pruned 580 vehicle events older than 6h
+2026-09-27 05:30:59,770 INFO fleet: pruned 489 vehicle events older than 6h
+2026-09-27 05:41:22,515 INFO fleet: pruned 924 vehicle events older than 6h
+2026-09-27 05:51:45,736 INFO fleet: pruned 911 vehicle events older than 6h
+2026-09-27 06:02:08,620 INFO fleet: pruned 883 vehicle events older than 6h
+2026-09-27 06:12:31,587 INFO fleet: pruned 907 vehicle events older than 6h
+2026-09-27 06:22:54,338 INFO fleet: pruned 910 vehicle events older than 6h
+2026-09-27 06:33:16,905 INFO fleet: pruned 943 vehicle events older than 6h
+2026-09-27 06:43:40,530 INFO fleet: pruned 915 vehicle events older than 6h
+2026-09-27 06:54:03,679 INFO fleet: pruned 936 vehicle events older than 6h
+2026-09-27 07:04:27,004 INFO fleet: pruned 895 vehicle events older than 6h
+2026-09-27 07:14:50,586 INFO fleet: pruned 977 vehicle events older than 6h
+2026-09-27 07:25:13,675 INFO fleet: pruned 911 vehicle events older than 6h
+2026-09-27 07:35:37,174 INFO fleet: pruned 869 vehicle events older than 6h
+2026-09-27 07:46:00,453 INFO fleet: pruned 900 vehicle events older than 6h
+2026-09-27 07:56:23,466 INFO fleet: pruned 922 vehicle events older than 6h
+2026-09-27 08:06:46,856 INFO fleet: pruned 898 vehicle events older than 6h
+2026-09-27 08:17:09,847 INFO fleet: pruned 912 vehicle events older than 6h
+2026-09-27 08:27:33,129 INFO fleet: pruned 929 vehicle events older than 6h
+2026-09-27 08:37:56,477 INFO fleet: pruned 956 vehicle events older than 6h
+2026-09-27 08:48:19,644 INFO fleet: pruned 934 vehicle events older than 6h
+2026-09-27 08:58:42,785 INFO fleet: pruned 903 vehicle events older than 6h
+2026-09-27 09:09:09,206 INFO fleet: pruned 891 vehicle events older than 6h
+2026-09-27 09:19:38,681 INFO fleet: pruned 939 vehicle events older than 6h
+2026-09-27 09:30:07,158 INFO fleet: pruned 887 vehicle events older than 6h
+2026-09-27 09:40:36,240 INFO fleet: pruned 920 vehicle events older than 6h
+2026-09-27 09:46:01,963 INFO sim-eng: runner 10 loop started
+2026-09-27 09:46:10,628 INFO sim-eng: runner 11 loop started
+INFO:     127.0.0.1:60316 - "WebSocket /ws" [accepted]
+INFO:     connection open
+2026-09-27 09:51:13,188 INFO fleet: pruned 969 vehicle events older than 6h
+2026-09-27 10:01:43,580 INFO fleet: pruned 942 vehicle events older than 6h
+2026-09-27 10:13:04,464 INFO fleet: pruned 994 vehicle events older than 6h
+INFO:     127.0.0.1:50188 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:62347 - "WebSocket /ws" [accepted]
+INFO:     connection open
+2026-09-27 10:19:22,344 INFO sim-eng: runner 11 loop ended
+2026-09-27 10:19:26,197 INFO sim-eng: runner 10 loop ended
+INFO:     127.0.0.1:49853 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:49728 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:55540 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:51078 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50834 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:60578 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:63668 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53346 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52573 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53399 - "WebSocket /ws" [accepted]
+INFO:     connection open
+2026-09-27 16:38:32,148 INFO fleet: fleet loop cancelled
+2026-09-27 16:38:32,158 INFO fleet: fleet started with 12 vehicles
+2026-09-27 16:39:49,332 INFO fleet: fleet loop cancelled
+2026-09-27 16:39:49,340 INFO fleet: fleet started with 12 vehicles
+INFO:     Started server process [19268]
+INFO:     Waiting for application startup.
+2026-09-27 16:41:46,382 INFO coldchain: database ready (auto-created tables)
+2026-09-27 16:41:46,382 INFO coldchain: fleet world started (12 vehicles)
+2026-09-27 16:42:00,934 INFO fleet: fleet started with 14 vehicles
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55592 - "WebSocket /ws" [accepted]
+INFO:     connection open
+2026-09-27 16:42:29,504 INFO fleet: fleet loop cancelled
+2026-09-27 16:42:29,507 INFO fleet: fleet started with 12 vehicles
+2026-09-27 16:42:40,410 ERROR fleet: fleet AI decision crashed for TRUCK-6468-01: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.IntegrityError) UNIQUE constraint failed: fleet_routes.id
+[SQL: INSERT INTO fleet_routes (id, vehicle_id, origin_id, destination_id, route_type, geometry, distance_km, eta_min, score, reason, active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('R-TRUCK-6468-01-2', 'TRUCK-6468-01', 'WH-001', 'WH-003', 'AI', '[[77.38344, 28.52816], [77.391, 28.5355], [77.399, 28.528499999999998], [77.391, 28.5355]]', 3.307, 4.72, 86.5, 'Noida Cold Warehouse chosen: ETA 0.0m vs 38.2m on current route; projected cargo risk CRITICAL -> HIGH. travel 4m + queue 9m + proc 15m; 210u free; dairy supported. This demonstrates nearest-is-not-best: ranking used travel+queue+processing+capacity, not distance.', 1, '2026-09-27 11:12:40.406158')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
 Traceback (most recent call last):
-  File "D:\Projects\capstone project\coldchain-platform\backend\app\simulation\fleet_orchestrator.py", line 237, in _run
-    await self._check_arrival(v)
-  File "D:\Projects\capstone project\coldchain-platform\backend\app\simulation\fleet_orchestrator.py", line 405, in _check_arrival
-    await self._evt(v, f"{v.id} arrived at {v.dest_id} — delivered {units}u", "info")
-  File "D:\Projects\capstone project\coldchain-platform\backend\app\simulation\fleet_orchestrator.py", line 576, in _evt
-    await s.commit()
-  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 999, in commit
-    await greenlet_spawn(self.sync_session.commit)
-  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 190, in greenlet_spawn
-    result = context.switch(*args, **kwargs)
-MemoryError
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 213, in execute
+    self._adapt_connection._handle_exception(error)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 373, in _handle_exception
+    raise error
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 195, in execute
+    self.await_(_cursor.execute(operation, parameters))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\cursor.py", line 40, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\cursor.py", line 32, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+sqlite3.IntegrityError: UNIQUE constraint failed: fleet_routes.id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Projects\capstone project\coldchain-platform\backend\app\simulation\fleet_orchestrator.py", line 340, in _guarded
+    await task
+  File "D:\Projects\capstone project\coldchain-platform\backend\app\simulation\fleet_orchestrator.py", line 368, in _decide
+    await self._apply_divert(v, bundle)
+  File "D:\Projects\capstone project\coldchain-platform\backend\app\simulation\fleet_orchestrator.py", line 388, in _apply_divert
+    inc = await s.get(Incident, self.incident_db[v.id])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 591, in get
+    return await greenlet_spawn(
+           ^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 203, in greenlet_spawn
+    result = context.switch(value)
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 3702, in get
+    return self._get_impl(
+           ~~~~~~~~~~~~~~^
+        entity,
+        ^^^^^^^
+    ...<7 lines>...
+        bind_arguments=bind_arguments,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 3881, in _get_impl
+    return db_load_fn(
+        self,
+    ...<5 lines>...
+        bind_arguments=bind_arguments,
+    )
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\loading.py", line 695, in load_on_pk_identity
+    session.execute(
+    ~~~~~~~~~~~~~~~^
+        q,
+        ^^
+    ...<2 lines>...
+        bind_arguments=bind_arguments,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2373, in execute
+    return self._execute_internal(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+    ...<4 lines>...
+        _add_event=_add_event,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2250, in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self,
+        ^^^^^
+    ...<4 lines>...
+        False,
+        ^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\context.py", line 577, in orm_pre_session_exec
+    session._autoflush()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 3073, in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 3062, in _autoflush
+    self.flush()
+    ~~~~~~~~~~^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4353, in flush
+    self._flush(objects)
+    ~~~~~~~~~~~^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4488, in _flush
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 122, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4449, in _flush
+    flush_context.execute()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 465, in execute
+    rec.execute(self)
+    ~~~~~~~~~~~^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 641, in execute
+    util.preloaded.orm_persistence.save_obj(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self.mapper,
+        ^^^^^^^^^^^^
+        uow.states_for_mapper_hierarchy(self.mapper, False, False),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        uow,
+        ^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\persistence.py", line 94, in save_obj
+    _emit_insert_statements(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        base_mapper,
+        ^^^^^^^^^^^^
+    ...<3 lines>...
+        insert,
+        ^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\persistence.py", line 1049, in _emit_insert_statements
+    result = connection.execute(
+        statement, multiparams, execution_options=execution_options
+    )
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1421, in execute
+    return meth(
+        self,
+        distilled_parameters,
+        execution_options or NO_OPTIONS,
+    )
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self, distilled_params, execution_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1643, in _execute_clauseelement
+    ret = self._execute_context(
+        dialect,
+    ...<8 lines>...
+        cache_hit=cache_hit,
+    )
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1848, in _execute_context
+    return self._exec_single_context(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        dialect, context, statement, parameters
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1988, in _exec_single_context
+    self._handle_dbapi_exception(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        e, str_statement, effective_parameters, cursor, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2365, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 213, in execute
+    self._adapt_connection._handle_exception(error)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 373, in _handle_exception
+    raise error
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 195, in execute
+    self.await_(_cursor.execute(operation, parameters))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\cursor.py", line 40, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\cursor.py", line 32, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+sqlalchemy.exc.IntegrityError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.IntegrityError) UNIQUE constraint failed: fleet_routes.id
+[SQL: INSERT INTO fleet_routes (id, vehicle_id, origin_id, destination_id, route_type, geometry, distance_km, eta_min, score, reason, active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('R-TRUCK-6468-01-2', 'TRUCK-6468-01', 'WH-001', 'WH-003', 'AI', '[[77.38344, 28.52816], [77.391, 28.5355], [77.399, 28.528499999999998], [77.391, 28.5355]]', 3.307, 4.72, 86.5, 'Noida Cold Warehouse chosen: ETA 0.0m vs 38.2m on current route; projected cargo risk CRITICAL -> HIGH. travel 4m + queue 9m + proc 15m; 210u free; dairy supported. This demonstrates nearest-is-not-best: ranking used travel+queue+processing+capacity, not distance.', 1, '2026-09-27 11:12:40.406158')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2026-09-27 16:42:50,305 ERROR fleet: fleet AI decision crashed for TRUCK-0791-02: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.IntegrityError) UNIQUE constraint failed: fleet_routes.id
+[SQL: INSERT INTO fleet_routes (id, vehicle_id, origin_id, destination_id, route_type, geometry, distance_km, eta_min, score, reason, active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('R-TRUCK-0791-02-7', 'TRUCK-0791-02', 'WH-004', 'WH-001', 'AI', '[[77.21887, 28.61027], [77.209, 28.6139], [77.217, 28.6069], [77.209, 28.6139]]', 3.25, 4.64, 81.8, 'Delhi Central Cold Storage chosen: ETA 0.0m vs 48.4m on current route; projected cargo risk CRITICAL -> CRITICAL. travel 5m + queue 4m + proc 12m; 430u free; frozen_goods supported. This demonstrates nearest-is-not-best: ranking used travel+queue+processing+capacity, not distance.', 1, '2026-09-27 11:12:50.302697')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Traceback (most recent call last):
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 213, in execute
+    self._adapt_connection._handle_exception(error)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 373, in _handle_exception
+    raise error
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 195, in execute
+    self.await_(_cursor.execute(operation, parameters))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\cursor.py", line 40, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\cursor.py", line 32, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+sqlite3.IntegrityError: UNIQUE constraint failed: fleet_routes.id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Projects\capstone project\coldchain-platform\backend\app\simulation\fleet_orchestrator.py", line 340, in _guarded
+    await task
+  File "D:\Projects\capstone project\coldchain-platform\backend\app\simulation\fleet_orchestrator.py", line 368, in _decide
+    await self._apply_divert(v, bundle)
+  File "D:\Projects\capstone project\coldchain-platform\backend\app\simulation\fleet_orchestrator.py", line 388, in _apply_divert
+    inc = await s.get(Incident, self.incident_db[v.id])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 591, in get
+    return await greenlet_spawn(
+           ^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 203, in greenlet_spawn
+    result = context.switch(value)
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 3702, in get
+    return self._get_impl(
+           ~~~~~~~~~~~~~~^
+        entity,
+        ^^^^^^^
+    ...<7 lines>...
+        bind_arguments=bind_arguments,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 3881, in _get_impl
+    return db_load_fn(
+        self,
+    ...<5 lines>...
+        bind_arguments=bind_arguments,
+    )
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\loading.py", line 695, in load_on_pk_identity
+    session.execute(
+    ~~~~~~~~~~~~~~~^
+        q,
+        ^^
+    ...<2 lines>...
+        bind_arguments=bind_arguments,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2373, in execute
+    return self._execute_internal(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+    ...<4 lines>...
+        _add_event=_add_event,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2250, in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self,
+        ^^^^^
+    ...<4 lines>...
+        False,
+        ^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\context.py", line 577, in orm_pre_session_exec
+    session._autoflush()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 3073, in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 3062, in _autoflush
+    self.flush()
+    ~~~~~~~~~~^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4353, in flush
+    self._flush(objects)
+    ~~~~~~~~~~~^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4488, in _flush
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 122, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4449, in _flush
+    flush_context.execute()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 465, in execute
+    rec.execute(self)
+    ~~~~~~~~~~~^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 641, in execute
+    util.preloaded.orm_persistence.save_obj(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self.mapper,
+        ^^^^^^^^^^^^
+        uow.states_for_mapper_hierarchy(self.mapper, False, False),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        uow,
+        ^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\persistence.py", line 94, in save_obj
+    _emit_insert_statements(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        base_mapper,
+        ^^^^^^^^^^^^
+    ...<3 lines>...
+        insert,
+        ^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\orm\persistence.py", line 1049, in _emit_insert_statements
+    result = connection.execute(
+        statement, multiparams, execution_options=execution_options
+    )
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1421, in execute
+    return meth(
+        self,
+        distilled_parameters,
+        execution_options or NO_OPTIONS,
+    )
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self, distilled_params, execution_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1643, in _execute_clauseelement
+    ret = self._execute_context(
+        dialect,
+    ...<8 lines>...
+        cache_hit=cache_hit,
+    )
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1848, in _execute_context
+    return self._exec_single_context(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        dialect, context, statement, parameters
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1988, in _exec_single_context
+    self._handle_dbapi_exception(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        e, str_statement, effective_parameters, cursor, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2365, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 213, in execute
+    self._adapt_connection._handle_exception(error)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 373, in _handle_exception
+    raise error
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 195, in execute
+    self.await_(_cursor.execute(operation, parameters))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\cursor.py", line 40, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\cursor.py", line 32, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\core.py", line 160, in _execute
+    return await future
+           ^^^^^^^^^^^^
+  File "D:\Projects\capstone project\coldchain-platform\backend\.venv\Lib\site-packages\aiosqlite\core.py", line 63, in _connection_worker_thread
+    result = function()
+sqlalchemy.exc.IntegrityError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(sqlite3.IntegrityError) UNIQUE constraint failed: fleet_routes.id
+[SQL: INSERT INTO fleet_routes (id, vehicle_id, origin_id, destination_id, route_type, geometry, distance_km, eta_min, score, reason, active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('R-TRUCK-0791-02-7', 'TRUCK-0791-02', 'WH-004', 'WH-001', 'AI', '[[77.21887, 28.61027], [77.209, 28.6139], [77.217, 28.6069], [77.209, 28.6139]]', 3.25, 4.64, 81.8, 'Delhi Central Cold Storage chosen: ETA 0.0m vs 48.4m on current route; projected cargo risk CRITICAL -> CRITICAL. travel 5m + queue 4m + proc 12m; 430u free; frozen_goods supported. This demonstrates nearest-is-not-best: ranking used travel+queue+processing+capacity, not distance.', 1, '2026-09-27 11:12:50.302697')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2026-09-27 16:43:47,171 INFO fleet: fleet loop cancelled
+2026-09-27 16:43:47,179 INFO fleet: fleet started with 12 vehicles
+INFO:     127.0.0.1:53989 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:64139 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:57756 - "WebSocket /ws" [accepted]
+INFO:     connection open
+2026-09-27 16:48:33,400 ERROR asyncio: Exception in callback _ProactorBasePipeTransport._call_connection_lost()
+handle: <Handle _ProactorBasePipeTransport._call_connection_lost()>
+Traceback (most recent call last):
+  File "C:\ProgramData\Anaconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\ProgramData\Anaconda3\Lib\asyncio\proactor_events.py", line 165, in _call_connection_lost
+    self._sock.shutdown(socket.SHUT_RDWR)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+INFO:     127.0.0.1:63933 - "WebSocket /ws" [accepted]
+INFO:     connection open
+2026-09-27 16:48:58,572 ERROR asyncio: Exception in callback _ProactorBasePipeTransport._call_connection_lost()
+handle: <Handle _ProactorBasePipeTransport._call_connection_lost()>
+Traceback (most recent call last):
+  File "C:\ProgramData\Anaconda3\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\ProgramData\Anaconda3\Lib\asyncio\proactor_events.py", line 165, in _call_connection_lost
+    self._sock.shutdown(socket.SHUT_RDWR)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+INFO:     127.0.0.1:64264 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:56562 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:49670 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53346 - "WebSocket /ws" [accepted]
+INFO:     connection open

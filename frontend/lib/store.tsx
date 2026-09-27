@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useMemo, useReducer, useEffect, ReactNode } from "react";
-import { api, post } from "./api";
+import { api } from "./api";
 import { WS_URL } from "./api";
 
 export interface Reading {
@@ -16,6 +16,7 @@ export interface AgentEvent {
   root_cause?: string; confidence?: number; actions?: any[];
   score?: number; level?: string; components?: any[];
   signal?: number; verified?: boolean; evidence?: string[];
+  simulation_id?: number;
 }
 export interface IncidentSummary {
   id: number; simulation_id: number; type: string; severity: string; status: string;
@@ -38,7 +39,13 @@ interface State {
   toasts: { id: number; text: string; sev: string }[];
   fleetVehicles?: any[];
   fleetEvents?: any[];
-  fleetMeta?: { simMinute?: number; weather?: string };
+  fleetWarehouses?: any[];
+  fleetDestinations?: any[];
+  fleetCounts?: Record<string, number>;
+  fleetRegion?: { name?: string; center?: [number, number]; zoom?: number } | null;
+  fleetPaused?: boolean;
+  fleetSpeed?: number;
+  fleetMeta?: { simMinute?: number; weather?: any; ambient?: number; segments?: any };
 }
 
 const defaultAgents = {
@@ -70,7 +77,6 @@ function reducer(st: State, a: Action): State {
       const ev = a.payload as AgentEvent;
       const agentsStatus = { ...st.agentsStatus };
       if (ev.agent) {
-        const busy = ({ diagnosis: "diagnosis_complete", risk: "risk_assessed", planner: "plan_ready" } as any)[ev.agent]
         agentsStatus[ev.agent] = { status: "ANALYZING", note: ev.kind };
         // map some events into agent status changes
         if (ev.kind === "diagnosis_complete") agentsStatus["diagnosis"] = { status: "COMPLETE", note: ev.root_cause };
@@ -85,9 +91,19 @@ function reducer(st: State, a: Action): State {
     }
     case "fleet": {
       const p = a.payload as any;
-      return { ...st, fleetVehicles: p.vehicles || [],
-               fleetMeta: { simMinute: p.sim_minute, weather: p.weather, ambient: p.ambient_c,
-                            segments: p.weather?.segments } };
+      return { ...st,
+               fleetVehicles: p.vehicles || [],
+               fleetWarehouses: p.warehouses ?? st.fleetWarehouses,
+               fleetDestinations: p.destinations ?? st.fleetDestinations,
+               fleetCounts: p.counts ?? st.fleetCounts,
+               fleetRegion: p.region ?? st.fleetRegion,
+               fleetPaused: p.paused ?? st.fleetPaused,
+               fleetSpeed: p.speed ?? st.fleetSpeed,
+               fleetMeta: { ...st.fleetMeta,
+                            simMinute: p.sim_minute ?? st.fleetMeta?.simMinute,
+                            weather: p.weather ?? st.fleetMeta?.weather,
+                            ambient: p.ambient_c ?? p.weather?.ambient_c ?? st.fleetMeta?.ambient,
+                            segments: p.weather?.segments ?? st.fleetMeta?.segments } };
     }
     case "fleet_event": {
       const ev = a.payload as any;
@@ -152,6 +168,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const poll = async () => {
       try { dispatch({ type: "status", payload: await api("/api/status") }); } catch {}
       try { dispatch({ type: "dashboard", payload: await api("/api/dashboard") }); } catch {}
+      try { dispatch({ type: "fleet", payload: await api("/api/fleet/state") }); } catch {}
       loadIncidents();
     };
     poll();

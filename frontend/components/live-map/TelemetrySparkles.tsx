@@ -27,7 +27,7 @@ export function TelemetrySparkles({ vehicleId }: { vehicleId: string }) {
   const rows = pts.map(p => ({ m: p.min, v: p.speed, t: p.temp, r: p.risk }));
   const spark = (dataKey: "v" | "t" | "r", color: string, unit: string, label: string) => (
     <div className="flex-1 min-w-0" title={`${label} (${pts.length} pts, 15m)`}>
-      <div className="text-[9px] font-mono text-[var(--text3)] uppercase tracking-wider">{label}</div>
+      <div className="t-micro font-mono text-[var(--text3)] uppercase tracking-wider">{label}</div>
       <ResponsiveContainer width="100%" height={30}>
         <LineChart data={rows} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
           <YAxis hide domain={["dataMin", "dataMax"]} />

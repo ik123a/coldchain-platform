@@ -136,15 +136,15 @@ export default function DesignReferencesPage() {
       <div className="border-b border-[#1E2638] pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold tracking-wider bg-cyan-950/80 text-cyan-400 border border-cyan-800/60">
+            <span className="px-2.5 py-0.5 rounded t-label font-semibold tracking-wider bg-cyan-950/80 text-cyan-400 border border-cyan-800/60">
               GEMINI & VEO VISUAL SYSTEM
             </span>
-            <span className="px-2.5 py-0.5 rounded text-[11px] font-medium text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 flex items-center gap-1">
+            <span className="px-2.5 py-0.5 rounded t-label font-medium text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 flex items-center gap-1">
               <CheckCircle2 size={11} /> ANTI-SLOP VERIFIED
             </span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Visual Reference Library</h1>
-          <p className="text-sm text-slate-400 mt-1 max-w-2xl leading-relaxed">
+          <h1 className="t-metric-lg font-bold tracking-tight text-white">Visual Reference Library</h1>
+          <p className="t-body text-slate-400 mt-1 max-w-2xl leading-relaxed">
             Curated visual references, motion sequences, and telemetry cards generated for ColdChain Rescue.
             Built to establish quiet confidence, spatial clarity, and zero decorative noise before frontend construction.
           </p>
@@ -153,17 +153,17 @@ export default function DesignReferencesPage() {
         <div className="flex items-center gap-2 bg-[#0E121A] border border-[#1E2638] p-1 rounded-lg">
           <button 
             onClick={() => setActiveTab("all")}
-            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${activeTab === "all" ? "bg-[#1C2433] text-white" : "text-slate-400 hover:text-slate-200"}`}>
+            className={`px-3 py-1.5 rounded t-body-sm font-medium transition-colors ${activeTab === "all" ? "bg-[#1C2433] text-white" : "text-slate-400 hover:text-slate-200"}`}>
             All Assets ({items.length})
           </button>
           <button 
             onClick={() => setActiveTab("images")}
-            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5 ${activeTab === "images" ? "bg-[#1C2433] text-white" : "text-slate-400 hover:text-slate-200"}`}>
+            className={`px-3 py-1.5 rounded t-body-sm font-medium transition-colors flex items-center gap-1.5 ${activeTab === "images" ? "bg-[#1C2433] text-white" : "text-slate-400 hover:text-slate-200"}`}>
             <ImageIcon size={13} /> Still References
           </button>
           <button 
             onClick={() => setActiveTab("videos")}
-            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5 ${activeTab === "videos" ? "bg-[#1C2433] text-white" : "text-slate-400 hover:text-slate-200"}`}>
+            className={`px-3 py-1.5 rounded t-body-sm font-medium transition-colors flex items-center gap-1.5 ${activeTab === "videos" ? "bg-[#1C2433] text-white" : "text-slate-400 hover:text-slate-200"}`}>
             <Video size={13} /> Veo Motion
           </button>
         </div>
@@ -176,7 +176,7 @@ export default function DesignReferencesPage() {
             <button
               key={c.id}
               onClick={() => setCategory(c.id)}
-              className={`px-3 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-all ${
+              className={`px-3 py-1 rounded-md t-body-sm font-medium whitespace-nowrap transition-all ${
                 category === c.id 
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40" 
                   : "text-slate-400 hover:text-slate-200 hover:bg-[#141B26]"
@@ -193,7 +193,7 @@ export default function DesignReferencesPage() {
             placeholder="Search references or prompts..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-[#141B26] border border-[#1E2638] rounded-md pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/60"
+            className="w-full bg-[#141B26] border border-[#1E2638] rounded-md pl-9 pr-3 py-1.5 t-body-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/60"
           />
         </div>
       </div>
@@ -229,7 +229,7 @@ export default function DesignReferencesPage() {
                       v.currentTime = 0;
                     }}
                   />
-                  <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded text-[10px] font-mono bg-black/80 text-cyan-300 border border-cyan-800/50 flex items-center gap-1">
+                  <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded t-micro font-mono bg-black/80 text-cyan-300 border border-cyan-800/50 flex items-center gap-1">
                     <Play size={9} fill="currentColor" /> {item.duration || "8s"}
                   </div>
                 </div>
@@ -248,10 +248,10 @@ export default function DesignReferencesPage() {
               {/* Hover Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3.5">
                 <div className="flex items-center justify-between w-full">
-                  <span className="text-xs text-white font-medium flex items-center gap-1">
+                  <span className="t-body-sm text-white font-medium flex items-center gap-1">
                     <Maximize2 size={12} /> Inspect Details
                   </span>
-                  <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/40">
+                  <span className="t-micro font-mono text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/40">
                     {item.model}
                   </span>
                 </div>
@@ -262,23 +262,23 @@ export default function DesignReferencesPage() {
             <div className="p-4 flex-1 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                  <span className="t-micro font-mono uppercase tracking-wider text-slate-400">
                     {item.category} · {item.aspect_ratio}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-mono font-medium text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-900/40">
+                    <span className="t-micro font-mono font-medium text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-900/40">
                       Score {item.critique_score}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                    <span className="t-micro font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
                       Slop {item.ai_slop_score}
                     </span>
                   </div>
                 </div>
 
-                <h3 className="text-sm font-semibold text-white tracking-tight mb-2 group-hover:text-cyan-300 transition-colors">
+                <h3 className="t-body font-semibold text-white tracking-tight mb-2 group-hover:text-cyan-300 transition-colors">
                   {item.title}
                 </h3>
-                <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                <p className="t-body-sm text-slate-400 line-clamp-2 leading-relaxed">
                   {item.prompt}
                 </p>
               </div>
@@ -287,7 +287,7 @@ export default function DesignReferencesPage() {
               <div className="pt-3.5 mt-3.5 border-t border-[#1E2638] flex items-center justify-between">
                 <button
                   onClick={() => setSelectedAsset(item)}
-                  className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-medium transition-colors">
+                  className="t-body-sm text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-medium transition-colors">
                   Inspect Spec <ChevronRight size={13} />
                 </button>
 
@@ -299,7 +299,7 @@ export default function DesignReferencesPage() {
                         setVeoPrompt(`Generate fluid camera movement and real-time telemetry updates based on ${item.title}.`);
                       }}
                       title="Animate with Veo 3.1"
-                      className="px-2 py-1 rounded text-[11px] font-medium bg-cyan-950/70 hover:bg-cyan-900/90 text-cyan-300 border border-cyan-700/40 flex items-center gap-1 transition-colors">
+                      className="px-2 py-1 rounded t-label font-medium bg-cyan-950/70 hover:bg-cyan-900/90 text-cyan-300 border border-cyan-700/40 flex items-center gap-1 transition-colors">
                       <Sparkles size={11} /> Veo Animate
                     </button>
                   )}
@@ -330,10 +330,10 @@ export default function DesignReferencesPage() {
               {/* Modal Header */}
               <div className="p-4 border-b border-[#1E2638] flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-cyan-950 text-cyan-400 border border-cyan-800">
+                  <span className="px-2 py-0.5 rounded t-label font-mono bg-cyan-950 text-cyan-400 border border-cyan-800">
                     {selectedAsset.type.toUpperCase()} SPEC
                   </span>
-                  <h2 className="text-base font-bold text-white">{selectedAsset.title}</h2>
+                  <h2 className="t-title font-bold text-white">{selectedAsset.title}</h2>
                 </div>
                 <button
                   onClick={() => setSelectedAsset(null)}
@@ -365,28 +365,28 @@ export default function DesignReferencesPage() {
               <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
-                    <div className="text-[10px] font-mono text-slate-400">MODEL</div>
-                    <div className="text-xs font-semibold text-white mt-1">{selectedAsset.model}</div>
+                    <div className="t-micro font-mono text-slate-400">MODEL</div>
+                    <div className="t-body-sm font-semibold text-white mt-1">{selectedAsset.model}</div>
                   </div>
                   <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
-                    <div className="text-[10px] font-mono text-slate-400">ASPECT RATIO</div>
-                    <div className="text-xs font-semibold text-white mt-1">{selectedAsset.aspect_ratio}</div>
+                    <div className="t-micro font-mono text-slate-400">ASPECT RATIO</div>
+                    <div className="t-body-sm font-semibold text-white mt-1">{selectedAsset.aspect_ratio}</div>
                   </div>
                   <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
-                    <div className="text-[10px] font-mono text-slate-400">CRITIQUE SCORE</div>
-                    <div className="text-xs font-semibold text-emerald-400 mt-1">{selectedAsset.critique_score} / 10</div>
+                    <div className="t-micro font-mono text-slate-400">CRITIQUE SCORE</div>
+                    <div className="t-body-sm font-semibold text-emerald-400 mt-1">{selectedAsset.critique_score} / 10</div>
                   </div>
                   <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
-                    <div className="text-[10px] font-mono text-slate-400">AI-SLOP PENALTY</div>
-                    <div className="text-xs font-semibold text-cyan-300 mt-1">{selectedAsset.ai_slop_score} (Low)</div>
+                    <div className="t-micro font-mono text-slate-400">AI-SLOP PENALTY</div>
+                    <div className="t-body-sm font-semibold text-cyan-300 mt-1">{selectedAsset.ai_slop_score} (Low)</div>
                   </div>
                 </div>
 
                 <div className="bg-[#141B26] p-4 rounded-lg border border-[#1E2638]">
-                  <div className="text-xs font-mono font-semibold text-cyan-400 mb-1 flex items-center gap-1.5">
+                  <div className="t-body-sm font-mono font-semibold text-cyan-400 mb-1 flex items-center gap-1.5">
                     <Terminal size={13} /> MASTER GENERATION PROMPT
                   </div>
-                  <p className="text-xs font-mono text-slate-300 leading-relaxed bg-[#080A0F] p-3 rounded border border-[#1E2638]">
+                  <p className="t-body-sm font-mono text-slate-300 leading-relaxed bg-[#080A0F] p-3 rounded border border-[#1E2638]">
                     {selectedAsset.prompt}
                   </p>
                 </div>
@@ -399,14 +399,14 @@ export default function DesignReferencesPage() {
                         setSelectedAsset(null);
                         setVeoPrompt(`Animate ${selectedAsset.title} showing active route guidance and live data changes.`);
                       }}
-                      className="px-4 py-2 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-1.5 transition-colors">
+                      className="px-4 py-2 rounded-lg t-body-sm font-semibold bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-1.5 transition-colors">
                       <Sparkles size={14} /> Animate with Veo 3.1
                     </button>
                   )}
                   <a
                     href={selectedAsset.file_url}
                     download
-                    className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#1C2433] hover:bg-[#253043] text-white flex items-center gap-1.5 transition-colors">
+                    className="px-4 py-2 rounded-lg t-body-sm font-semibold bg-[#1C2433] hover:bg-[#253043] text-white flex items-center gap-1.5 transition-colors">
                     <Download size={14} /> Download File
                   </a>
                 </div>
@@ -429,7 +429,7 @@ export default function DesignReferencesPage() {
               <div className="flex items-center justify-between border-b border-[#1E2638] pb-3">
                 <div className="flex items-center gap-2">
                   <Sparkles size={18} className="text-cyan-400" />
-                  <h3 className="text-base font-bold text-white">Animate with Veo 3.1</h3>
+                  <h3 className="t-title font-bold text-white">Animate with Veo 3.1</h3>
                 </div>
                 <button
                   onClick={() => setAnimatingWithVeo(null)}
@@ -445,41 +445,41 @@ export default function DesignReferencesPage() {
                   className="w-20 h-14 object-cover rounded border border-[#1E2638]"
                 />
                 <div>
-                  <div className="text-[11px] font-mono text-cyan-400">FIRST FRAME ANCHOR</div>
-                  <div className="text-xs font-semibold text-white">{animatingWithVeo.title}</div>
+                  <div className="t-label font-mono text-cyan-400">FIRST FRAME ANCHOR</div>
+                  <div className="t-body-sm font-semibold text-white">{animatingWithVeo.title}</div>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-mono text-slate-400 mb-1.5 block">MOTION DIRECTIVE PROMPT</label>
+                <label className="t-body-sm font-mono text-slate-400 mb-1.5 block">MOTION DIRECTIVE PROMPT</label>
                 <textarea
                   rows={3}
                   value={veoPrompt}
                   onChange={e => setVeoPrompt(e.target.value)}
                   placeholder="Describe camera push, vehicle movement, or temperature changes..."
-                  className="w-full bg-[#141B26] border border-[#1E2638] rounded-lg p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-[#141B26] border border-[#1E2638] rounded-lg p-3 t-body-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-mono text-slate-400 mb-1 block">TARGET DURATION</label>
+                  <label className="t-label font-mono text-slate-400 mb-1 block">TARGET DURATION</label>
                   <select
                     value={veoDuration}
                     onChange={e => setVeoDuration(e.target.value)}
-                    className="w-full bg-[#141B26] border border-[#1E2638] rounded-lg p-2 text-xs text-slate-200">
+                    className="w-full bg-[#141B26] border border-[#1E2638] rounded-lg p-2 t-body-sm text-slate-200">
                     <option value="6">6 Seconds</option>
                     <option value="8">8 Seconds (Standard)</option>
                     <option value="10">10 Seconds</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-mono text-slate-400 mb-1 block">ASPECT RATIO</label>
+                  <label className="t-label font-mono text-slate-400 mb-1 block">ASPECT RATIO</label>
                   <input
                     type="text"
                     disabled
                     value={animatingWithVeo.aspect_ratio}
-                    className="w-full bg-[#141B26] border border-[#1E2638] rounded-lg p-2 text-xs text-slate-400"
+                    className="w-full bg-[#141B26] border border-[#1E2638] rounded-lg p-2 t-body-sm text-slate-400"
                   />
                 </div>
               </div>
@@ -487,13 +487,13 @@ export default function DesignReferencesPage() {
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1E2638]">
                 <button
                   onClick={() => setAnimatingWithVeo(null)}
-                  className="px-4 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white">
+                  className="px-4 py-2 rounded-lg t-body-sm font-medium text-slate-400 hover:text-white">
                   Cancel
                 </button>
                 <button
                   onClick={handleVeoAnimate}
                   disabled={generating}
-                  className="px-5 py-2 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-1.5 disabled:opacity-50">
+                  className="px-5 py-2 rounded-lg t-body-sm font-semibold bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-1.5 disabled:opacity-50">
                   {generating ? <RotateCcw size={14} className="animate-spin" /> : <Play size={14} fill="currentColor" />}
                   {generating ? "Queuing Veo Job..." : "Generate Motion Reference"}
                 </button>
@@ -505,7 +505,7 @@ export default function DesignReferencesPage() {
 
       {/* Toast Notification */}
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#141B26] border border-cyan-500/50 text-white px-4 py-3 rounded-lg shadow-xl text-xs flex items-center gap-2">
+        <div className="fixed bottom-6 right-6 z-50 bg-[#141B26] border border-cyan-500/50 text-white px-4 py-3 rounded-lg shadow-xl t-body-sm flex items-center gap-2">
           <CheckCircle2 size={16} className="text-cyan-400 shrink-0" />
           <span>{toastMsg}</span>
         </div>
