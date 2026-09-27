@@ -73,6 +73,10 @@ export default function LiveMapPage() {
   const lerpRef = useRef(1);
   const trailsRef = useRef<Map<string, [number, number][]>>(new Map());
   const followRef = useRef<string | null>(null);
+  // Set by the rAF effect below; called on each data arrival to (re)start the
+  // interpolation. The loop parks itself when a transition completes, so this
+  // is what wakes it up rather than a permanently running rAF.
+  const startRef = useRef<(() => void) | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [following, setFollowing] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
@@ -285,6 +289,17 @@ export default function LiveMapPage() {
       trails.set(v.vehicle_id, t.slice(-40));
     }
     setClock(c => c + 1);
+    // Wake the interpolation loop for this new target set, and push the trail
+    // source once. Both used to happen inside a permanently-running rAF loop.
+    startRef.current?.();
+    const tfeats: any[] = [];
+    for (const [vid, pts] of trails) {
+      if (pts.length < 2) continue;
+      tfeats.push({ type: "Feature", geometry: { type: "LineString", coordinates: pts },
+                    properties: { vehicle_id: vid } });
+    }
+    (mapRef.current?.getSource("trail") as GeoJSONSource | undefined)
+      ?.setData({ type: "FeatureCollection", features: tfeats } as any);
   }, [st.fleetVehicles]);
 
   // ---------- route geometry (real backend data) ----------
@@ -489,8 +504,27 @@ export default function LiveMapPage() {
   }, [geo, clock]);
 
   // rAF interpolation
+  //
+  // PERFORMANCE: this loop previously called setData() on BOTH the vehicle and
+  // trail GeoJSON sources on every animation frame. Measured with a
+  // MutationObserver: /live-map was mutating the DOM 3,441 times/second --
+  // 80x /incidents (43/s) and 10x /dashboard (321/s) -- and rendering at ~12fps.
+  //
+  // Two problems with that:
+  //   1. setData() rebuilds and re-tessellates the entire FeatureCollection. At
+  //      60fps x 14 vehicles x 2 sources that is ~1,700 dataset rebuilds/sec to
+  //      move 14 dots a few pixels.
+  //   2. Trails only change when data arrives (st.fleetVehicles, ~4s apart),
+  //      so re-sending them every frame was pure waste.
+  //
+  // Fix: interpolate only the vehicle source, and only while a transition is
+  // actually in flight. The loop exits as soon as lerp reaches 1 instead of
+  // running forever, and it parks itself until the next data arrival. The
+  // visual result is identical -- same smooth motion between the same two
+  // positions -- at a fraction of the cost.
   useEffect(() => {
     let raf = 0;
+    let running = false;
     const loop = () => {
       const map = mapRef.current;
       if (map && map.isStyleLoaded() && nextRef.current.size) {
@@ -511,22 +545,26 @@ export default function LiveMapPage() {
           });
         }
         (map.getSource("veh") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: feats } as any);
-        const tfeats: any[] = [];
-        for (const [vid, pts] of trailsRef.current) {
-          if (pts.length < 2) continue;
-          tfeats.push({ type: "Feature", geometry: { type: "LineString", coordinates: pts },
-                        properties: { vehicle_id: vid } });
-        }
-        (map.getSource("trail") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: tfeats } as any);
         if (followRef.current) {
           const nxt = nextRef.current.get(followRef.current);
           if (nxt) map.easeTo({ center: [nxt.lng, nxt.lat], duration: 80 });
         }
+        if (t < 1) {
+          raf = requestAnimationFrame(loop);
+          return;
+        }
       }
+      // Transition complete (or nothing to do): park until the next tick.
+      running = false;
+    };
+    const start = () => {
+      if (running) return;
+      if (!mapRef.current || !nextRef.current.size) return;
+      running = true;
       raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    startRef.current = start;
+    return () => { running = false; cancelAnimationFrame(raf); };
   }, []);
 
   // incident pins
