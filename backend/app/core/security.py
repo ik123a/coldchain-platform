@@ -1,8 +1,46 @@
 """Security helpers: password hashing + JWT (HS256)."""
 from __future__ import annotations
-import base64, hashlib, hmac, json, os, time
+import base64, hashlib, hmac, json, os, secrets, time
 
-SECRET = os.getenv("JWT_SECRET", "***REDACTED-JWT-PLACEHOLDER***")
+# --- JWT signing key -------------------------------------------------------
+# Previously: SECRET = os.getenv("JWT_SECRET", "***REDACTED-JWT-PLACEHOLDER***")
+# That default was a live vulnerability, not a convenience. The fallback string
+# is public (it sat in git history at dfcd959), and anyone who knows it can mint
+# a token for any user_id, so the "auth" boundary was forgeable by default.
+#
+# Behaviour now:
+#   * explicit JWT_SECRET in the environment -> used as-is.
+#   * otherwise, if we are clearly in local development, generate a RANDOM
+#     per-process secret. Dev keeps working with no setup, and the key is
+#     unguessable -- it just changes on restart, which invalidates old tokens.
+#   * otherwise (any non-dev environment) -> refuse to start. A deployable
+#     deployment must supply its own key; silently falling back is how a
+#     forgeable default reaches production.
+#
+# Set APP_ENV=development (or DEV=1) to opt into the generated-dev-secret path.
+APP_ENV = (os.getenv("APP_ENV") or os.getenv("ENV") or "").strip().lower()
+IS_DEV = APP_ENV in {"dev", "development", "local", "test"} or bool(os.getenv("DEV"))
+
+_HARDCODED_FALLBACK = "***REDACTED-JWT-PLACEHOLDER***"
+
+
+def _resolve_secret() -> str:
+    raw = os.getenv("JWT_SECRET")
+    if raw and raw != _HARDCODED_FALLBACK:
+        return raw
+    if IS_DEV:
+        # Random per process: unguessable, and no config needed to run locally.
+        return "dev-" + secrets.token_urlsafe(32)
+    raise RuntimeError(
+        "JWT_SECRET is not set to a real value. Refusing to start with a "
+        "well-known signing key, because every token would be forgeable. "
+        "Set JWT_SECRET to a strong random value, or set APP_ENV=development "
+        "to use an auto-generated per-process dev secret."
+    )
+
+
+SECRET = _resolve_secret()
+USING_EPHEMERAL_DEV_SECRET = os.getenv("JWT_SECRET") in (None, "", _HARDCODED_FALLBACK)
 TOKEN_TTL = 60 * 60 * 12
 
 

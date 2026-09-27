@@ -2,11 +2,25 @@
 import os
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./coldchain.db")
-JWT_SECRET = os.getenv("JWT_SECRET", "***REDACTED-JWT-PLACEHOLDER***")
+# JWT signing key resolution lives in app.core.security, which refuses to fall
+# back to a well-known value outside development. Do not re-add a literal here.
+JWT_SECRET = os.getenv("JWT_SECRET", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 MODEL_NAME = os.getenv("MODEL_NAME", "")
-GEMINI_API_KEY_PRIMARY = os.getenv("GEMINI_API_KEY", "***REDACTED-VERTEX-SERVICE-ACCOUNT-KEY***")
-GEMINI_API_KEY_BACKUP = os.getenv("GEMINI_API_KEY_BACKUP", "***REDACTED-VERTEX-SERVICE-ACCOUNT-KEY***")
+
+# --- API keys --------------------------------------------------------------
+# These previously carried hardcoded literal fallbacks, which put two LIVE
+# Google/Gemini keys into tracked source: one matching .env, and a second
+# ("...BACKUP") that is the SAME value exposed in git history at dfcd959. Both
+# were therefore compromised, and because the code preferred the literal when
+# the env var was absent, deleting .env would not have removed the exposure --
+# the app would keep working with the embedded key.
+#
+# Now: env var only, empty by default. If it is missing, the AI design-reference
+# service reports itself unavailable; the operational simulation does not use
+# these keys at all (it is deterministic rule-based Python).
+GEMINI_API_KEY_PRIMARY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_API_KEY_BACKUP = os.getenv("GEMINI_API_KEY_BACKUP", "")
 GEMINI_API_KEYS = [k for k in [GEMINI_API_KEY_PRIMARY, GEMINI_API_KEY_BACKUP] if k]
 
 GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image")

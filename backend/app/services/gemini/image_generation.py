@@ -71,12 +71,15 @@ def generate_reference_image(
         }
     }
 
+    # API keys come from the environment ONLY. This list previously carried two
+    # hardcoded Google/Gemini keys as trailing fallbacks, which put live
+    # credentials in tracked source -- and because the literal was last in the
+    # list, the service would keep working with the embedded key even if the env
+    # vars were removed. Do not re-add literals here; put keys in backend/.env.
     candidate_keys = [k for k in [
         os.getenv("GEMINI_API_KEY"),
         os.getenv("GEMINI_API_KEY_BACKUP"),
         os.getenv("GOOGLE_API_KEY"),
-        "***REDACTED-VERTEX-SERVICE-ACCOUNT-KEY***",
-        "***REDACTED-VERTEX-SERVICE-ACCOUNT-KEY***"
     ] if k]
 
     last_error = "No keys configured"
