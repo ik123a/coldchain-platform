@@ -1,6 +1,6 @@
 {
   "_comment": "Anti-Goodhart anchor. Human-written. The build agent may NOT edit this file or any path listed in protected_sha256.",
-  "written_at_commit": "24b1164",
+  "written_at_commit": "55e1a10",
   "protected_sha256": {
     "backend/tests/test_fleet_twin.py": "0ce4fcd8eaffd4dcbdaee7fc715d6c1ac99b1de9f4d5468a115f7b8b1c7ce25e",
     "backend/tests/test_fleet_ai.py": "e5ecd71fe0595cc86890b30a67544e258990353a75cca0782de73e2962674414",
