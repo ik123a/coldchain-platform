@@ -171,7 +171,7 @@ function IncidentsInner() {
               <div className="t-micro text-[var(--text3)] mt-0.5">{i.status} · peak {i.peak_temperature?.toFixed(1)}°C · tick {i.detected_tick}</div>
               {i.simulation_id === 0 && (
                 <button onClick={e => { e.stopPropagation(); setReplayingId(i.id); }}
-                        className="mt-1.5 flex items-center gap-1 t-micro font-mono text-[var(--accent)] hover:underline">
+                        className="chip mt-1.5 gap-1 border-transparent px-1.5 text-[var(--accent)] hover:underline">
                   <Play size={10} /> REPLAY
                 </button>
               )}

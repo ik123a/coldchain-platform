@@ -1,0 +1,38 @@
+{
+  "_comment": "Human-written visual baseline. The loop may not edit this file to make G5 pass. Re-record deliberately, in a reviewable commit, after confirming the change is intended.",
+  "probes": {
+    "/analytics .region-label": {
+      "_found": true,
+      "fontSize": "11px",
+      "textTransform": "lowercase",
+      "color": "rgb(100, 116, 139)",
+      "letterSpacing": "0.44px"
+    },
+    "/incidents h1": {
+      "_found": true,
+      "fontSize": "26px",
+      "fontWeight": "700"
+    },
+    "/live-map .chip.on": {
+      "_found": true,
+      "fontWeight": "600",
+      "borderTopColor": "rgba(0, 0, 0, 0)",
+      "outlineWidth": "3px",
+      "outlineStyle": "none",
+      "position": "relative",
+      "color": "rgb(241, 245, 249)"
+    },
+    "/live-map .telemetry-rail": {
+      "_found": true,
+      "width": "298.781px",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "position": "relative"
+    },
+    "/live-map h1": {
+      "_found": true,
+      "fontSize": "26px",
+      "fontWeight": "700",
+      "color": "rgb(241, 245, 249)"
+    }
+  }
+}

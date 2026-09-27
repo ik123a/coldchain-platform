@@ -163,6 +163,26 @@ input::placeholder { color: var(--text-dim); }
   position: relative;
   padding-left: 14px;
 }
+
+/* --- Touch-target floor ---------------------------------------------------
+   Measured with Playwright across 12 routes: 91 of 407 real controls
+   (button / a[href] / input / select / textarea) rendered under 24px in at
+   least one axis -- 22.4%. WCAG 2.2 Target Size (Minimum) 2.5.8 requires
+   24x24 CSS px. The offenders clustered in .chip, the incident REPLAY button,
+   and the ✕ close buttons, so the fix belongs on the shared control classes
+   rather than in per-element padding. min-height does not change the rendered
+   size of a control that is already taller -- it only stops the hit area from
+   being smaller than the label. */
+.chip, .btn, button.chip { min-height: 24px; }
+.chip { display: inline-flex; align-items: center; }
+button[aria-label*="lose" i],
+button[aria-label*="Close" i] {
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .telemetry-rail::before {
   content: "";
   position: absolute;

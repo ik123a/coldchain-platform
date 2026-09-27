@@ -93,7 +93,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             onClick={() => setCollapsed((v) => !v)}
             title={collapsed ? "Expand navigation" : "Collapse navigation"}
             aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
-            className="hidden h-6 w-6 shrink-0 place-items-center rounded text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-card)] hover:text-white md:grid"
+            className="hidden h-6 w-6 min-h-6 min-w-6 shrink-0 place-items-center rounded text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-card)] hover:text-white md:grid"
           >
             {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
           </button>
@@ -162,7 +162,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
         <header className="z-30 flex h-11 shrink-0 select-none items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--surface-subtle)]/90 px-4 backdrop-blur">
-          <Link href="/" className="flex min-w-0 items-center gap-2 t-body-sm font-semibold tracking-tight text-white">
+          <Link href="/" className="flex min-h-6 min-w-0 items-center gap-2 t-body-sm font-semibold tracking-tight text-white">
             <span className="truncate">ColdChain Rescue</span>
             <span className="shrink-0 rounded-full border border-cyan-800/50 bg-cyan-950/60 px-2 py-0.5 font-mono t-micro text-cyan-400">
               LIVE AUTONOMOUS TWIN

@@ -44,7 +44,7 @@ export default function Toasts() {
           <button
             onClick={() => dispatch({ type: "dismiss_toast", payload: t.id })}
             aria-label="Dismiss notification"
-            className="-mr-1 shrink-0 rounded px-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+            className="-mr-1 grid h-6 min-h-6 w-6 min-w-6 shrink-0 place-items-center rounded px-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
           >
             ✕
           </button>

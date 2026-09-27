@@ -438,9 +438,9 @@ export default function Home() {
               Autonomous multi-agent recovery scenarios: spatial camera tracking, Arrhenius degradation detection, dynamic vector rerouting, and cold-dock cargo offload.
             </p>
           </div>
-          <Link 
-            href="/live-map" 
-            className="t-body-sm font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 shrink-0">
+          <Link
+            href="/live-map"
+            className="t-body-sm font-mono text-cyan-400 hover:text-cyan-300 flex min-h-6 items-center gap-1 shrink-0">
             Open Fleet Command Map <ArrowRight size={14} />
           </Link>
         </div>

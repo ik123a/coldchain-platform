@@ -106,7 +106,9 @@ export function MapMarkers({
             type="button"
             onClick={() => onSelect?.(p.id)}
             title={p.sublabel ? `${p.label ?? p.id} — ${p.sublabel}` : p.label ?? p.id}
-            className="pointer-events-auto absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+            className="pointer-events-auto absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center
+                       before:absolute before:left-1/2 before:top-1/2 before:h-6 before:w-6
+                       before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
             style={{ left: p.x, top: p.y }}
           >
             <span

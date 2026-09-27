@@ -23,6 +23,7 @@ PROTECTED = [
     "backend/tests/test_scenario_analytics.py",
     "backend/tests/acceptance_sweep.py",
     ".loop/judge.py",
+    ".loop/style-baseline.json",
 ]
 
 
