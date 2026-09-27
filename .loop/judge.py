@@ -10,6 +10,7 @@ Exit: 0 = releasable, 1 = not releasable.
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import hashlib
 import json
 import pathlib
@@ -554,6 +555,78 @@ def check_verifiers() -> dict:
                       f"placeholder-satisfiable gap"}
 
 
+def check_rotation_gate() -> dict:
+    """B4 - exposed credentials must be confirmed ROTATED before release.
+
+    Six live Google/Gemini keys were committed in bd61605, dfcd959 and
+    bf84963. They were removed from the working tree in 4767514, but a value
+    that is merely *deleted from source* is still valid at the provider. Only
+    the account owner can rotate, so this cannot be automated away.
+
+    Removal and rotation are different acts. Removing the literal stops new
+    exposure; rotating the value is what makes the historical one harmless.
+    Until both are true, a `git clone` of this repo hands a working key to
+    anyone with access -- and the history cannot be un-leaked.
+
+    This gate therefore FAILS BY DESIGN until a human records the rotation.
+    That is deliberate: an unrotated credential is a real, unresolved risk,
+    and a gate that passes while the risk is live is the exact failure mode
+    G7 exists to prevent.
+
+    To clear it, record the rotation with:
+
+        python .loop/rotation.py --rotated <ISO date> --by <name or 'owner'>
+
+    ...after actually rotating at the provider. The flag asserts the act
+    happened; it does not perform it. Do not run it to silence this gate.
+    """
+    ack = ROOT / ".loop" / "rotation-ack.json"
+    if not ack.exists():
+        return {"id": "B4", "ok": False,
+                "detail": "EXPOSED KEYS NOT CONFIRMED ROTATED. 6 live Google/"
+                          "Gemini keys exist in git history (commits bd61605, "
+                          "dfcd959, bf84963). They were removed from source in "
+                          "4767514 but may still be VALID at the provider. "
+                          "Rotate at Google AI Studio, then record it: "
+                          "`python .loop/rotation.py --rotated <date> --by <who>`"}
+    try:
+        doc = json.loads(ack.read_text(encoding="utf-8"))
+    except Exception as e:
+        return {"id": "B4", "ok": False,
+                "detail": f"B4 ack file is unreadable: {type(e).__name__}: {e}"}
+
+    for field in ("rotated_at", "rotated_by"):
+        if not doc.get(field):
+            return {"id": "B4", "ok": False,
+                    "detail": f"B4 ack is missing '{field}' -- refusing to "
+                              "treat an incomplete record as a rotation"}
+
+    # A record dated before the leak, or carrying a date that is not a real
+    # date at all, is not credible evidence of a rotation.
+    #
+    # This must PARSE the date, not compare it as a string. A previous version
+    # did `when < leaked` after slicing to 10 chars, so "last tuesday" sorted
+    # after "2026-09-27" and was accepted -- the gate could be satisfied by
+    # any string that happened to compare greater.
+    when = str(doc["rotated_at"]).strip()[:10]
+    try:
+        parsed = _dt.date.fromisoformat(when)
+    except ValueError:
+        return {"id": "B4", "ok": False,
+                "detail": f"B4 ack has a non-ISO 'rotated_at' ({when!r}) -- "
+                          "expected YYYY-MM-DD"}
+    leaked = _dt.date(2026, 9, 27)   # date of bd61605, first exposed commit
+    if parsed < leaked:
+        return {"id": "B4", "ok": False,
+                "detail": f"B4 ack is dated {when}, which is BEFORE the "
+                          f"exposure ({leaked.isoformat()}). A rotation "
+                          "cannot predate the leak it remediates."}
+
+    return {"id": "B4", "ok": True,
+            "detail": f"keys confirmed rotated {doc['rotated_at']} by "
+                      f"{doc['rotated_by']}"}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", action="store_true")
@@ -582,6 +655,10 @@ def main() -> int:
     # G7 always runs, including --quick: pure text inspection, costs nothing,
     # and it is the guard against a verifier being quietly weakened.
     checks.append(check_verifiers())
+
+    # B4: an unrotated credential is a live risk, so it blocks release. It
+    # cannot be cleared automatically -- only the account owner can rotate.
+    checks.append(check_rotation_gate())
 
     goals = [c for c in checks if c["id"].startswith("G")]
     bounds = [c for c in checks if c["id"].startswith("B")]

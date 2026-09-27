@@ -1,6 +1,6 @@
 {
   "_comment": "Anti-Goodhart anchor. Human-written. The build agent may NOT edit this file or any path listed in protected_sha256.",
-  "written_at_commit": "21a6c28",
+  "written_at_commit": "965ef2b",
   "protected_sha256": {
     "backend/tests/test_fleet_twin.py": "0ce4fcd8eaffd4dcbdaee7fc715d6c1ac99b1de9f4d5468a115f7b8b1c7ce25e",
     "backend/tests/test_fleet_ai.py": "e5ecd71fe0595cc86890b30a67544e258990353a75cca0782de73e2962674414",
@@ -8,7 +8,7 @@
     "backend/tests/test_world_events.py": "495fcb8493d29a0be73a36115018735255b386a67f11f62f8f6353e85074fa0c",
     "backend/tests/test_scenario_analytics.py": "c11ad038a5af608cd0258fd4785244a3c385e3d8e1d7f3c86c1e99b9a9257df1",
     "backend/tests/acceptance_sweep.py": "e4b3df23118f0259815ad762841483084671a82958b6e7326aaba4bfd91bc9cf",
-    ".loop/judge.py": "0b9c4b39df9fa58f2b856b7ce49a4fe96367eb97ef2ff152960c4ee566895d86",
+    ".loop/judge.py": "aa7bdbece9c3e6c2a8be07304640bc47a9cf53d0efb9362352627fc84d2b1c77",
     ".loop/style-baseline.json": "0a2b26c1a7814c13143e7121907cad154cf2e66bf9baa0a5924431317a605b38"
   }
 }
