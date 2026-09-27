@@ -314,7 +314,7 @@ button[aria-label*="Close" i] {
 ::-webkit-scrollbar-thumb { background: #1c2a3c; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #273d57; }
 
-input, select { background: var(--surface-inset); border: 1px solid var(--border); color: var(--text); border-radius: 7px; padding: 7px 10px; font-size: 12.5px; outline: none; font-family: inherit; }
+input, select { background: var(--surface-inset); border: 1px solid var(--border); color: var(--text); border-radius: var(--r-md); padding: 7px 10px; font-size: 12.5px; outline: none; font-family: inherit; }
 input:focus, select:focus { border-color: var(--accent); }
 
 
