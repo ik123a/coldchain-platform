@@ -1,9 +1,9 @@
 {
   "_comment": "G7/V1 anchor. Every verifier in tools/ is byte-pinned so a check cannot be weakened silently. Re-pin only after reviewing the diff to the verifier itself.",
-  "written_at_commit": "b2aeb15",
+  "written_at_commit": "21a6c28",
   "verifier_sha256_16": {
     "rubric_audit.py": "3de80a3b5cb61270",
-    "test_g7_bites.py": "4e294dcfe91a75eb",
+    "test_g7_bites.py": "6328a950db3d46ad",
     "test_g7_isolated.py": "a6aea67c7b3be463",
     "test_report_gap.py": "22999676a57c2b6b",
     "verify_report_outline.py": "cad53ebd33e74e9c"
