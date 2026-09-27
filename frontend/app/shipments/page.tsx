@@ -18,7 +18,7 @@ export default function Shipments() {
   return (
     <div className="fade-in space-y-4">
       <div className="flex items-center gap-3">
-        <h2 className="t-metric font-bold headline flex-1">Shipments</h2>
+        <h1 className="t-hero font-bold headline flex-1">Shipments</h1>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="search shipments / cargo…" className="w-64" />
         <select value={status} onChange={e => setStatus(e.target.value)}>
           <option value="">any status</option>

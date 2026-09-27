@@ -49,6 +49,12 @@ export default function Analytics() {
 
   return (
     <div className="fade-in space-y-4">
+      <header>
+        <h1 className="t-hero font-bold headline">Analytics</h1>
+        <p className="t-body-sm text-[var(--text3)]">
+          Fleet-wide trends computed from persisted simulation history.
+        </p>
+      </header>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         {kpis.map((k) => (
           <div key={k.l} className="base-card p-3.5">

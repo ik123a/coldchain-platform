@@ -29,9 +29,9 @@ export default function ShipmentsLive() {
   return (
     <div className="fade-in space-y-4 h-[calc(100vh-120px)] flex flex-col">
       <div className="flex items-center gap-3">
-        <h2 className="t-metric font-bold headline flex items-center gap-2 flex-1">
+        <h1 className="t-hero font-bold headline flex items-center gap-2 flex-1">
           <Truck size={18} className="text-[var(--accent)]" /> Fleet Shipments
-        </h2>
+        </h1>
         <div className="flex gap-1">
           <button onClick={() => setTab("shipments")} className={`chip t-label ${tab === "shipments" ? "on" : ""}`}>Shipments</button>
           <button onClick={() => setTab("drivers")} className={`chip t-label ${tab === "drivers" ? "on" : ""}`}>Driver Leaderboard</button>

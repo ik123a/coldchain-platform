@@ -29,7 +29,7 @@ export default function Twin() {
     <div className="fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="t-metric font-bold headline">Digital twin — Live Gate</h2>
+          <h1 className="t-hero font-bold headline">Digital twin — Live Gate</h1>
           <div className="t-body-sm text-[var(--text3)]">Facility: Delhi Central Cold Storage · live status driven by backend simulation</div>
         </div>
         <span className="badge badge-cyan">SIMULATION ENVIRONMENT</span>

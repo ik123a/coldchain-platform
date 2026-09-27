@@ -5,7 +5,7 @@ export default function Settings() {
   const { st, dispatch } = useStore();
   return (
     <div className="fade-in max-w-2xl space-y-4">
-      <h2 className="t-metric font-bold headline">Settings</h2>
+      <h1 className="t-hero font-bold headline">Settings</h1>
 
       <div className="base-card p-4 space-y-3">
         <div className="t-body font-semibold">Appearance</div>

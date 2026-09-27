@@ -5,7 +5,7 @@ export default function Reports() {
   const { st } = useStore();
   return (
     <div className="fade-in space-y-4 max-w-4xl">
-      <h2 className="t-metric font-bold headline">Incident reports</h2>
+      <h1 className="t-hero font-bold headline">Incident reports</h1>
       <div className="t-body-sm text-[var(--text3)]">Every resolved (or in-progress) incident has a deterministic report assembled from persisted sensor, diagnosis, risk and action records. JSON + PDF downloads.</div>
       <div className="space-y-2">
         {st.incidents.map(i => (

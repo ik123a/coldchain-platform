@@ -42,7 +42,13 @@ export default function Copilot() {
   ];
 
   return (
-    <div className="fade-in max-w-3xl mx-auto">
+    <div className="fade-in max-w-3xl mx-auto space-y-4">
+      <header>
+        <h1 className="t-hero font-bold headline">AI Copilot</h1>
+        <p className="t-body-sm text-[var(--text3)]">
+          Answers come from live simulation state via deterministic rules — no language model, no invented readings.
+        </p>
+      </header>
       <div className="base-card overflow-hidden">
         <div className="px-4 py-3 border-b border-[var(--border)] flex items-center gap-2">
           <Bot size={15} className="text-[var(--cyan)]" />

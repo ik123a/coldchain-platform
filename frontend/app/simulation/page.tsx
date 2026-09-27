@@ -56,7 +56,14 @@ export default function SimulationPage() {
   };
 
   return (
-    <div className="fade-in grid grid-cols-1 xl:grid-cols-4 gap-4">
+    <div className="fade-in space-y-4">
+      <header>
+        <h1 className="t-hero font-bold headline">Simulation</h1>
+        <p className="t-body-sm text-[var(--text3)]">
+          Inject failures and drive the deterministic agent fleet to validate incident detection end to end.
+        </p>
+      </header>
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
       {/* control column */}
       <div className="space-y-4">
         <div className="base-card p-4 space-y-3">
@@ -249,6 +256,7 @@ export default function SimulationPage() {
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

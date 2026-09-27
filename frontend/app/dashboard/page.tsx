@@ -189,14 +189,14 @@ export default function DashboardPage() {
       {/* 1. SECTION 9 TOP HEADER AREA */}
       <div className="h-11 shrink-0 px-4 bg-[#0A0D14] border-b border-[#1E2638] flex flex-wrap items-center justify-between gap-3 t-body-sm font-mono z-20">
         <div className="flex items-center gap-3">
-          <h1 className="t-title m-0 font-bold text-white tracking-wide flex items-center gap-1.5">
+          <div className="t-title m-0 font-bold text-white tracking-wide flex items-center gap-1.5">
             <span className="text-cyan-400">ColdChain Rescue</span>
             <span className="text-slate-600" aria-hidden>·</span>
             <span className="flex items-center gap-1 text-emerald-400 t-label font-normal">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden></span>
               Live Simulation
             </span>
-          </h1>
+          </div>
         </div>
 
         {/* Live Metrics */}
@@ -211,6 +211,8 @@ export default function DashboardPage() {
           </span>
         </div>
       </div>
+
+      <h1 className="sr-only">Operations dashboard — live fleet overview</h1>
 
       {/* TACTICAL LIVE TELEMETRY MARQUEE (Awwwards Style) */}
       <div className="h-7 shrink-0 bg-[#06080C] border-b border-[#1E2638] flex items-center overflow-hidden z-20">

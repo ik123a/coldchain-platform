@@ -49,3 +49,9 @@
  GET /dashboard 200 in 253ms
  GET /incidents 200 in 156ms
  ✓ Compiled in 4.9s (2757 modules)
+ ✓ Compiled in 3s (1335 modules)
+ ✓ Compiled in 630ms (1335 modules)
+ ✓ Compiled in 1229ms (1335 modules)
+ ✓ Compiled in 1192ms (1335 modules)
+ ✓ Compiled in 1361ms (1335 modules)
+ ✓ Compiled in 746ms (1335 modules)
