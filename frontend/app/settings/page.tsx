@@ -35,7 +35,7 @@ export default function Settings() {
             <b>{n}</b><span className="text-[var(--text2)]">{r}</span><span className="badge badge-cyan">{s}</span>
           </div>
         ))}
-        <div className="t-micro text-[var(--text3)]">Profiles applied at simulation creation; zone thresholds override cargo defaults.</div>
+        <div className="t-body-sm text-[var(--text3)]">Profiles applied at simulation creation; zone thresholds override cargo defaults.</div>
       </div>
 
       <div className="base-card p-4 space-y-2">

@@ -171,7 +171,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
                     className={isBreached ? "text-rose-400 font-bold t-metric-lg" : "text-white font-bold t-metric-lg"} 
                   />
                 </div>
-                <div className="t-micro font-mono text-emerald-400 mt-0.5">Safe Zone: 2.0–8.0°C</div>
+                <div className="t-body-sm font-mono text-emerald-400 mt-0.5">Safe Zone: 2.0–8.0°C</div>
               </div>
 
               <div className="bg-[#141B26] p-3.5 rounded-xl border border-[#1E2638] relative overflow-hidden">
@@ -317,7 +317,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
                 <div className={`t-metric-lg font-bold font-mono mt-0.5 ${isBreached ? "text-rose-400" : "text-white"}`}>
                   {temp.toFixed(1)}°C
                 </div>
-                <div className="t-micro font-mono text-emerald-400">Safe: 2.0°C – 8.0°C</div>
+                <div className="t-body-sm font-mono text-emerald-400">Safe: 2.0°C – 8.0°C</div>
               </div>
               <div className="bg-[#141B26] p-3 rounded-xl border border-[#1E2638]">
                 <div className="t-micro font-mono text-slate-400">COMPRESSOR STATUS</div>
@@ -331,7 +331,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
                 <div className={`t-metric-lg font-bold font-mono mt-0.5 ${isBreached ? "text-rose-400" : "text-slate-300"}`}>
                   {isBreached ? "07:42" : "> 6 hrs"}
                 </div>
-                <div className="t-micro font-mono text-slate-400">Trend: {isBreached ? "+0.3°C/min" : "Stable"}</div>
+                <div className="t-body-sm font-mono text-slate-400">Trend: {isBreached ? "+0.3°C/min" : "Stable"}</div>
               </div>
             </div>
 
@@ -368,7 +368,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
               <div className="bg-[#141B26] p-3 rounded-xl border border-[#1E2638]">
                 <div className="t-micro font-mono text-slate-400">CARGO TYPE</div>
                 <div className="t-section font-bold font-mono text-white mt-1 uppercase">{vehicle.cargo?.cargo_type || "PHARMA"}</div>
-                <div className="t-micro font-mono text-slate-400">Req: 2.0°C – 8.0°C</div>
+                <div className="t-body-sm font-mono text-slate-400">Req: 2.0°C – 8.0°C</div>
               </div>
               <div className="bg-[#141B26] p-3 rounded-xl border border-[#1E2638]">
                 <div className="t-micro font-mono text-slate-400">CURRENT LOAD</div>
@@ -385,7 +385,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
               <div className="bg-[#141B26] p-3 rounded-xl border border-[#1E2638]">
                 <div className="t-micro font-mono text-slate-400">BATCH VALUE</div>
                 <div className="t-metric-lg font-bold font-mono text-white mt-0.5">$124,000</div>
-                <div className="t-micro font-mono text-emerald-400">Priority: Tier 1 Critical</div>
+                <div className="t-body-sm font-mono text-emerald-400">Priority: Tier 1 Critical</div>
               </div>
             </div>
 
@@ -417,7 +417,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
                   <div className="t-section font-mono font-bold text-white mt-1">
                     {transferring ? Math.round(38 + (30 * transferProgress / 100)) : 38}% LOAD
                   </div>
-                  <div className="t-micro font-mono text-slate-400 mt-0.5">Pre-chilled @ 3.8°C</div>
+                  <div className="t-body-sm font-mono text-slate-400 mt-0.5">Pre-chilled @ 3.8°C</div>
                 </div>
               </div>
             </div>
@@ -592,8 +592,8 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
                 {whatIfData.map((d, i) => (
                   <div key={i} className="bg-[#0A0D14] p-2.5 rounded-lg border border-[#1E2638]">
                     <div className="t-micro text-slate-400 font-bold">{d.step}</div>
-                    <div className="t-label text-rose-400 mt-1">Continue: {d.continueTemp}°C</div>
-                    <div className="t-label text-emerald-400">Divert: {d.divertTemp}°C</div>
+                    <div className="t-body-sm text-rose-400 mt-1">Continue: {d.continueTemp}°C</div>
+                    <div className="t-body-sm text-emerald-400">Divert: {d.divertTemp}°C</div>
                   </div>
                 ))}
               </div>

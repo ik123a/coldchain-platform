@@ -187,7 +187,7 @@ export default function SimulationPage() {
           <div className="flex items-center justify-between mb-1 relative z-10">
             <div className="t-body font-semibold flex items-center gap-2">
               <span>Telemetry Kinetic Trace</span>
-              <span className="t-micro font-mono text-slate-400">Target: 2.0°C – 8.0°C</span>
+              <span className="t-body-sm font-mono text-slate-400">Target: 2.0°C – 8.0°C</span>
             </div>
             {sim && (
               <span className={`badge ${sim.true_temperature > (sim.zone?.mx || 8) ? "badge-red pulse-red" : "badge-green"}`}>
@@ -210,12 +210,8 @@ export default function SimulationPage() {
             <RiskGauge score={sim?.risk_score ?? 12} level={sim?.risk_level ?? "LOW"} />
             <div className="space-y-1">
               <div className="t-body-sm font-semibold text-white">Deterministic Multi-Agent Risk Engine</div>
-              <div className="t-micro text-[var(--text3)] leading-relaxed">
-                Combines Arrhenius biological shelf-life degradation, compressor duty cycle, insulation thermal decay coefficient, and time-to-breach.
-              </div>
-              <div className="t-micro font-mono text-cyan-400 pt-1">
-                Breach Velocity: {sim && sim.true_temperature > 6 ? "+0.42°C/min (ACCELERATING)" : "0.00°C/min (STEADY)"}
-              </div>
+              <div className="t-body-sm text-[var(--text3)] leading-relaxed">Combines Arrhenius biological shelf-life degradation, compressor duty cycle, insulation thermal decay coefficient, and time-to-breach.</div>
+              <div className="t-body-sm font-mono text-cyan-400 pt-1">Breach Velocity: {sim && sim.true_temperature > 6 ? "+0.42°C/min (ACCELERATING)" : "0.00°C/min (STEADY)"}</div>
             </div>
           </div>
 
@@ -244,7 +240,7 @@ export default function SimulationPage() {
                 <div className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-800/50 space-y-1">
                   <div className="t-micro text-emerald-400 font-bold">AUTONOMOUS DETOUR</div>
                   <div className="t-body font-bold text-emerald-300">5.2°C</div>
-                  <div className="t-micro text-slate-400">Risk: 14/100 (NOMINAL)</div>
+                  <div className="t-body-sm text-slate-400">Risk: 14/100 (NOMINAL)</div>
                   <div className="t-micro text-emerald-400">Cargo: 100% (RESCUED)</div>
                 </div>
               </div>

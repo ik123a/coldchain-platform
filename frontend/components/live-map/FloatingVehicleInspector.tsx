@@ -116,7 +116,7 @@ export function FloatingVehicleInspector({
               suffix="°C" 
               className={isBreached ? "text-rose-400 font-bold" : "text-white font-bold"} 
             />
-            <span className="t-micro font-normal text-emerald-400">(Safe 2–8°C)</span>
+            <span className="t-body-sm font-normal text-emerald-400">(Safe 2–8°C)</span>
           </span>
         </div>
         <div className="flex items-center justify-between t-label font-mono">

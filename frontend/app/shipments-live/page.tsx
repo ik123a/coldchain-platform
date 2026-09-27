@@ -55,14 +55,14 @@ export default function ShipmentsLive() {
               {drivers.map((d, i) => (
                 <tr key={d.vehicle_id} className="cursor-pointer"
                     onClick={() => router.push(`/live-map?focus=${d.vehicle_id}`)}>
-                  <td className="text-[var(--text3)]">{i + 1}</td>
-                  <td><b className="t-label">{d.name}</b></td>
-                  <td className="t-label">{d.vehicle_id}</td>
+                  <td className="text-[var(--text3)] t-body-sm">{i + 1}</td>
+                  <td><b className="t-body">{d.name}</b></td>
+                  <td className="t-body-sm kpi-num">{d.vehicle_id}</td>
                   <td><span className={`badge ${d.driving_score >= 90 ? "badge-green" : d.driving_score >= 70 ? "badge-amber" : "badge-red"} kpi-num`}>{d.driving_score}</span></td>
-                  <td className="t-label kpi-num">{d.safety}</td>
-                  <td className="t-label kpi-num">{d.efficiency}</td>
+                  <td className="t-body kpi-num">{d.safety}</td>
+                  <td className="t-body kpi-num">{d.efficiency}</td>
                   <td><span className={`badge ${d.on_time ? "badge-green" : "badge-amber"} t-micro`}>{d.on_time ? "YES" : "AT RISK"}</span></td>
-                  <td className="t-label kpi-num">{d.route_adherence}%</td>
+                  <td className="t-body kpi-num">{d.route_adherence}%</td>
                 </tr>
               ))}
               {!drivers.length && (

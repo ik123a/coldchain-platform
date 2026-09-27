@@ -97,7 +97,7 @@ export function FleetTable({ vehicles = [], events = [], filter, setFilter, onSe
                       <span className={`status-dot ${v.status === "ARRIVED" ? "" :
                         riskLevel === "CRITICAL" ? "red pulse" :
                         riskLevel === "HIGH" ? "red" : ""}`} />
-                      <b className="truncate t-label">{v.vehicle_id}</b>
+                      <b className="truncate t-body-sm">{v.vehicle_id}</b>
                     </div>
                   </td>
                   <td className="kpi-num">
@@ -105,21 +105,21 @@ export function FleetTable({ vehicles = [], events = [], filter, setFilter, onSe
                       {origin}→{dest}
                     </span>
                   </td>
-                  <td className={`kpi-num whitespace-nowrap text-right t-label font-semibold ${tempAlert ? "text-[var(--red)]" : ""}`}>
+                  <td className={`kpi-num whitespace-nowrap text-right t-body-sm font-semibold ${tempAlert ? "text-[var(--red)]" : ""}`}>
                     {typeof tempVal === "number" ? tempVal.toFixed(1) : tempVal}°C
                   </td>
-                  <td className="kpi-num whitespace-nowrap text-right t-label">{Math.round(speed)}</td>
+                  <td className="kpi-num whitespace-nowrap text-right t-body-sm">{Math.round(speed)}</td>
                   {variant === "wide" &&
                     <td className="whitespace-nowrap t-micro text-[var(--text2)]">
                       <span className="block truncate">{(v?.cargo?.cargo_type || "produce").replace("_", " ")}</span>
                     </td>}
-                  <td className="kpi-num whitespace-nowrap text-right t-label">{Math.round(loadPct)}%</td>
+                  <td className="kpi-num whitespace-nowrap text-right t-body-sm">{Math.round(loadPct)}%</td>
                   <td className="whitespace-nowrap text-right">
                     {v._alerts > 0
                       ? <span className={`badge ${v._sev} t-micro px-1.5`}>🔴 {v._alerts}</span>
                       : <span className="text-[var(--text3)] t-micro">—</span>}
                   </td>
-                  <td className="kpi-num whitespace-nowrap text-right t-label text-[var(--text2)]">{Math.round(eta)}m</td>
+                  <td className="kpi-num whitespace-nowrap text-right t-body-sm text-[var(--text2)]">{Math.round(eta)}m</td>
                 </tr>
               );
             })}

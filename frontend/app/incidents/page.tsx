@@ -168,7 +168,7 @@ function IncidentsInner() {
                 <b>#{i.id} {(i.root_cause || "?").replace(/_/g, " ")}</b>
                 <span className={`badge ${sevBadge(i.severity)}`}>{i.severity}</span>
               </div>
-              <div className="t-micro text-[var(--text3)] mt-0.5">{i.status} · peak {i.peak_temperature?.toFixed(1)}°C · tick {i.detected_tick}</div>
+              <div className="t-body-sm text-[var(--text3)] mt-0.5">{i.status} · peak {i.peak_temperature?.toFixed(1)}°C · tick {i.detected_tick}</div>
               {i.simulation_id === 0 && (
                 <button onClick={e => { e.stopPropagation(); setReplayingId(i.id); }}
                         className="chip mt-1.5 gap-1 border-transparent px-1.5 text-[var(--accent)] hover:underline">
@@ -246,7 +246,7 @@ function IncidentsInner() {
                   {risk ? (
                     <>
                       <div className="t-metric-lg font-bold kpi-num">{risk.score}<span className="t-body text-[var(--text3)]"> / 100 · {risk.level}</span></div>
-                      <div className="t-micro text-[var(--text3)] mb-1">time-to-critical ≈ {risk.time_to_critical_ticks ?? "n/a"} ticks · trend {risk.trend_c_per_min}°C/min</div>
+                      <div className="t-body-sm text-[var(--text3)] mb-1">time-to-critical ≈ {risk.time_to_critical_ticks ?? "n/a"} ticks · trend {risk.trend_c_per_min}°C/min</div>
                       {(risk.components || []).slice(0, 4).map((c: any) => (
                         <div key={c.component} className="mt-1 flex items-center gap-2 t-label text-[var(--text2)]">
                           <div

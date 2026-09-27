@@ -174,7 +174,7 @@ export default function Home() {
                   <div className={`t-metric-lg font-bold font-mono mt-1 ${truckTemp > 8 ? "text-rose-400" : truckTemp > 6 ? "text-amber-400" : "text-white"}`}>
                     {truckTemp.toFixed(1)}°C
                   </div>
-                  <div className="t-micro text-emerald-400 font-mono mt-0.5">Target: 2.0–8.0°C</div>
+                  <div className="t-body-sm text-emerald-400 font-mono mt-0.5">Target: 2.0–8.0°C</div>
                 </div>
                 <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
                   <div className="t-micro font-mono text-slate-400">OUTSIDE AMBIENT</div>
@@ -293,24 +293,24 @@ export default function Home() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 t-body-sm font-mono">
             <div className="p-3 rounded-xl bg-[#141B26] border border-emerald-800/40">
-              <div className="text-slate-400 t-micro">4.0°C (NOMINAL)</div>
+              <div className="text-slate-400 t-body-sm">4.0°C (NOMINAL)</div>
               <div className="t-metric font-bold text-emerald-400 mt-1">1.0x</div>
-              <div className="t-micro text-slate-400 mt-1">Baseline shelf-life: 24.0h</div>
+              <div className="t-body-sm text-slate-400 mt-1">Baseline shelf-life: 24.0h</div>
             </div>
             <div className="p-3 rounded-xl bg-[#141B26] border border-amber-800/40">
-              <div className="text-slate-400 t-micro">8.0°C (THRESHOLD)</div>
+              <div className="text-slate-400 t-body-sm">8.0°C (THRESHOLD)</div>
               <div className="t-metric font-bold text-amber-400 mt-1">1.6x</div>
-              <div className="t-micro text-amber-400/80 mt-1">Safe shelf-life: 14.8h</div>
+              <div className="t-body-sm text-amber-400/80 mt-1">Safe shelf-life: 14.8h</div>
             </div>
             <div className="p-3 rounded-xl bg-[#141B26] border border-rose-800/40">
-              <div className="text-slate-400 t-micro">12.0°C (BREACH)</div>
+              <div className="text-slate-400 t-body-sm">12.0°C (BREACH)</div>
               <div className="t-metric font-bold text-rose-400 mt-1">4.2x</div>
-              <div className="t-micro text-rose-400/80 mt-1">Critical threshold: 5.7h</div>
+              <div className="t-body-sm text-rose-400/80 mt-1">Critical threshold: 5.7h</div>
             </div>
             <div className="p-3 rounded-xl bg-[#141B26] border border-rose-950 bg-rose-950/20">
-              <div className="text-slate-400 t-micro">18.0°C (EXCURSION)</div>
+              <div className="text-slate-400 t-body-sm">18.0°C (EXCURSION)</div>
               <div className="t-metric font-bold text-rose-500 mt-1">11.8x</div>
-              <div className="t-micro text-rose-500 mt-1">Catastrophic loss in &lt;2.0h</div>
+              <div className="t-body-sm text-rose-500 mt-1">Catastrophic loss in &lt;2.0h</div>
             </div>
           </div>
         </div>
