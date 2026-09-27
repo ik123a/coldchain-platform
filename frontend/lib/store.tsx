@@ -143,7 +143,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let ws: WebSocket | null = null;
     let timer: any;
+    let pi: any;
+    // ws.close() fires onclose, which schedules a reconnect. Without this
+    // flag the cleanup below clears the timer BEFORE closing the socket, so
+    // onclose immediately schedules a fresh one that nothing ever cancels —
+    // every unmount leaked a reconnect loop and an orphaned WebSocket.
+    let disposed = false;
     const connect = () => {
+      if (disposed) return;
       try {
         ws = new WebSocket(WS_URL);
         ws.onopen = () => dispatch({ type: "connected", payload: true });
@@ -160,9 +167,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             if (m.type === "incident_detected" || m.type === "fleet.incident.created") loadIncidents();
           } catch {}
         };
-        ws.onclose = () => { dispatch({ type: "connected", payload: false }); timer = setTimeout(connect, 1500); };
-        ws.onerror = () => ws.close();
-      } catch { timer = setTimeout(connect, 2000); }
+        ws.onclose = () => {
+          dispatch({ type: "connected", payload: false });
+          if (!disposed) timer = setTimeout(connect, 1500);
+        };
+        ws.onerror = () => ws?.close();
+      } catch {
+        if (!disposed) timer = setTimeout(connect, 2000);
+      }
     };
     connect();
     const poll = async () => {
@@ -172,8 +184,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       loadIncidents();
     };
     poll();
-    const pi = setInterval(poll, 4000);
-    return () => { clearTimeout(timer); ws?.close(); clearInterval(pi); };
+    pi = setInterval(poll, 4000);
+    return () => {
+      disposed = true;
+      clearTimeout(timer);
+      clearInterval(pi);
+      ws?.close();
+    };
   }, []);
 
   async function loadIncidents() {
