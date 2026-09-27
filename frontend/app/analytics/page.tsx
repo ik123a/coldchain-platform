@@ -149,7 +149,7 @@ export default function Analytics() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="base-card p-4">
-          <div className="t-micro uppercase text-[var(--text-muted)]">Incident resolution</div>
+          <div className="region-label">(incident resolution)</div>
           <div className="mt-2 flex items-baseline gap-4">
             <div>
               <div className="kpi-num t-metric font-bold text-[var(--warning-soft)]">{openIncidents}</div>
