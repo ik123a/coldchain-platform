@@ -133,13 +133,31 @@ restore({"rubric_audit.py": backup3})
 results.append(("T3 placeholder-satisfiable gap -> caught",
                 not g3_ok and ("V1" in g3_detail or "V3" in g3_detail)))
 
-# ---- restored: must be green again ----------------------------------------
+# ---- restored: G7 must be green again -------------------------------------
+# Assert G7 specifically, NOT overall releasability. B4 (added in 18a8642)
+# fails by design until the exposed keys are actually rotated, so
+# `releasable` is False for a correct reason and this assertion could never
+# pass. The property under test is "the injections were fully undone", which
+# is about G7 alone.
 ok4, out4 = judge()
 line4 = g7_line(out4)
-print(f"\n[4] after restore: full judge releasable={ok4}  (must be True)")
+b4_line = next((ln.strip() for ln in out4.splitlines()
+                if ln.strip().startswith("[FAIL] B4")), "(no B4 failure)")
+print(f"\n[4] after restore: full judge releasable={ok4}")
 print(f"    {line4}")
-results.append(("restored to green, G7 reported PASS",
-                ok4 and line4.startswith("[PASS] G7")))
+print(f"    expected non-G7 failure: {b4_line[:80]}")
+results.append(("restored to green: G7 reported PASS",
+                line4.startswith("[PASS] G7")))
+results.append(("only the rotation gate (B4) is red",
+                b4_line.startswith("[FAIL] B4")))
+# Guard against a future gate being added and silently failing here. Any
+# non-B4 failure after restore means an injection was not fully undone --
+# or a new gate has appeared that these tests know nothing about.
+other_fails = [ln.strip() for ln in out4.splitlines()
+               if ln.strip().startswith("[FAIL]")
+               and not ln.strip().startswith("[FAIL] B4")]
+print(f"    unexpected other failures: {other_fails}")
+results.append(("no unexpected gate failures", not other_fails))
 
 # ---- tree must be clean ---------------------------------------------------
 st = subprocess.run(["git", "status", "--porcelain"], cwd=REPO,
