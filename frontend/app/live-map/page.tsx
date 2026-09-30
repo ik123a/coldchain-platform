@@ -389,7 +389,9 @@ export default function LiveMapPage() {
           },
         },
         layers: [
-          { id: "bg", type: "background", paint: { "background-color": "var(--canvas)" } },
+          // MapLibre parses paint values in a canvas context, where var() is not
+          // resolved by the browser. Keep this a literal hex; it mirrors --canvas.
+          { id: "bg", type: "background", paint: { "background-color": "#080a0f" } },
           { id: "esri-base", type: "raster", source: "esriBase" },
           { id: "esri-labels", type: "raster", source: "esriLabels" },
         ],
@@ -411,7 +413,7 @@ export default function LiveMapPage() {
       map.addSource("inc", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({
         id: "wh-c", type: "circle", source: "wh",
-        paint: { "circle-radius": 9, "circle-color": "var(--accent)",
+        paint: { "circle-radius": 9, "circle-color": "#38bdf8",
                  "circle-stroke-color": "#7dd3fc", "circle-stroke-width": 1.5 },
       });
       map.addLayer({
@@ -426,7 +428,7 @@ export default function LiveMapPage() {
       });
       map.addLayer({
         id: "trail-line", type: "line", source: "trail",
-        paint: { "line-color": "var(--accent)", "line-width": 1.6, "line-opacity": 0.4 },
+        paint: { "line-color": "#38bdf8", "line-width": 1.6, "line-opacity": 0.4 },
         layout: { "line-cap": "round" },
       });
       map.addLayer({
@@ -437,12 +439,12 @@ export default function LiveMapPage() {
       });
       map.addLayer({
         id: "inc-pulse", type: "circle", source: "inc",
-        paint: { "circle-radius": 18, "circle-color": "var(--critical-soft)22",
-                 "circle-stroke-color": "var(--critical-soft)", "circle-stroke-width": 1.2 },
+        paint: { "circle-radius": 18, "circle-color": "#f8717122",
+                 "circle-stroke-color": "#f87171", "circle-stroke-width": 1.2 },
       });
       map.addLayer({
         id: "inc-core", type: "circle", source: "inc",
-        paint: { "circle-radius": 6, "circle-color": "var(--critical-soft)" },
+        paint: { "circle-radius": 6, "circle-color": "#f87171" },
       });
       map.addLayer({
         id: "veh-halo", type: "circle", source: "veh",

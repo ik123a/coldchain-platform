@@ -112,7 +112,9 @@ export default function DashboardPage() {
           },
         },
         layers: [
-          { id: "bg", type: "background", paint: { "background-color": "var(--canvas)" } },
+          // MapLibre parses paint values in a canvas context, where var() is not
+          // resolved by the browser. Keep this a literal hex; it mirrors --canvas.
+          { id: "bg", type: "background", paint: { "background-color": "#080a0f" } },
           {
             id: "esri-base",
             type: "raster",
