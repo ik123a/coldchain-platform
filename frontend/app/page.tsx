@@ -15,6 +15,8 @@ import { StatusBeacon } from "@/components/ui/status-beacon";
 import { RetroGrid } from "@/components/ui/retro-grid";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { AnimatedBeam } from "@/components/ui/animated-beam";
+import OpsHero from "@/components/ops/OpsHero";
+import OpsCapabilities from "@/components/ops/OpsCapabilities";
 
 export default function Home() {
   const { st } = useStore();
@@ -81,158 +83,10 @@ export default function Home() {
   return (
     <div className="max-w-6xl mx-auto space-y-24 pb-28 text-slate-100 relative">
       
-      {/* 1. HERO SECTION WITH RETRO GRID & VEO BACKGROUND */}
-      <section className="relative pt-8 md:pt-16 overflow-hidden">
-        {/* Retro Grid 3D Perspective Canvas */}
-        <RetroGrid angle={65} opacity={0.2} cellSize={45} lineColor="#24344d" />
+      {/* 1. HERO — ops redesign (references: DAQ numbered sections, Cerebrium liquid depth) */}
+      <OpsHero onLaunch={launch} loading={demoLoading} />
 
-        {/* Ambient Looping Video Layer */}
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-[120vw] h-[550px] overflow-hidden pointer-events-none -z-10 select-none opacity-20">
-          <video 
-            autoPlay 
-            loop 
-            muted 
-            playsInline 
-            className="w-full h-full object-cover filter blur-[2px] brightness-75 scale-105"
-          >
-            <source src="/design-references/videos/vid-01-live-map-push.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-b from-[var(--canvas)]/60 via-[var(--canvas)]/85 to-[var(--canvas)]"></div>
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_15%,_var(--canvas)_80%)]"></div>
-        </div>
-
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12 relative z-10">
-          <div className="flex-1 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-raised)]/90 backdrop-blur-md border border-[var(--border)] t-label font-mono shadow-lg">
-              <StatusBeacon status="online" size="sm" />
-              <span className="text-slate-400">DIGITAL TWIN 2.0</span>
-              <span className="text-slate-600">·</span>
-              <ShimmerText className="text-cyan-400 font-semibold" shimmerColor="rgba(56,189,248,0.6)">ARRHENIUS RESCUE AGENTS</ShimmerText>
-            </div>
-
-            <h1 className="t-display md:text-7xl font-bold tracking-tight text-white leading-[1.05]">
-              Keep every shipment inside the safe zone.
-            </h1>
-
-            <p className="t-section md:t-metric text-slate-400 max-w-xl font-normal leading-relaxed">
-              AI for the moments cold-chain operations go wrong. Real-time reefer kinetics, thermal degradation forecasting, and autonomous emergency rerouting to cold storage.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3.5 pt-2">
-              <button
-                onClick={() => launch(true)}
-                disabled={demoLoading}
-                className="px-6 py-3.5 rounded-xl font-semibold t-body bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-2 transition-all shadow-lg shadow-cyan-900/30 disabled:opacity-50 press-effect">
-                <Play size={16} fill="currentColor" /> {demoLoading ? "Initializing Simulation..." : "Launch Rescue Demo"}
-              </button>
-
-              <Link
-                href="/live-map"
-                className="px-6 py-3.5 rounded-xl font-semibold t-body bg-[var(--surface-card)] hover:bg-[var(--border)] text-slate-200 border border-[var(--border)] flex items-center gap-2 transition-colors">
-                <Navigation size={16} className="text-cyan-400" /> Open Live Map
-              </Link>
-
-              <Link
-                href="/dashboard"
-                className="px-5 py-3.5 rounded-xl font-semibold t-body text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors bg-[var(--surface-card)]/80 border border-[var(--border)]">
-                <Activity size={16} className="text-cyan-400" /> Command Dashboard <ChevronRight size={14} />
-              </Link>
-            </div>
-
-            {/* Micro Trust & Telemetry Bar */}
-            <div className="flex items-center gap-6 pt-6 t-body-sm text-slate-500 font-mono border-t border-[var(--border)]/70">
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <ShieldCheck size={14} className="text-emerald-400" /> 0% Cargo Loss
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <Activity size={14} className="text-cyan-400" /> &lt;5s Breach Response
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <Thermometer size={14} className="text-amber-400" /> Arrhenius Shelf-Life Model
-              </span>
-            </div>
-          </div>
-
-          {/* Interactive Floating Telemetry Card (Live Connected with ShineBorder) */}
-          <div className="w-full lg:w-96 shrink-0">
-            <div className="relative rounded-2xl bg-[var(--surface-raised)]/95 backdrop-blur-md border border-[var(--border)] p-5 shadow-2xl space-y-4 hover:border-cyan-500/40 transition-colors overflow-hidden">
-              <ShineBorder shineColor={["var(--accent)", "var(--nominal)", "var(--accent)"]} borderWidth={1.5} duration={12} />
-              <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${liveTruck?.status === "CRITICAL" ? "bg-rose-400 animate-ping" : liveTruck?.status === "AT_RISK" ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`}></span>
-                  <span className="t-body-sm font-mono font-bold text-white">{liveTruck?.vehicle_id || "TRUCK-104"}</span>
-                  <span className={`t-micro font-mono px-1.5 py-0.5 rounded border ${liveTruck?.status === "CRITICAL" ? "bg-rose-950/60 text-rose-400 border-rose-800/40" : liveTruck?.status === "AT_RISK" ? "bg-amber-950/60 text-amber-400 border-amber-800/40" : "bg-emerald-950/60 text-emerald-400 border-emerald-800/40"}`}>
-                    {liveTruck?.status || "NOMINAL"}
-                  </span>
-                </div>
-                <span className="t-label font-mono text-slate-500">CORRIDOR 8</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)]">
-                  <div className="t-micro font-mono text-slate-400">INSIDE CORE</div>
-                  <div className={`t-metric-lg font-bold font-mono mt-1 ${truckTemp > 8 ? "text-rose-400" : truckTemp > 6 ? "text-amber-400" : "text-white"}`}>
-                    {truckTemp.toFixed(1)}°C
-                  </div>
-                  <div className="t-body-sm text-emerald-400 font-mono mt-0.5">Target: 2.0–8.0°C</div>
-                </div>
-                <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)]">
-                  <div className="t-micro font-mono text-slate-400">OUTSIDE AMBIENT</div>
-                  <div className="t-metric-lg font-bold font-mono text-amber-400 mt-1">
-                    {truckAmbient.toFixed(1)}°C
-                  </div>
-                  <div className="t-micro text-amber-500/80 font-mono mt-0.5">Heatwave Active</div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 pt-1">
-                <div className="flex justify-between t-label font-mono text-slate-400">
-                  <span>Compressor Health</span>
-                  <span className={truckCompHealth < 50 ? "text-rose-400 font-bold" : "text-emerald-400"}>
-                    {Math.round(truckCompHealth)}%
-                  </span>
-                </div>
-                <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                  <div 
-                    className={`h-full ${truckCompHealth < 50 ? "bg-rose-500" : "bg-emerald-400"}`} 
-                    style={{ width: `${Math.min(100, Math.max(0, truckCompHealth))}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 pt-1">
-                <div className="flex justify-between t-label font-mono text-slate-400">
-                  <span>Remaining Shelf Life (RSL)</span>
-                  <span className="text-cyan-400">
-                    {truckRsl.toFixed(1)} hrs
-                  </span>
-                </div>
-                <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                  <div 
-                    className="h-full bg-cyan-400"
-                    style={{ width: `${Math.min(100, Math.max(10, (truckRsl / 24) * 100))}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)] t-body-sm font-mono flex items-center justify-between text-slate-300">
-                <span className="flex items-center gap-1.5">
-                  <MapPin size={13} className="text-cyan-400" /> Dest: {truckDest}
-                </span>
-                <span className="text-slate-400">ETA {Math.round(truckEta)} min</span>
-              </div>
-
-
-              <Link
-                href={`/live-map?truck=${liveTruck?.vehicle_id || "TRUCK-104"}`}
-                className="block text-center py-2 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-800/50 text-cyan-400 t-body-sm font-mono font-semibold transition-colors">
-                Track Vehicle Telemetry →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
+      <OpsCapabilities />
       {/* 2. THE COLD-CHAIN PROBLEM & ARRHENIUS DEGRADATION KINETICS */}
       <section className="space-y-6">
         <div className="border-t border-[var(--border)] pt-12">

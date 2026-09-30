@@ -1,0 +1,246 @@
+/* ============================================================
+   COLDCHAIN RESCUE — "OPS" DESIGN SYSTEM v2
+   Layered on top of the v1 tokens above (all v1 vars still resolve).
+   References: DAQ Consulting (numbered sections, hairlines, mono micro-labels),
+               Cerebrium SOTD (liquid depth on near-black, scarce accent).
+   ============================================================ */
+
+:root {
+  /* --- Signature device: thermal spectrum -------------------
+     One scale, used for every temperature-bearing element:
+     the fleet spine, gauge arcs, telemetry bars, route risk.
+     A value is a stop, never a free choice. */
+  --thermal-0: #1e3a5f;   /* sub-zero / frozen   */
+  --thermal-1: #0ea5e9;   /* chilled  0C         */
+  --thermal-2: #10b981;   /* nominal  4C         */
+  --thermal-3: #84cc16;   /* upper    8C         */
+  --thermal-4: #f59e0b;   /* drifting 12C        */
+  --thermal-5: #f97316;   /* breach   20C        */
+  --thermal-6: #f43f5e;   /* critical 40C+      */
+
+  /* --- Type scale (7 steps, no arbitrary sizes) ------------ */
+  --t-display: clamp(2.75rem, 5.5vw, 4.5rem);
+  --t-h1: clamp(1.75rem, 2.8vw, 2.5rem);
+  --t-h2: 1.25rem;
+  --t-h3: 1.0625rem;
+  --t-body: 0.875rem;
+  --t-label: 0.75rem;
+  --t-micro: 0.6875rem;
+
+  --lh-display: 1.02;
+  --lh-body: 1.55;
+  --tracking-display: -0.035em;
+  --tracking-micro: 0.16em;
+
+  /* --- Rhythm ---------------------------------------------- */
+  --gutter: 1.5rem;
+  --section-y: clamp(3.5rem, 8vw, 7rem);
+  --hairline: 1px;
+
+  /* --- Motion ---------------------------------------------- */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quint: cubic-bezier(0.83, 0, 0.17, 1);
+  --dur-fast: 140ms;
+  --dur-base: 260ms;
+  --dur-slow: 620ms;
+  --stagger: 60ms;
+
+  /* --- Liquid depth (Cerebrium-derived, CSS-only) ---------- */
+  --depth-sheen: radial-gradient(
+    120% 90% at 12% -10%,
+    color-mix(in oklab, var(--ai) 9%, transparent) 0%,
+    transparent 58%
+  );
+  --depth-veil: radial-gradient(
+    90% 70% at 88% 0%,
+    color-mix(in oklab, var(--accent) 6%, transparent) 0%,
+    transparent 60%
+  );
+}
+
+/* ============================================================
+   COMPOSITE CLASSES
+   ============================================================ */
+
+/* Section eyebrow: DAQ's numbered marker, e.g. "01 / OPERATE" */
+.ops-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-mono-stack);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tracking-micro);
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.ops-eyebrow::after {
+  content: "";
+  flex: 1;
+  height: var(--hairline);
+  background: linear-gradient(90deg, var(--border) 0%, transparent 100%);
+}
+.ops-eyebrow__num {
+  color: var(--accent);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hairline card — the workhorse surface. Border, not shadow. */
+.ops-card {
+  position: relative;
+  background: var(--surface-card);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--r-card);
+  transition:
+    border-color var(--dur-base) var(--ease-out-expo),
+    background-color var(--dur-base) var(--ease-out-expo);
+}
+.ops-card--interactive:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-elevated);
+}
+
+/* Mono micro label — the DAQ voice */
+.ops-label {
+  font-family: var(--font-mono-stack);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tracking-micro);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Tabular numerals for any metric that can change */
+.ops-num {
+  font-family: var(--font-mono-stack);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Display type */
+.ops-display {
+  font-size: var(--t-display);
+  line-height: var(--lh-display);
+  letter-spacing: var(--tracking-display);
+  font-weight: 600;
+}
+
+/* Arrow glyph link, DAQ-style */
+.ops-arrow-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono-stack);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tracking-micro);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  transition: color var(--dur-fast) var(--ease-out-expo),
+    gap var(--dur-fast) var(--ease-out-expo);
+}
+.ops-arrow-link:hover {
+  color: var(--text);
+  gap: 0.65rem;
+}
+.ops-arrow-link::after {
+  content: "\2197";
+  font-size: 0.9em;
+  color: var(--accent);
+}
+
+/* Liquid sheen overlay for hero surfaces */
+.ops-sheen {
+  position: relative;
+  isolation: isolate;
+}
+.ops-sheen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--depth-sheen);
+  pointer-events: none;
+}
+
+/* ============================================================
+   SIGNATURE DEVICE — thermal spine
+   A hairline whose gradient is derived from the same risk counts
+   the KPI row shows, so it can never contradict a number.
+   Built from --spine-a / --spine-b / --spine-c set by the caller.
+   ============================================================ */
+.ops-spine {
+  position: relative;
+  height: 2px;
+  width: 100%;
+  background: var(--surface-inset);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+.ops-spine__fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--spine-a, var(--thermal-2)) 0%,
+    var(--spine-b, var(--thermal-3)) 50%,
+    var(--spine-c, var(--thermal-4)) 100%
+  );
+  transform-origin: left center;
+  animation: ops-spine-in var(--dur-slow) var(--ease-out-expo) both;
+}
+@keyframes ops-spine-in {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Thermal band — maps a temperature to the spectrum scale */
+.ops-thermal {
+  --t: var(--thermal-2);
+  background: var(--t);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--t) 30%, transparent),
+    0 0 12px -2px color-mix(in oklab, var(--t) 55%, transparent);
+}
+
+/* ============================================================
+   MOTION — restrained, purposeful, and optional
+   ============================================================ */
+
+/* Staggered reveal for grids. Pure CSS: children read the index
+   from an inline --i custom property set by the component. */
+.ops-reveal > * {
+  animation: ops-rise var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * var(--stagger));
+}
+@keyframes ops-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Thermal pulse for a live/breaching element */
+@keyframes ops-pulse-thermal {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+.ops-pulse {
+  animation: ops-pulse-thermal 2.4s var(--ease-in-out-quint) infinite;
+}
+
+/* ============================================================
+   ACCESSIBILITY
+   Respect the OS setting globally. Before this existed the app
+   had 156 infinite animations with zero accommodation.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .ops-spine__fill { transform: scaleX(1); }
+  .ops-reveal > * { animation: none; opacity: 1; transform: none; }
+}
+
+/* Content must be visible with JS disabled or before hydration */
+.no-js .ops-reveal > * { opacity: 1; transform: none; }
