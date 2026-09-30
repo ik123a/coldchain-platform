@@ -654,12 +654,12 @@ export default function LiveMapPage() {
         </h1>
         <span className="badge badge-green flex items-center gap-1.5">
           <StatusBeacon status="online" size="sm" />
-          <NumberTicker value={vehicles.length} className="text-emerald-400 font-bold" />
+          <NumberTicker value={vehicles.length} className="text-[var(--nominal)] font-bold" />
           <span>vehicles</span>
         </span>
         <span className={`badge flex items-center gap-1.5 ${vehicles.filter(v => v.cargo?.risk_level === "CRITICAL").length ? "badge-red pulse-red" : "badge-green"}`}>
           <StatusBeacon status={vehicles.filter(v => v.cargo?.risk_level === "CRITICAL").length ? "critical" : "warning"} size="sm" />
-          <NumberTicker value={vehicles.filter(v => ["HIGH", "CRITICAL"].includes(v.cargo?.risk_level || "")).length} className={vehicles.filter(v => v.cargo?.risk_level === "CRITICAL").length ? "text-rose-400 font-bold" : "text-emerald-400 font-bold"} />
+          <NumberTicker value={vehicles.filter(v => ["HIGH", "CRITICAL"].includes(v.cargo?.risk_level || "")).length} className={vehicles.filter(v => v.cargo?.risk_level === "CRITICAL").length ? "text-[var(--critical)] font-bold" : "text-[var(--nominal)] font-bold"} />
           <span>at risk</span>
         </span>
         <span className="badge" title={`Simulation minute ${Math.round((st as any).fleetMeta?.simMinute || 0)}`}>
@@ -671,14 +671,14 @@ export default function LiveMapPage() {
         <div className="flex-1" />
         <div className="flex items-center gap-1.5 flex-wrap">
           {([["ACTIVE", kpis.activeTrucks, ""], ["TRANSIT", kpis.inTransit, ""],
-             ["AT RISK", kpis.atRisk, kpis.atRisk ? "text-amber-400 font-bold" : "text-emerald-400 font-bold"],
-             ["INCID", kpis.activeIncidents, kpis.activeIncidents ? "text-amber-400 font-bold" : "text-emerald-400 font-bold"],
-             ["EXCURSION", kpis.excursions, kpis.excursions ? "text-rose-400 font-bold" : "text-emerald-400 font-bold"],
+             ["AT RISK", kpis.atRisk, kpis.atRisk ? "text-[var(--warning)] font-bold" : "text-[var(--nominal)] font-bold"],
+             ["INCID", kpis.activeIncidents, kpis.activeIncidents ? "text-[var(--warning)] font-bold" : "text-[var(--nominal)] font-bold"],
+             ["EXCURSION", kpis.excursions, kpis.excursions ? "text-[var(--critical)] font-bold" : "text-[var(--nominal)] font-bold"],
              ["REROUTE", kpis.reroutes, ""], ["XFER", kpis.transfers, ""],
              ["DELIV", kpis.deliveries, ""]] as Array<[string, number, string]>).map(([l, n, cls]) => (
             <span key={l} className="badge" title={l}>
-              <span className="font-mono t-label text-slate-400">{l}</span>
-              <span className={`font-mono t-body-sm ${cls || "text-slate-200 font-bold"}`}>{n}</span>
+              <span className="font-mono t-label text-[var(--text-dim)]">{l}</span>
+              <span className={`font-mono t-body-sm ${cls || "text-[var(--border)] font-bold"}`}>{n}</span>
             </span>
           ))}
         </div>
@@ -748,14 +748,14 @@ export default function LiveMapPage() {
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-[var(--surface-raised)]/95 backdrop-blur border border-cyan-500/40 shadow-xl flex items-center gap-3 t-body-sm font-mono">
-                  <span className="flex items-center gap-1.5 text-cyan-300 font-bold">
-                    <Radio size={12} className="text-cyan-400 breathe" />
+                  className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-[var(--surface-raised)] backdrop-blur border border-[var(--accent)] shadow-xl flex items-center gap-3 t-body-sm font-mono">
+                  <span className="flex items-center gap-1.5 text-[var(--text)] font-bold">
+                    <Radio size={12} className="text-[var(--accent)] breathe" />
                     FOLLOWING {following}
                   </span>
                   <button
                     onClick={() => setFollowing(null)}
-                    className="t-micro uppercase font-bold text-slate-400 hover:text-white px-2 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] transition-colors">
+                    className="t-micro uppercase font-bold text-[var(--text-dim)] hover:text-[var(--text)] px-2 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] transition-colors">
                     Stop Following
                   </button>
                 </motion.div>
@@ -798,12 +798,12 @@ export default function LiveMapPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute top-4 right-4 z-30 w-72 bg-[var(--surface-raised)]/95 backdrop-blur-md border border-[var(--border)] rounded-xl p-4 shadow-2xl text-slate-100 space-y-2.5">
+                  className="absolute top-4 right-4 z-30 w-72 bg-[var(--surface-raised)] backdrop-blur-md border border-[var(--border)] rounded-xl p-4 shadow-2xl text-[var(--surface-inset)] space-y-2.5">
                   <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
-                    <b className="t-body font-mono text-white">{selWh.name}</b>
-                    <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-white t-body-sm">✕</button>
+                    <b className="t-body font-mono text-[var(--text)]">{selWh.name}</b>
+                    <button onClick={() => setSelected(null)} className="text-[var(--text-dim)] hover:text-[var(--text)] t-body-sm">✕</button>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 t-body-sm font-mono text-slate-300">
+                  <div className="grid grid-cols-2 gap-2 t-body-sm font-mono text-[var(--border-strong)]">
                     <Stat l="Status" v={selWh.status} />
                     <Stat l="Capacity" v={`${selWh.available_capacity}/${selWh.capacity}u`} />
                     <Stat l="Queue" v={`${selWh.queue_min} min`} />
@@ -871,7 +871,7 @@ export default function LiveMapPage() {
         {decision && (
           <motion.div key={(decision.decision || "") + (decision.target || "") + (decision.vehicle_id || "")}
                       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                      className="fixed bottom-16 left-16 z-40 w-[340px] base-card p-3 border-[var(--cyan)]/40 relative overflow-hidden">
+                      className="fixed bottom-16 left-16 z-40 w-[340px] base-card p-3 border-[var(--cyan)] relative overflow-hidden">
             <BorderBeam
               size={90}
               duration={4}

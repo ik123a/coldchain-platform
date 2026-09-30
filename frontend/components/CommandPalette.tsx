@@ -167,16 +167,16 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
       <div className="w-full max-w-2xl rounded-2xl bg-[var(--surface-raised)] border border-[var(--border)] shadow-2xl overflow-hidden p-3 fade-in" onClick={e => e.stopPropagation()}>
         {/* Search input bar */}
         <div className="relative flex items-center border-b border-[var(--border)] pb-3 pt-1 px-2">
-          <Search size={18} className="text-slate-400 mr-2.5 shrink-0" />
+          <Search size={18} className="text-[var(--text-dim)] mr-2.5 shrink-0" />
           <input 
             autoFocus 
             value={q} 
             onChange={e => { setQ(e.target.value); setCursor(0); }}
             placeholder="Type a command or search vehicles, hubs, emergency actions..."
             aria-label="Command search"
-            className="w-full bg-transparent t-body text-white focus:outline-none placeholder-slate-500 font-mono" 
+            className="w-full bg-transparent t-body text-[var(--text)] focus:outline-none placeholder-[var(--text-dim)] font-mono" 
           />
-          <kbd className="hidden sm:inline-block t-micro font-mono px-2 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] text-slate-400">
+          <kbd className="hidden sm:inline-block t-micro font-mono px-2 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] text-[var(--text-dim)]">
             ESC to close
           </kbd>
         </div>
@@ -187,7 +187,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
             <button
               key={cat}
               onClick={() => { setCategory(cat); setCursor(0); }}
-              className={`px-2.5 py-1 rounded-md transition-colors ${category === cat ? "bg-cyan-950/80 text-cyan-400 border border-cyan-800/50" : "text-slate-400 hover:text-white hover:bg-[var(--surface-card)]"}`}>
+              className={`px-2.5 py-1 rounded-md transition-colors ${category === cat ? "bg-[var(--surface-inset)] text-[var(--accent)] border border-[var(--border)]" : "text-[var(--text-dim)] hover:text-[var(--text)] hover:bg-[var(--surface-card)]"}`}>
               {cat}
             </button>
           ))}
@@ -201,33 +201,33 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
             return (
               <button 
                 key={c.key}
-                className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition-all t-body-sm font-mono ${isSelected ? "bg-[var(--surface-card)] border border-cyan-500/40 text-white" : "text-slate-300 hover:bg-[var(--surface-card)]/60 border border-transparent"}`}
+                className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition-all t-body-sm font-mono ${isSelected ? "bg-[var(--surface-card)] border border-[var(--accent)] text-[var(--text)]" : "text-[var(--border-strong)] hover:bg-[var(--surface-card)] border border-transparent"}`}
                 onMouseEnter={() => setCursor(i)}
                 onClick={() => { c.run({ router, dispatch, st }); onClose(); }}>
                 <div className="flex items-center gap-2.5 truncate">
-                  <div className={`p-1.5 rounded-lg ${isSelected ? "bg-cyan-950/80 text-cyan-400" : "bg-[var(--surface-card)] text-slate-400"}`}>
+                  <div className={`p-1.5 rounded-lg ${isSelected ? "bg-[var(--surface-inset)] text-[var(--accent)]" : "bg-[var(--surface-card)] text-[var(--text-dim)]"}`}>
                     <Icon size={14} />
                   </div>
                   <span className="truncate">{c.label}</span>
                 </div>
-                <span className={`t-micro px-2 py-0.5 rounded shrink-0 font-semibold border ${c.hint === "CRITICAL" || c.hint === "CRITICAL REEFER" ? "bg-rose-950/60 text-rose-400 border-rose-800/50" : c.hint === "AUTOPILOT" ? "bg-cyan-950/60 text-cyan-400 border-cyan-800/50" : "bg-[var(--surface-card)] text-slate-400 border-[var(--border)]"}`}>
+                <span className={`t-micro px-2 py-0.5 rounded shrink-0 font-semibold border ${c.hint === "CRITICAL" || c.hint === "CRITICAL REEFER" ? "bg-[var(--surface-inset)] text-[var(--critical)] border-[var(--border)]" : c.hint === "AUTOPILOT" ? "bg-[var(--surface-inset)] text-[var(--accent)] border-[var(--border)]" : "bg-[var(--surface-card)] text-[var(--text-dim)] border-[var(--border)]"}`}>
                   {c.hint}
                 </span>
               </button>
             );
           })}
           {!filtered.length && (
-            <div className="t-body-sm font-mono text-slate-500 p-6 text-center">
+            <div className="t-body-sm font-mono text-[var(--text-dim)] p-6 text-center">
               No matching commands or resources found for "{q}"
             </div>
           )}
         </div>
 
         {/* Footer shortcuts */}
-        <div className="border-t border-[var(--border)] pt-2 px-2 flex items-center justify-between t-micro font-mono text-slate-500">
+        <div className="border-t border-[var(--border)] pt-2 px-2 flex items-center justify-between t-micro font-mono text-[var(--text-dim)]">
           <div className="flex items-center gap-3">
-            <span><kbd className="px-1 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] text-slate-300">↑</kbd> <kbd className="px-1 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] text-slate-300">↓</kbd> navigate</span>
-            <span><kbd className="px-1 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] text-slate-300">↵</kbd> select</span>
+            <span><kbd className="px-1 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] text-[var(--border-strong)]">↑</kbd> <kbd className="px-1 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] text-[var(--border-strong)]">↓</kbd> navigate</span>
+            <span><kbd className="px-1 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] text-[var(--border-strong)]">↵</kbd> select</span>
           </div>
           <span>ColdChain Autonomous Command</span>
         </div>

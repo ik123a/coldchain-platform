@@ -12,17 +12,17 @@ interface StatusBeaconProps {
 }
 
 const colorMap = {
-  online: "bg-emerald-500",
-  warning: "bg-amber-500",
-  critical: "bg-rose-500",
-  offline: "bg-slate-500",
+  online: "bg-[var(--nominal)]",
+  warning: "bg-[var(--warning)]",
+  critical: "bg-[var(--critical)]",
+  offline: "bg-[var(--text-dim)]",
 };
 
 const rippleMap = {
-  online: "border-emerald-500",
-  warning: "border-amber-500",
-  critical: "border-rose-500",
-  offline: "border-slate-500",
+  online: "border-[var(--nominal)]",
+  warning: "border-[var(--warning)]",
+  critical: "border-[var(--critical)]",
+  offline: "border-[var(--text-dim)]",
 };
 
 const sizeMap = {
@@ -67,7 +67,7 @@ export function StatusBeacon({
           </>
         )}
       </div>
-      {label && <span className="t-body-sm font-medium text-slate-300">{label}</span>}
+      {label && <span className="t-body-sm font-medium text-[var(--border-strong)]">{label}</span>}
     </div>
   );
 }

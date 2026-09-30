@@ -139,9 +139,9 @@ export default function SimulationPage() {
             { l: "Scenario", v: sim ? sim.scenario.replace(/_/g, " ") : "normal", warn: false },
             { l: "Simulation Tick", v: sim ? `#${sim.tick}` : "#104", warn: false },
           ].map(m => (
-            <div key={m.l} className={`base-card p-2.5 transition-colors ${m.warn ? "border-rose-800/60 bg-rose-950/20" : ""}`}>
+            <div key={m.l} className={`base-card p-2.5 transition-colors ${m.warn ? "border-[var(--border)] bg-[var(--surface-inset)]" : ""}`}>
               <div className="t-micro text-[var(--text3)] uppercase tracking-wider font-mono">{m.l}</div>
-              <div className={`t-body font-semibold font-mono mt-0.5 ${m.warn ? "text-rose-400" : "text-white"}`}>{m.v}</div>
+              <div className={`t-body font-semibold font-mono mt-0.5 ${m.warn ? "text-[var(--critical)]" : "text-[var(--text)]"}`}>{m.v}</div>
             </div>
           ))}
         </div>
@@ -149,8 +149,8 @@ export default function SimulationPage() {
         {/* 8-Stage Autonomous Decision Tracker */}
         <div className="base-card p-3 space-y-2">
           <div className="flex items-center justify-between t-body-sm font-mono">
-            <span className="text-slate-400 font-semibold uppercase tracking-wider">Autonomous Decision Pipeline</span>
-            <span className="text-cyan-400">
+            <span className="text-[var(--text-dim)] font-semibold uppercase tracking-wider">Autonomous Decision Pipeline</span>
+            <span className="text-[var(--accent)]">
               {sim && sim.risk_score > 70 ? "STAGE 07: REROUTE ACTIVE" : sim && sim.risk_score > 30 ? "STAGE 03: PREDICT EXCURSION" : "STAGE 01: MONITORING"}
             </span>
           </div>
@@ -167,8 +167,8 @@ export default function SimulationPage() {
             ].map(s => (
               <div 
                 key={s.num} 
-                className={`p-2 rounded border text-center transition-all ${s.active ? "bg-cyan-950/60 border-cyan-700/60 text-cyan-300 font-bold" : "bg-[var(--surface-raised)]/60 border-[var(--border)] text-slate-500"}`}>
-                <div className="t-micro text-slate-400">{s.num}</div>
+                className={`p-2 rounded border text-center transition-all ${s.active ? "bg-[var(--surface-inset)] border-[var(--border-strong)] text-[var(--text)] font-bold" : "bg-[var(--surface-raised)] border-[var(--border)] text-[var(--text-dim)]"}`}>
+                <div className="t-micro text-[var(--text-dim)]">{s.num}</div>
                 <div className="t-micro mt-0.5">{s.name}</div>
               </div>
             ))}
@@ -187,7 +187,7 @@ export default function SimulationPage() {
           <div className="flex items-center justify-between mb-1 relative z-10">
             <div className="t-body font-semibold flex items-center gap-2">
               <span>Telemetry Kinetic Trace</span>
-              <span className="t-body-sm font-mono text-slate-400">Target: 2.0°C – 8.0°C</span>
+              <span className="t-body-sm font-mono text-[var(--text-dim)]">Target: 2.0°C – 8.0°C</span>
             </div>
             {sim && (
               <span className={`badge ${sim.true_temperature > (sim.zone?.mx || 8) ? "badge-red pulse-red" : "badge-green"}`}>
@@ -209,17 +209,17 @@ export default function SimulationPage() {
           <div className="base-card p-4 flex items-center gap-4">
             <RiskGauge score={sim?.risk_score ?? 12} level={sim?.risk_level ?? "LOW"} />
             <div className="space-y-1">
-              <div className="t-body-sm font-semibold text-white">Deterministic Multi-Agent Risk Engine</div>
+              <div className="t-body-sm font-semibold text-[var(--text)]">Deterministic Multi-Agent Risk Engine</div>
               <div className="t-body-sm text-[var(--text3)] leading-relaxed">Combines Arrhenius biological shelf-life degradation, compressor duty cycle, insulation thermal decay coefficient, and time-to-breach.</div>
-              <div className="t-body-sm font-mono text-cyan-400 pt-1">Breach Velocity: {sim && sim.true_temperature > 6 ? "+0.42°C/min (ACCELERATING)" : "0.00°C/min (STEADY)"}</div>
+              <div className="t-body-sm font-mono text-[var(--accent)] pt-1">Breach Velocity: {sim && sim.true_temperature > 6 ? "+0.42°C/min (ACCELERATING)" : "0.00°C/min (STEADY)"}</div>
             </div>
           </div>
 
           <div className="base-card p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <div className="t-body font-semibold text-white">What-If Dual-Trajectory Projection</div>
-                <div className="t-micro text-slate-400 font-mono">Simulates secondary engine clone (+12 ticks)</div>
+                <div className="t-body font-semibold text-[var(--text)]">What-If Dual-Trajectory Projection</div>
+                <div className="t-micro text-[var(--text-dim)] font-mono">Simulates secondary engine clone (+12 ticks)</div>
               </div>
               <button 
                 onClick={runWhatIf} 
@@ -231,22 +231,22 @@ export default function SimulationPage() {
 
             {whatif ? (
               <div className="grid grid-cols-2 gap-2 t-body-sm font-mono pt-1">
-                <div className="p-3 rounded-lg bg-rose-950/30 border border-rose-800/50 space-y-1">
-                  <div className="t-micro text-rose-400 font-bold">STATUS QUO (+{whatif.ticks}t)</div>
-                  <div className="t-body font-bold text-rose-300">{whatif.proj_final_temp?.toFixed(1)}°C</div>
-                  <div className="t-micro text-slate-400">Risk: {whatif.proj_final_risk}/100</div>
-                  <div className="t-micro text-rose-400">Cargo: {whatif.proj_cargo}% (SPOILED)</div>
+                <div className="p-3 rounded-lg bg-[var(--surface-inset)] border border-[var(--border)] space-y-1">
+                  <div className="t-micro text-[var(--critical)] font-bold">STATUS QUO (+{whatif.ticks}t)</div>
+                  <div className="t-body font-bold text-[var(--critical)]">{whatif.proj_final_temp?.toFixed(1)}°C</div>
+                  <div className="t-micro text-[var(--text-dim)]">Risk: {whatif.proj_final_risk}/100</div>
+                  <div className="t-micro text-[var(--critical)]">Cargo: {whatif.proj_cargo}% (SPOILED)</div>
                 </div>
-                <div className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-800/50 space-y-1">
-                  <div className="t-micro text-emerald-400 font-bold">AUTONOMOUS DETOUR</div>
-                  <div className="t-body font-bold text-emerald-300">5.2°C</div>
-                  <div className="t-body-sm text-slate-400">Risk: 14/100 (NOMINAL)</div>
-                  <div className="t-micro text-emerald-400">Cargo: 100% (RESCUED)</div>
+                <div className="p-3 rounded-lg bg-[var(--surface-inset)] border border-[var(--border)] space-y-1">
+                  <div className="t-micro text-[var(--nominal)] font-bold">AUTONOMOUS DETOUR</div>
+                  <div className="t-body font-bold text-[var(--nominal)]">5.2°C</div>
+                  <div className="t-body-sm text-[var(--text-dim)]">Risk: 14/100 (NOMINAL)</div>
+                  <div className="t-micro text-[var(--nominal)]">Cargo: 100% (RESCUED)</div>
                 </div>
               </div>
             ) : (
-              <div className="p-3 rounded-lg bg-[var(--surface-raised)] border border-[var(--border)] t-label text-slate-400 font-mono space-y-1">
-                <div className="text-slate-300 font-semibold">No incident projected yet</div>
+              <div className="p-3 rounded-lg bg-[var(--surface-raised)] border border-[var(--border)] t-label text-[var(--text-dim)] font-mono space-y-1">
+                <div className="text-[var(--border-strong)] font-semibold">No incident projected yet</div>
                 <div>Inject a failure (e.g. Compressor failure or Heatwave) above to unlock live dual-trajectory comparison.</div>
               </div>
             )}

@@ -43,7 +43,7 @@ export function WeatherOverlay({
 
       {(condition === "fog" || condition === "storm") && (
         <div 
-          className="absolute inset-0 bg-slate-500/10 animate-drift-fog opacity-30 blur-xl"
+          className="absolute inset-0 bg-[var(--text-dim)] animate-drift-fog opacity-30 blur-xl"
           style={{
             backgroundImage: "radial-gradient(ellipse at center, rgba(148, 163, 184, 0.2) 0%, transparent 70%)",
             opacity: intensity * 0.5,
@@ -53,7 +53,7 @@ export function WeatherOverlay({
 
       {condition === "storm" && (
         <div 
-          className="absolute inset-0 bg-white/10 animate-lightning-flash"
+          className="absolute inset-0 bg-[var(--surface-card)]/10 animate-lightning-flash"
           style={{ opacity: intensity * 0.3 }}
         />
       )}

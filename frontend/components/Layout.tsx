@@ -14,6 +14,7 @@ import { CommandPalette } from "./CommandPalette";
 
 const NAV_GROUPS = [
   {
+    n: "01",
     label: "Operate",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: Activity },
@@ -23,6 +24,7 @@ const NAV_GROUPS = [
     ],
   },
   {
+    n: "02",
     label: "Monitor",
     items: [
       { href: "/shipments", label: "Shipments", icon: Container },
@@ -32,6 +34,7 @@ const NAV_GROUPS = [
     ],
   },
   {
+    n: "03",
     label: "Analyze",
     items: [
       { href: "/copilot", label: "AI Command", icon: Bot },
@@ -41,6 +44,7 @@ const NAV_GROUPS = [
     ],
   },
   {
+    n: "04",
     label: "Configure",
     items: [{ href: "/settings", label: "Settings", icon: Settings }],
   },
@@ -68,6 +72,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const openIncidentsCount = st.incidents?.filter((i) => i.status !== "RESOLVED").length || 0;
   const isMapRoute = path === "/live-map" || path === "/dashboard";
   const fleetCount = st.fleetVehicles?.length ?? 0;
+  const systemOk = st.status?.system === "OPERATIONAL";
+  const dbOk = st.status?.database === "CONNECTED";
+  const wsOk = !!st.connected;
 
   return (
     <div className="flex min-h-screen bg-[var(--canvas)] text-[var(--text)]">
@@ -79,12 +86,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       >
         <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] px-3">
           <Link href="/" className="group flex min-w-0 items-center gap-2.5 overflow-hidden">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border border-[var(--border-accent)] bg-gradient-to-br from-[#1E3A5F] to-[#0D1623] transition-colors group-hover:border-cyan-400">
-              <Droplets size={15} className="text-cyan-400" />
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border border-[var(--border-accent)] bg-gradient-to-br from-[#1E3A5F] to-[#0D1623] transition-colors group-hover:border-[var(--accent)]">
+              <Droplets size={15} className="text-[var(--accent)]" />
             </span>
             {!collapsed && (
               <span className="min-w-0 leading-tight">
-                <span className="block truncate t-body-sm font-bold tracking-tight text-white">COLDCHAIN</span>
+                <span className="block truncate t-body-sm font-bold tracking-tight text-[var(--text)]">COLDCHAIN</span>
                 <span className="block truncate t-micro tracking-wider text-[var(--text-muted)]">RESCUE OPS</span>
               </span>
             )}
@@ -93,7 +100,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             onClick={() => setCollapsed((v) => !v)}
             title={collapsed ? "Expand navigation" : "Collapse navigation"}
             aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
-            className="hidden h-6 w-6 min-h-6 min-w-6 shrink-0 place-items-center rounded text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-card)] hover:text-white md:grid"
+            className="hidden h-6 w-6 min-h-6 min-w-6 shrink-0 place-items-center rounded text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-card)] hover:text-[var(--text)] md:grid"
           >
             {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
           </button>
@@ -103,13 +110,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           {NAV_GROUPS.map((group) => (
             <div key={group.label} className="mb-4 last:mb-0">
               {!collapsed ? (
-                <p className="mb-1.5 px-2.5 t-micro font-semibold uppercase tracking-[0.12em] text-[var(--text-dim)]">
-                  {group.label}
+                <p className="ops-eyebrow mb-2 px-2">
+                  <span className="ops-eyebrow__num">{group.n}</span>
+                  <span>{group.label}</span>
                 </p>
               ) : (
-                <div className="mx-2.5 mb-2 h-px bg-[var(--border)]" />
+                <div className="mx-2 mb-2.5 h-px bg-[var(--border)]" />
               )}
-              <ul className="space-y-0.5">
+              <ul className="space-y-px">
                 {group.items.map(({ href, label, icon: Icon, badgeKey }) => {
                   const [base, query] = href.split("?");
                   const isActive = path === base && !query;
@@ -120,22 +128,33 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         href={href}
                         title={collapsed ? label : undefined}
                         aria-current={isActive ? "page" : undefined}
-                        className={`group relative flex items-center gap-3 rounded-lg border px-2.5 py-2 t-body-sm font-medium transition-colors ${
+                        className={`group relative flex items-center gap-3 rounded-[var(--r-md)] px-2.5 py-[7px] text-[var(--t-body)] transition-colors ${
                           isActive
-                            ? "border-[var(--border-strong)] bg-[var(--surface-card)] text-cyan-400"
-                            : "border-transparent text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] hover:text-[var(--text)]"
+                            ? "bg-[var(--surface-card)] text-[var(--text)]"
+                            : "text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] hover:text-[var(--text)]"
                         }`}
                       >
+                        {isActive && (
+                          <span
+                            aria-hidden
+                            className="absolute inset-y-1 left-0 w-px bg-[var(--accent)]"
+                          />
+                        )}
                         <Icon
-                          size={16}
-                          className={`shrink-0 ${isActive ? "text-cyan-400" : "text-[var(--text-muted)] group-hover:text-[var(--text)]"}`}
+                          size={15}
+                          className={`shrink-0 ${
+                            isActive
+                              ? "text-[var(--accent)]"
+                              : "text-[var(--text-dim)] group-hover:text-[var(--text-muted)]"
+                          }`}
+                          aria-hidden
                         />
                         {!collapsed && <span className="truncate">{label}</span>}
                         {badgeCount > 0 &&
                           (collapsed ? (
                             <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[var(--critical)]" />
                           ) : (
-                            <span className="ml-auto shrink-0 rounded-full border border-rose-800 bg-rose-950 px-1.5 py-0.5 font-mono t-micro font-bold leading-none text-rose-400">
+                            <span className="ml-auto shrink-0 rounded-full border border-[var(--border)] bg-[var(--surface-inset)] px-1.5 py-0.5 font-mono t-micro font-bold leading-none text-[var(--critical)]">
                               {badgeCount}
                             </span>
                           ))}
@@ -148,46 +167,59 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
+        {!collapsed && (
+          <div className="border-t border-[var(--border)] p-3">
+            <p className="ops-label mb-2">System</p>
+            <ul className="space-y-1.5">
+              <StateRow label="Core" value={systemOk ? "Operational" : "Degraded"} ok={systemOk} />
+              <StateRow label="Database" value={dbOk ? "Connected" : "Offline"} ok={dbOk} />
+              <StateRow label="Stream" value={wsOk ? "Live" : "Polling"} ok={wsOk} />
+              <StateRow label="Fleet" value={`${fleetCount} units`} ok={fleetCount > 0} />
+            </ul>
+          </div>
+        )}
+
         <div className="border-t border-[var(--border)] p-2">
           <button
             onClick={() => setOpenCmd(true)}
             title="Command Palette"
-            className="press-effect flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-card)] px-2 py-1.5 t-body-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-elevated)] hover:text-white"
+            className="flex w-full items-center justify-center gap-2 rounded-[var(--r-md)] border border-[var(--border)] bg-[var(--surface-card)] px-2 py-1.5 text-[var(--t-body)] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text)]"
           >
-            <Search size={13} className="shrink-0" />
-            {!collapsed && <span className="font-mono t-micro">⌘K Search</span>}
+            <Search size={13} className="shrink-0" aria-hidden />
+            {!collapsed && <span className="ops-label">⌘K Search</span>}
           </button>
         </div>
       </aside>
 
       <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="z-30 flex h-11 shrink-0 select-none items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--surface-subtle)]/90 px-4 backdrop-blur">
-          <Link href="/" className="flex min-h-6 min-w-0 items-center gap-2 t-body-sm font-semibold tracking-tight text-white">
+        <header className="z-30 flex h-11 shrink-0 select-none items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--surface-subtle)] px-4 backdrop-blur">
+          <Link href="/" className="flex min-h-6 min-w-0 items-center gap-2 t-body-sm font-semibold tracking-tight text-[var(--text)]">
             <span className="truncate">ColdChain Rescue</span>
-            <span className="shrink-0 rounded-full border border-cyan-800/50 bg-cyan-950/60 px-2 py-0.5 font-mono t-micro text-cyan-400">
-              LIVE AUTONOMOUS TWIN
+            <span className="ops-label hidden shrink-0 border border-[var(--border)] px-2 py-0.5 sm:inline">
+              Simulation
             </span>
           </Link>
 
-          <div className="flex shrink-0 items-center gap-4 font-mono t-label">
-            <StatusIndicator label="AI ENGINE" value={st.status?.ai_mode || "DETERMINISTIC-AGENTS"} ok={st.status?.ai_mode === "DETERMINISTIC-AGENTS"} />
-            <StatusIndicator label="DB" value={st.status?.database || "ONLINE"} ok={st.status?.database === "CONNECTED"} />
-            <StatusIndicator label="WS" value={st.connected ? "STREAMING" : "CONNECTING"} ok={st.connected} />
+          <div className="ops-label flex shrink-0 items-center gap-5">
+            <StatusIndicator label="AI" value={st.status?.ai_mode === "DETERMINISTIC-AGENTS" ? "Deterministic agents" : (st.status?.ai_mode || "Agents")} ok={st.status?.ai_mode === "DETERMINISTIC-AGENTS"} />
+            <StatusIndicator label="DB" value={dbOk ? "Connected" : "Offline"} ok={dbOk} />
+            <StatusIndicator label="WS" value={wsOk ? "Streaming" : "Polling"} ok={wsOk} />
 
-            <div className="hidden items-center gap-1.5 border-l border-[var(--border)] pl-2 lg:flex">
-              <StatusBeacon status="online" size="sm" />
-              <span className="text-[var(--text-muted)]">FLEET:</span>
-              <span className="font-bold text-white">{fleetCount} TWINS</span>
+            <div className="hidden items-center gap-1.5 border-l border-[var(--border)] pl-4 lg:flex">
+              <span className="text-[var(--text-dim)]">Fleet</span>
+              <span className="ops-num text-[var(--t-micro)] font-bold text-[var(--text)]">
+                {fleetCount} twins
+              </span>
             </div>
 
             <span
-              className={`rounded border px-2 py-0.5 t-micro font-bold ${
-                st.status?.system === "OPERATIONAL"
-                  ? "border-emerald-800 bg-emerald-950 text-emerald-400"
-                  : "border-amber-800 bg-amber-950 text-amber-400"
-              }`}
+              className="rounded-[var(--r-pill)] px-2 py-0.5 text-[var(--t-micro)] font-bold"
+              style={{
+                color: systemOk ? "var(--nominal)" : "var(--warning)",
+                background: "var(--surface-inset)",
+              }}
             >
-              {st.status?.system || "OPERATIONAL"}
+              {systemOk ? "Operational" : "Degraded"}
             </span>
           </div>
         </header>
@@ -207,13 +239,33 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
 function StatusIndicator({ label, value, ok }: { label: string; value: string; ok: boolean }) {
   return (
-    <div className="hidden items-center gap-1.5 sm:flex">
+    <span className="hidden items-center gap-1.5 sm:flex">
       <span
-        className={`h-1.5 w-1.5 rounded-full ${ok ? "breathe bg-emerald-400" : "animate-pulse bg-rose-500"}`}
-        style={ok ? ({ "--glow-color": "rgba(16,185,129,0.4)" } as React.CSSProperties) : undefined}
+        className={`h-1.5 w-1.5 rounded-full ${ok ? "ops-pulse" : "animate-pulse"}`}
+        style={{ background: ok ? "var(--nominal)" : "var(--critical)" }}
+        aria-hidden
       />
-      <span className="t-micro text-[var(--text-muted)]">{label}:</span>
-      <span className={ok ? "text-slate-200" : "text-rose-400"}>{value}</span>
-    </div>
+      <span className="text-[var(--text-dim)]">{label}</span>
+      <span
+        className="ops-num text-[var(--t-micro)]"
+        style={{ color: ok ? "var(--text-secondary)" : "var(--critical)" }}
+      >
+        {value}
+      </span>
+    </span>
+  );
+}
+
+function StateRow({ label, value, ok }: { label: string; value: string; ok: boolean }) {
+  return (
+    <li className="flex items-center justify-between gap-2">
+      <span className="ops-label">{label}</span>
+      <span
+        className="ops-num text-[var(--t-micro)]"
+        style={{ color: ok ? "var(--text-secondary)" : "var(--warning)" }}
+      >
+        {value}
+      </span>
+    </li>
   );
 }

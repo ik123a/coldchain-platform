@@ -72,9 +72,9 @@ export function DataStream({ className, speed = 2000, maxLines = 12 }: DataStrea
           const opacity = Math.max(0.1, 1 - age * 0.15);
 
           const colorClass = 
-            line.type === "critical" ? "text-rose-400" :
-            line.type === "warning" ? "text-amber-400" :
-            "text-emerald-400/80";
+            line.type === "critical" ? "text-[var(--critical)]" :
+            line.type === "warning" ? "text-[var(--warning)]" :
+            "text-[var(--nominal)]";
 
           return (
             <motion.div

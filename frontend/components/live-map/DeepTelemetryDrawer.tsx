@@ -95,27 +95,27 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: "100%", opacity: 0 }}
       transition={{ type: "spring", damping: 28, stiffness: 240 }}
-      className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] bg-[var(--surface-subtle)] border-t border-[var(--border)] rounded-t-2xl shadow-2xl flex flex-col text-slate-100 overflow-hidden font-sans select-none">
+      className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] bg-[var(--surface-subtle)] border-t border-[var(--border)] rounded-t-2xl shadow-2xl flex flex-col text-[var(--surface-inset)] overflow-hidden font-sans select-none">
       
       {/* 1. Header & Navigation Tabs */}
       <div className="p-3.5 border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-3 bg-[var(--canvas)]">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-[var(--surface-card)] border border-[var(--border)] grid place-items-center">
-            <Truck size={16} className="text-cyan-400" />
+            <Truck size={16} className="text-[var(--accent)]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="t-body font-bold text-white font-mono">{vehicle.vehicle_id}</span>
+              <span className="t-body font-bold text-[var(--text)] font-mono">{vehicle.vehicle_id}</span>
               <span className={`px-2 py-0.5 rounded t-micro font-mono font-bold ${
-                riskLevel === "CRITICAL" ? "bg-rose-950 text-rose-400 border border-rose-800" :
-                riskLevel === "HIGH" ? "bg-amber-950 text-amber-400 border border-amber-800" :
-                "bg-emerald-950 text-emerald-400 border border-emerald-800"
+                riskLevel === "CRITICAL" ? "bg-[var(--surface-inset)] text-[var(--critical)] border border-[var(--border)]" :
+                riskLevel === "HIGH" ? "bg-[var(--surface-inset)] text-[var(--warning)] border border-[var(--border)]" :
+                "bg-[var(--surface-inset)] text-[var(--nominal)] border border-[var(--border)]"
               }`}>
                 {riskLevel} RISK
               </span>
-              <span className="t-body-sm text-slate-500 font-mono">· {vehicle.type || "EV_REEFER"}</span>
+              <span className="t-body-sm text-[var(--text-dim)] font-mono">· {vehicle.type || "EV_REEFER"}</span>
             </div>
-            <div className="t-label text-slate-400 font-mono">
+            <div className="t-label text-[var(--text-dim)] font-mono">
               Driver: {vehicle.driver?.name || "R. Sharma"} · Safety: {vehicle.driver?.driving_score || 94}%
             </div>
           </div>
@@ -138,8 +138,8 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
               onClick={() => setActiveTab(tab.id as DrawerTab)}
               className={`px-2.5 py-1 rounded transition-colors whitespace-nowrap ${
                 activeTab === tab.id 
-                  ? "bg-[#1A2333] text-cyan-300 shadow-sm border border-cyan-500/30" 
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-[#1A2333] text-[var(--text)] shadow-sm border border-[var(--accent)]" 
+                  : "text-[var(--text-dim)] hover:text-[var(--border)]"
               }`}>
               {tab.label}
             </button>
@@ -149,7 +149,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
         <button
           onClick={onClose}
           aria-label="Close drawer"
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[var(--surface-card)] transition-colors">
+          className="p-1.5 rounded-lg text-[var(--text-dim)] hover:text-[var(--text)] hover:bg-[var(--surface-card)] transition-colors">
           <X size={17} />
         </button>
       </div>
@@ -162,53 +162,53 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
           <div className="space-y-5">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-[var(--surface-card)] p-3.5 rounded-xl border border-[var(--border)] relative overflow-hidden">
-                <div className="t-micro font-mono text-slate-400">INSIDE CORE TEMP</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">INSIDE CORE TEMP</div>
                 <div className="t-metric-lg font-bold font-mono mt-1">
                   <NumberTicker 
                     value={temp} 
                     decimalPlaces={1} 
                     suffix="°C" 
-                    className={isBreached ? "text-rose-400 font-bold t-metric-lg" : "text-white font-bold t-metric-lg"} 
+                    className={isBreached ? "text-[var(--critical)] font-bold t-metric-lg" : "text-[var(--text)] font-bold t-metric-lg"} 
                   />
                 </div>
-                <div className="t-body-sm font-mono text-emerald-400 mt-0.5">Safe Zone: 2.0–8.0°C</div>
+                <div className="t-body-sm font-mono text-[var(--nominal)] mt-0.5">Safe Zone: 2.0–8.0°C</div>
               </div>
 
               <div className="bg-[var(--surface-card)] p-3.5 rounded-xl border border-[var(--border)] relative overflow-hidden">
-                <div className="t-micro font-mono text-slate-400">OUTSIDE AMBIENT</div>
-                <div className="t-metric-lg font-bold font-mono text-amber-400 mt-1">
+                <div className="t-micro font-mono text-[var(--text-dim)]">OUTSIDE AMBIENT</div>
+                <div className="t-metric-lg font-bold font-mono text-[var(--warning)] mt-1">
                   <NumberTicker 
                     value={outside} 
                     decimalPlaces={1} 
                     suffix="°C" 
-                    className="text-amber-400 font-bold t-metric-lg" 
+                    className="text-[var(--warning)] font-bold t-metric-lg" 
                   />
                 </div>
-                <div className="t-micro font-mono text-amber-400/80 mt-0.5">Heatwave Active</div>
+                <div className="t-micro font-mono text-[var(--warning)] mt-0.5">Heatwave Active</div>
               </div>
 
               <div className="bg-[var(--surface-card)] p-3.5 rounded-xl border border-[var(--border)] relative overflow-hidden">
-                <div className="t-micro font-mono text-slate-400">CARGO HEALTH</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">CARGO HEALTH</div>
                 <div className="t-metric-lg font-bold font-mono mt-1">
                   <NumberTicker 
                     value={cargoHealth} 
                     suffix="%" 
-                    className={cargoHealth < 85 ? "text-amber-400 font-bold t-metric-lg" : "text-emerald-400 font-bold t-metric-lg"} 
+                    className={cargoHealth < 85 ? "text-[var(--warning)] font-bold t-metric-lg" : "text-[var(--nominal)] font-bold t-metric-lg"} 
                   />
                 </div>
-                <div className="t-micro font-mono text-slate-400 mt-0.5">{vehicle.cargo?.cargo_type || "pharma"} (High Value)</div>
+                <div className="t-micro font-mono text-[var(--text-dim)] mt-0.5">{vehicle.cargo?.cargo_type || "pharma"} (High Value)</div>
               </div>
 
               <div className="bg-[var(--surface-card)] p-3.5 rounded-xl border border-[var(--border)] relative overflow-hidden">
-                <div className="t-micro font-mono text-slate-400">ETA / REMAINING</div>
-                <div className="t-metric-lg font-bold font-mono text-cyan-400 mt-1 flex items-baseline gap-1">
+                <div className="t-micro font-mono text-[var(--text-dim)]">ETA / REMAINING</div>
+                <div className="t-metric-lg font-bold font-mono text-[var(--accent)] mt-1 flex items-baseline gap-1">
                   <NumberTicker 
                     value={etaMin} 
                     suffix=" min" 
-                    className="text-cyan-400 font-bold t-metric-lg" 
+                    className="text-[var(--accent)] font-bold t-metric-lg" 
                   />
                 </div>
-                <div className="t-micro font-mono text-slate-400 mt-0.5">{distRemaining} km to destination</div>
+                <div className="t-micro font-mono text-[var(--text-dim)] mt-0.5">{distRemaining} km to destination</div>
               </div>
             </div>
 
@@ -225,15 +225,15 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
               )}
               <div className="flex items-center gap-3 relative z-10">
                 <div className={`w-8 h-8 rounded-lg grid place-items-center shrink-0 border ${
-                  isBreached ? "bg-rose-950/80 border-rose-800 text-rose-400" : "bg-cyan-950/80 border-cyan-800 text-cyan-400"
+                  isBreached ? "bg-[var(--surface-inset)] border-[var(--border)] text-[var(--critical)]" : "bg-[var(--surface-inset)] border-[var(--border)] text-[var(--accent)]"
                 }`}>
                   <Bot size={16} />
                 </div>
                 <div>
-                  <div className="t-body-sm font-semibold text-white font-mono flex items-center gap-2">
+                  <div className="t-body-sm font-semibold text-[var(--text)] font-mono flex items-center gap-2">
                     AI AGENT EVALUATION: {isBreached ? "EMERGENCY DIVERSION RECOMMENDED" : "NORMAL REEFER OPERATION"}
                   </div>
-                  <div className="t-label text-slate-400 mt-0.5">
+                  <div className="t-label text-[var(--text-dim)] mt-0.5">
                     {isBreached 
                       ? "Arrhenius kinetic threshold will be crossed in 8m. Reroute to Hub Beta (WH-002) to prevent $120k spoilage."
                       : "Refrigeration system stable. Kinetic degradation rate within nominal bounds."}
@@ -243,13 +243,13 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
               <div className="flex items-center gap-2 w-full md:w-auto relative z-10">
                 <button
                   onClick={() => onInjectFailure(vehicle.vehicle_id)}
-                  className="py-1.5 px-3 rounded-lg t-body-sm font-medium bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 transition-colors cursor-pointer">
+                  className="py-1.5 px-3 rounded-lg t-body-sm font-medium bg-[var(--surface-inset)] hover:bg-[var(--surface-inset)] text-[var(--critical)] border border-[var(--border)] transition-colors cursor-pointer">
                   ⚡ Inject Anomaly
                 </button>
                 <button
                   onClick={() => handleDiversion("WH-002")}
                   disabled={diverting}
-                  className="py-1.5 px-4 rounded-lg t-body-sm font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50">
+                  className="py-1.5 px-4 rounded-lg t-body-sm font-semibold bg-[var(--accent)] hover:bg-[var(--accent)] text-[var(--text)] transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50">
                   <Navigation size={13} /> {diverting ? "Executing..." : "Approve Diversion (WH-002)"}
                 </button>
               </div>
@@ -262,41 +262,41 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
-                <div className="t-micro font-mono text-slate-400">CURRENT SPEED</div>
-                <div className="t-metric-lg font-bold font-mono text-white mt-0.5">{speed} km/h</div>
-                <div className="t-micro font-mono text-slate-400">Speed Limit: 60 km/h</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">CURRENT SPEED</div>
+                <div className="t-metric-lg font-bold font-mono text-[var(--text)] mt-0.5">{speed} km/h</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">Speed Limit: 60 km/h</div>
               </div>
               <div className="bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
-                <div className="t-micro font-mono text-slate-400">AVERAGE SPEED</div>
-                <div className="t-metric-lg font-bold font-mono text-slate-200 mt-0.5">{avgSpeed} km/h</div>
-                <div className="t-micro font-mono text-slate-400">Max Peak: {maxSpeed} km/h</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">AVERAGE SPEED</div>
+                <div className="t-metric-lg font-bold font-mono text-[var(--border)] mt-0.5">{avgSpeed} km/h</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">Max Peak: {maxSpeed} km/h</div>
               </div>
               <div className="bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
-                <div className="t-micro font-mono text-slate-400">HEADING & BEARING</div>
-                <div className="t-metric-lg font-bold font-mono text-cyan-400 mt-0.5">{heading}°</div>
-                <div className="t-micro font-mono text-slate-400">{vehicle.direction || "EAST"} Corridor</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">HEADING & BEARING</div>
+                <div className="t-metric-lg font-bold font-mono text-[var(--accent)] mt-0.5">{heading}°</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">{vehicle.direction || "EAST"} Corridor</div>
               </div>
               <div className="bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
-                <div className="t-micro font-mono text-slate-400">ROUTE PROGRESS</div>
-                <div className="t-metric-lg font-bold font-mono text-emerald-400 mt-0.5">{progressPct}%</div>
-                <div className="t-micro font-mono text-slate-400">Adherence: 99.4%</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">ROUTE PROGRESS</div>
+                <div className="t-metric-lg font-bold font-mono text-[var(--nominal)] mt-0.5">{progressPct}%</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">Adherence: 99.4%</div>
               </div>
             </div>
 
             <div className="bg-[var(--surface-card)] p-4 rounded-xl border border-[var(--border)] space-y-3">
-              <div className="t-body-sm font-mono font-semibold text-slate-300">KINEMATIC & ROUTE METRICS</div>
+              <div className="t-body-sm font-mono font-semibold text-[var(--border-strong)]">KINEMATIC & ROUTE METRICS</div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 t-body-sm font-mono">
                 <div className="bg-[var(--surface-subtle)] p-2.5 rounded border border-[var(--border)]">
-                  <span className="text-slate-400">Acceleration:</span>
-                  <div className="text-white font-bold mt-0.5">+0.42 m/s²</div>
+                  <span className="text-[var(--text-dim)]">Acceleration:</span>
+                  <div className="text-[var(--text)] font-bold mt-0.5">+0.42 m/s²</div>
                 </div>
                 <div className="bg-[var(--surface-subtle)] p-2.5 rounded border border-[var(--border)]">
-                  <span className="text-slate-400">Idle Time:</span>
-                  <div className="text-white font-bold mt-0.5">2.4 min</div>
+                  <span className="text-[var(--text-dim)]">Idle Time:</span>
+                  <div className="text-[var(--text)] font-bold mt-0.5">2.4 min</div>
                 </div>
                 <div className="bg-[var(--surface-subtle)] p-2.5 rounded border border-[var(--border)]">
-                  <span className="text-slate-400">Stop Count:</span>
-                  <div className="text-white font-bold mt-0.5">1 Signal Stop</div>
+                  <span className="text-[var(--text-dim)]">Stop Count:</span>
+                  <div className="text-[var(--text)] font-bold mt-0.5">1 Signal Stop</div>
                 </div>
               </div>
             </div>
@@ -308,41 +308,41 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
-                <div className="t-micro font-mono text-slate-400">OUTSIDE AMBIENT</div>
-                <div className="t-metric-lg font-bold font-mono text-amber-400 mt-0.5">{outside.toFixed(1)}°C</div>
-                <div className="t-micro font-mono text-slate-400">Thermal Load: High</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">OUTSIDE AMBIENT</div>
+                <div className="t-metric-lg font-bold font-mono text-[var(--warning)] mt-0.5">{outside.toFixed(1)}°C</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">Thermal Load: High</div>
               </div>
               <div className="bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
-                <div className="t-micro font-mono text-slate-400">INSIDE TEMPERATURE</div>
-                <div className={`t-metric-lg font-bold font-mono mt-0.5 ${isBreached ? "text-rose-400" : "text-white"}`}>
+                <div className="t-micro font-mono text-[var(--text-dim)]">INSIDE TEMPERATURE</div>
+                <div className={`t-metric-lg font-bold font-mono mt-0.5 ${isBreached ? "text-[var(--critical)]" : "text-[var(--text)]"}`}>
                   {temp.toFixed(1)}°C
                 </div>
-                <div className="t-body-sm font-mono text-emerald-400">Safe: 2.0°C – 8.0°C</div>
+                <div className="t-body-sm font-mono text-[var(--nominal)]">Safe: 2.0°C – 8.0°C</div>
               </div>
               <div className="bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
-                <div className="t-micro font-mono text-slate-400">COMPRESSOR STATUS</div>
-                <div className="t-section font-bold font-mono text-white mt-1">
+                <div className="t-micro font-mono text-[var(--text-dim)]">COMPRESSOR STATUS</div>
+                <div className="t-section font-bold font-mono text-[var(--text)] mt-1">
                   {vehicle.refrigeration?.compressor_status || "ONLINE"}
                 </div>
-                <div className="t-micro font-mono text-slate-400">Efficiency: {isBreached ? "34%" : "96%"}</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">Efficiency: {isBreached ? "34%" : "96%"}</div>
               </div>
               <div className="bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
-                <div className="t-micro font-mono text-slate-400">TIME TO CRITICAL</div>
-                <div className={`t-metric-lg font-bold font-mono mt-0.5 ${isBreached ? "text-rose-400" : "text-slate-300"}`}>
+                <div className="t-micro font-mono text-[var(--text-dim)]">TIME TO CRITICAL</div>
+                <div className={`t-metric-lg font-bold font-mono mt-0.5 ${isBreached ? "text-[var(--critical)]" : "text-[var(--border-strong)]"}`}>
                   {isBreached ? "07:42" : "> 6 hrs"}
                 </div>
-                <div className="t-body-sm font-mono text-slate-400">Trend: {isBreached ? "+0.3°C/min" : "Stable"}</div>
+                <div className="t-body-sm font-mono text-[var(--text-dim)]">Trend: {isBreached ? "+0.3°C/min" : "Stable"}</div>
               </div>
             </div>
 
             {/* Live Chart */}
             <div className="bg-[var(--surface-card)] p-4 rounded-xl border border-[var(--border)] space-y-2">
               <div className="flex items-center justify-between t-body-sm font-mono">
-                <span className="text-slate-300 font-semibold">20-MINUTE REEFER TRAJECTORY (INSIDE VS OUTSIDE)</span>
+                <span className="text-[var(--border-strong)] font-semibold">20-MINUTE REEFER TRAJECTORY (INSIDE VS OUTSIDE)</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-cyan-400">● Inside Temp</span>
-                  <span className="text-amber-400">● Outside Ambient</span>
-                  <span className="text-emerald-400">■ Safe Band (2–8°C)</span>
+                  <span className="text-[var(--accent)]">● Inside Temp</span>
+                  <span className="text-[var(--warning)]">● Outside Ambient</span>
+                  <span className="text-[var(--nominal)]">■ Safe Band (2–8°C)</span>
                 </div>
               </div>
               <div className="h-56 w-full">
@@ -366,58 +366,58 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
-                <div className="t-micro font-mono text-slate-400">CARGO TYPE</div>
-                <div className="t-section font-bold font-mono text-white mt-1 uppercase">{vehicle.cargo?.cargo_type || "PHARMA"}</div>
-                <div className="t-body-sm font-mono text-slate-400">Req: 2.0°C – 8.0°C</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">CARGO TYPE</div>
+                <div className="t-section font-bold font-mono text-[var(--text)] mt-1 uppercase">{vehicle.cargo?.cargo_type || "PHARMA"}</div>
+                <div className="t-body-sm font-mono text-[var(--text-dim)]">Req: 2.0°C – 8.0°C</div>
               </div>
               <div className="bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
-                <div className="t-micro font-mono text-slate-400">CURRENT LOAD</div>
-                <div className="t-section font-bold font-mono text-white mt-1">{loadUnits} / {capUnits} units</div>
-                <div className="t-micro font-mono text-cyan-400">{loadPct}% Capacity</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">CURRENT LOAD</div>
+                <div className="t-section font-bold font-mono text-[var(--text)] mt-1">{loadUnits} / {capUnits} units</div>
+                <div className="t-micro font-mono text-[var(--accent)]">{loadPct}% Capacity</div>
               </div>
               <div className="bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
-                <div className="t-micro font-mono text-slate-400">CARGO HEALTH</div>
-                <div className={`t-metric-lg font-bold font-mono mt-0.5 ${cargoHealth < 85 ? "text-amber-400" : "text-emerald-400"}`}>
+                <div className="t-micro font-mono text-[var(--text-dim)]">CARGO HEALTH</div>
+                <div className={`t-metric-lg font-bold font-mono mt-0.5 ${cargoHealth < 85 ? "text-[var(--warning)]" : "text-[var(--nominal)]"}`}>
                   {cargoHealth}%
                 </div>
-                <div className="t-micro font-mono text-slate-400">Exposure: {vehicle.trip?.exposure_ticks || 0} ticks</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">Exposure: {vehicle.trip?.exposure_ticks || 0} ticks</div>
               </div>
               <div className="bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
-                <div className="t-micro font-mono text-slate-400">BATCH VALUE</div>
-                <div className="t-metric-lg font-bold font-mono text-white mt-0.5">$124,000</div>
-                <div className="t-body-sm font-mono text-emerald-400">Priority: Tier 1 Critical</div>
+                <div className="t-micro font-mono text-[var(--text-dim)]">BATCH VALUE</div>
+                <div className="t-metric-lg font-bold font-mono text-[var(--text)] mt-0.5">$124,000</div>
+                <div className="t-body-sm font-mono text-[var(--nominal)]">Priority: Tier 1 Critical</div>
               </div>
             </div>
 
             {/* Cargo Transfer Visualizer (Section 38) */}
             <div className="bg-[var(--surface-card)] p-4 rounded-xl border border-[var(--border)] space-y-3">
               <div className="flex items-center justify-between">
-                <span className="t-body-sm font-mono font-semibold text-slate-300 flex items-center gap-2">
-                  <ArrowLeftRight size={14} className="text-cyan-400" /> CROSS-TRUCK RELIEF CARGO TRANSFER (SECTION 38)
+                <span className="t-body-sm font-mono font-semibold text-[var(--border-strong)] flex items-center gap-2">
+                  <ArrowLeftRight size={14} className="text-[var(--accent)]" /> CROSS-TRUCK RELIEF CARGO TRANSFER (SECTION 38)
                 </span>
                 <button
                   onClick={handleTransfer}
                   disabled={transferring}
-                  className="px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 t-body-sm font-semibold text-white transition-colors">
+                  className="px-3 py-1 rounded bg-[var(--accent)] hover:bg-[var(--accent)] t-body-sm font-semibold text-[var(--text)] transition-colors">
                   {transferring ? `Transferring (${transferProgress}%)` : "Simulate Relief Offload"}
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div className="bg-[var(--surface-subtle)] p-3 rounded-lg border border-[var(--border)]">
-                  <div className="t-body-sm font-mono font-bold text-rose-400">DISTRESSED TRUCK ({vehicle.vehicle_id})</div>
-                  <div className="t-section font-mono font-bold text-white mt-1">
+                  <div className="t-body-sm font-mono font-bold text-[var(--critical)]">DISTRESSED TRUCK ({vehicle.vehicle_id})</div>
+                  <div className="t-section font-mono font-bold text-[var(--text)] mt-1">
                     {transferring ? Math.round(74 - (30 * transferProgress / 100)) : 74}% LOAD
                   </div>
-                  <div className="t-micro font-mono text-slate-400 mt-0.5">Offloading to Relief Unit</div>
+                  <div className="t-micro font-mono text-[var(--text-dim)] mt-0.5">Offloading to Relief Unit</div>
                 </div>
 
                 <div className="bg-[var(--surface-subtle)] p-3 rounded-lg border border-[var(--border)]">
-                  <div className="t-body-sm font-mono font-bold text-emerald-400">RELIEF REEFER (SERVICE-01)</div>
-                  <div className="t-section font-mono font-bold text-white mt-1">
+                  <div className="t-body-sm font-mono font-bold text-[var(--nominal)]">RELIEF REEFER (SERVICE-01)</div>
+                  <div className="t-section font-mono font-bold text-[var(--text)] mt-1">
                     {transferring ? Math.round(38 + (30 * transferProgress / 100)) : 38}% LOAD
                   </div>
-                  <div className="t-body-sm font-mono text-slate-400 mt-0.5">Pre-chilled @ 3.8°C</div>
+                  <div className="t-body-sm font-mono text-[var(--text-dim)] mt-0.5">Pre-chilled @ 3.8°C</div>
                 </div>
               </div>
             </div>
@@ -437,8 +437,8 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
                 { label: "Chamber Thermal Insulation", val: "91% (SEALED)" },
               ].map((m, i) => (
                 <div key={i} className="bg-[var(--surface-card)] p-3.5 rounded-xl border border-[var(--border)]">
-                  <div className="t-micro text-slate-400">{m.label}</div>
-                  <div className={`t-body font-bold mt-1 ${m.hot ? "text-rose-400" : "text-white"}`}>{m.val}</div>
+                  <div className="t-micro text-[var(--text-dim)]">{m.label}</div>
+                  <div className={`t-body font-bold mt-1 ${m.hot ? "text-[var(--critical)]" : "text-[var(--text)]"}`}>{m.val}</div>
                 </div>
               ))}
             </div>
@@ -449,26 +449,26 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
         {activeTab === "driver" && (
           <div className="bg-[var(--surface-card)] p-5 rounded-xl border border-[var(--border)] space-y-4 font-mono t-body-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-cyan-950 border border-cyan-800 grid place-items-center text-cyan-400 font-bold t-body">
+              <div className="w-10 h-10 rounded-full bg-[var(--surface-inset)] border border-[var(--border)] grid place-items-center text-[var(--accent)] font-bold t-body">
                 RS
               </div>
               <div>
-                <div className="t-body font-bold text-white">{vehicle.driver?.name || "Rajesh Sharma"}</div>
-                <div className="text-slate-400 t-label">ID: DRV-882 · Commercial Reefer Certified</div>
+                <div className="t-body font-bold text-[var(--text)]">{vehicle.driver?.name || "Rajesh Sharma"}</div>
+                <div className="text-[var(--text-dim)] t-label">ID: DRV-882 · Commercial Reefer Certified</div>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3 pt-2">
               <div className="bg-[var(--surface-subtle)] p-3 rounded-lg border border-[var(--border)]">
-                <span className="text-slate-400 t-micro">DRIVING SCORE</span>
-                <div className="text-emerald-400 font-bold t-section mt-0.5">94 / 100</div>
+                <span className="text-[var(--text-dim)] t-micro">DRIVING SCORE</span>
+                <div className="text-[var(--nominal)] font-bold t-section mt-0.5">94 / 100</div>
               </div>
               <div className="bg-[var(--surface-subtle)] p-3 rounded-lg border border-[var(--border)]">
-                <span className="text-slate-400 t-micro">HOURS ON DUTY</span>
-                <div className="text-white font-bold t-section mt-0.5">4.2 hrs (Limit 8h)</div>
+                <span className="text-[var(--text-dim)] t-micro">HOURS ON DUTY</span>
+                <div className="text-[var(--text)] font-bold t-section mt-0.5">4.2 hrs (Limit 8h)</div>
               </div>
               <div className="bg-[var(--surface-subtle)] p-3 rounded-lg border border-[var(--border)]">
-                <span className="text-slate-400 t-micro">SAFETY RATING</span>
-                <div className="text-cyan-400 font-bold t-section mt-0.5">GRADE A+</div>
+                <span className="text-[var(--text-dim)] t-micro">SAFETY RATING</span>
+                <div className="text-[var(--accent)] font-bold t-section mt-0.5">GRADE A+</div>
               </div>
             </div>
           </div>
@@ -478,19 +478,19 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
         {activeTab === "route" && (
           <div className="space-y-4 font-mono t-body-sm">
             <div className="bg-[var(--surface-card)] p-4 rounded-xl border border-[var(--border)] space-y-3">
-              <div className="t-body-sm font-bold text-slate-300">ACTIVE CORRIDOR & TRAFFIC CONDITIONS</div>
+              <div className="t-body-sm font-bold text-[var(--border-strong)]">ACTIVE CORRIDOR & TRAFFIC CONDITIONS</div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-2.5 bg-[var(--surface-subtle)] rounded-lg border border-[var(--border)]">
-                  <span className="text-slate-300">Corridor Segment 8A (Expressway):</span>
-                  <span className="px-2 py-0.5 rounded t-micro font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">FREE FLOW (62 km/h)</span>
+                  <span className="text-[var(--border-strong)]">Corridor Segment 8A (Expressway):</span>
+                  <span className="px-2 py-0.5 rounded t-micro font-bold bg-[var(--surface-inset)] text-[var(--nominal)] border border-[var(--border)]">FREE FLOW (62 km/h)</span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 bg-[var(--surface-subtle)] rounded-lg border border-[var(--border)]">
-                  <span className="text-slate-300">Corridor Segment 8B (Metro Tollway):</span>
-                  <span className="px-2 py-0.5 rounded t-micro font-bold bg-amber-950 text-amber-400 border border-amber-800">MODERATE (+4m delay)</span>
+                  <span className="text-[var(--border-strong)]">Corridor Segment 8B (Metro Tollway):</span>
+                  <span className="px-2 py-0.5 rounded t-micro font-bold bg-[var(--surface-inset)] text-[var(--warning)] border border-[var(--border)]">MODERATE (+4m delay)</span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 bg-[var(--surface-subtle)] rounded-lg border border-[var(--border)]">
-                  <span className="text-slate-300">Corridor Segment 8C (Industrial Link):</span>
-                  <span className="px-2 py-0.5 rounded t-micro font-bold bg-rose-950 text-rose-400 border border-rose-800">SEVERE CONGESTION</span>
+                  <span className="text-[var(--border-strong)]">Corridor Segment 8C (Industrial Link):</span>
+                  <span className="px-2 py-0.5 rounded t-micro font-bold bg-[var(--surface-inset)] text-[var(--critical)] border border-[var(--border)]">SEVERE CONGESTION</span>
                 </div>
               </div>
             </div>
@@ -503,24 +503,24 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
             
             {/* 8-Stage Operations Stream */}
             <div className="bg-[var(--surface-card)] p-4 rounded-xl border border-[var(--border)] space-y-3">
-              <div className="t-body-sm font-bold text-slate-300 flex items-center gap-2">
-                <Bot size={15} className="text-cyan-400" /> MULTI-AGENT STATE PROGRESSION STREAM
+              <div className="t-body-sm font-bold text-[var(--border-strong)] flex items-center gap-2">
+                <Bot size={15} className="text-[var(--accent)]" /> MULTI-AGENT STATE PROGRESSION STREAM
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
-                  { stage: "Monitoring", status: "ACTIVE", color: "text-emerald-400", dot: "bg-emerald-400" },
-                  { stage: "Diagnosis", status: "COMPLETE", color: "text-emerald-400", dot: "bg-emerald-400" },
-                  { stage: "Prediction", status: "ACTIVE", color: "text-cyan-400", dot: "bg-cyan-400 animate-pulse" },
-                  { stage: "Risk Analysis", status: "EVALUATING", color: "text-amber-400", dot: "bg-amber-400" },
-                  { stage: "Facility Match", status: "COMPLETE", color: "text-emerald-400", dot: "bg-emerald-400" },
-                  { stage: "Route Detour", status: "LOCKED", color: "text-cyan-400", dot: "bg-cyan-400" },
-                  { stage: "Response", status: "READY", color: "text-white", dot: "bg-white" },
-                  { stage: "Verification", status: "STANDBY", color: "text-slate-400", dot: "bg-slate-400" },
+                  { stage: "Monitoring", status: "ACTIVE", color: "text-[var(--nominal)]", dot: "bg-[var(--nominal)]" },
+                  { stage: "Diagnosis", status: "COMPLETE", color: "text-[var(--nominal)]", dot: "bg-[var(--nominal)]" },
+                  { stage: "Prediction", status: "ACTIVE", color: "text-[var(--accent)]", dot: "bg-[var(--accent)] animate-pulse" },
+                  { stage: "Risk Analysis", status: "EVALUATING", color: "text-[var(--warning)]", dot: "bg-[var(--warning)]" },
+                  { stage: "Facility Match", status: "COMPLETE", color: "text-[var(--nominal)]", dot: "bg-[var(--nominal)]" },
+                  { stage: "Route Detour", status: "LOCKED", color: "text-[var(--accent)]", dot: "bg-[var(--accent)]" },
+                  { stage: "Response", status: "READY", color: "text-[var(--text)]", dot: "bg-[var(--surface-card)]" },
+                  { stage: "Verification", status: "STANDBY", color: "text-[var(--text-dim)]", dot: "bg-[var(--text-dim)]" },
                 ].map((s, i) => (
                   <div key={i} className="bg-[var(--surface-subtle)] p-2 rounded-lg border border-[var(--border)] flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${s.dot}`}></span>
                     <div>
-                      <div className="t-micro text-slate-400">{s.stage}</div>
+                      <div className="t-micro text-[var(--text-dim)]">{s.stage}</div>
                       <div className={`t-label font-bold ${s.color}`}>{s.status}</div>
                     </div>
                   </div>
@@ -530,11 +530,11 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
 
             {/* Candidate Facilities Table (Section 32) */}
             <div className="bg-[var(--surface-card)] p-4 rounded-xl border border-[var(--border)] space-y-3">
-              <div className="t-body-sm font-bold text-slate-300">FACILITY COMPARISON MATRIX (SECTION 32)</div>
+              <div className="t-body-sm font-bold text-[var(--border-strong)]">FACILITY COMPARISON MATRIX (SECTION 32)</div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-[var(--border)] t-micro text-slate-400 uppercase">
+                    <tr className="border-b border-[var(--border)] t-micro text-[var(--text-dim)] uppercase">
                       <th className="py-2">Warehouse</th>
                       <th className="py-2">Distance</th>
                       <th className="py-2">Travel Time</th>
@@ -544,38 +544,38 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
                       <th className="py-2 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--border)]/50">
+                  <tbody className="divide-y divide-[var(--border)]">
                     <tr className="hover:bg-[#1A2333]/50">
-                      <td className="py-2.5 font-bold text-white">Hub Alpha (WH-001)</td>
-                      <td className="py-2.5 text-slate-300">4.2 km</td>
-                      <td className="py-2.5 text-slate-300">15 min</td>
-                      <td className="py-2.5 text-amber-400">Queue 20 min</td>
-                      <td className="py-2.5 text-slate-300">120 pallets</td>
-                      <td className="py-2.5 text-slate-400">Rank #2</td>
+                      <td className="py-2.5 font-bold text-[var(--text)]">Hub Alpha (WH-001)</td>
+                      <td className="py-2.5 text-[var(--border-strong)]">4.2 km</td>
+                      <td className="py-2.5 text-[var(--border-strong)]">15 min</td>
+                      <td className="py-2.5 text-[var(--warning)]">Queue 20 min</td>
+                      <td className="py-2.5 text-[var(--border-strong)]">120 pallets</td>
+                      <td className="py-2.5 text-[var(--text-dim)]">Rank #2</td>
                       <td className="py-2.5 text-right">
-                        <button onClick={() => handleDiversion("WH-001")} className="px-2 py-1 rounded bg-[#101622] hover:bg-[var(--border)] t-micro text-slate-300">Select</button>
+                        <button onClick={() => handleDiversion("WH-001")} className="px-2 py-1 rounded bg-[#101622] hover:bg-[var(--border)] t-micro text-[var(--border-strong)]">Select</button>
                       </td>
                     </tr>
-                    <tr className="bg-cyan-950/20 border border-cyan-800/40">
-                      <td className="py-2.5 font-bold text-cyan-300 flex items-center gap-1.5">
-                        <CheckCircle2 size={13} className="text-cyan-400" /> Hub Beta (WH-002)
+                    <tr className="bg-[var(--surface-inset)] border border-[var(--border)]">
+                      <td className="py-2.5 font-bold text-[var(--text)] flex items-center gap-1.5">
+                        <CheckCircle2 size={13} className="text-[var(--accent)]" /> Hub Beta (WH-002)
                       </td>
-                      <td className="py-2.5 text-white">6.8 km</td>
-                      <td className="py-2.5 text-emerald-400 font-bold">9 min (Clear Toll)</td>
-                      <td className="py-2.5 text-emerald-400 font-bold">Queue 4 min</td>
-                      <td className="py-2.5 text-white">430 pallets</td>
-                      <td className="py-2.5 text-cyan-300 font-bold">OPTIMAL (#1)</td>
+                      <td className="py-2.5 text-[var(--text)]">6.8 km</td>
+                      <td className="py-2.5 text-[var(--nominal)] font-bold">9 min (Clear Toll)</td>
+                      <td className="py-2.5 text-[var(--nominal)] font-bold">Queue 4 min</td>
+                      <td className="py-2.5 text-[var(--text)]">430 pallets</td>
+                      <td className="py-2.5 text-[var(--text)] font-bold">OPTIMAL (#1)</td>
                       <td className="py-2.5 text-right">
-                        <button onClick={() => handleDiversion("WH-002")} className="px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 t-micro font-bold text-white">Divert Now</button>
+                        <button onClick={() => handleDiversion("WH-002")} className="px-3 py-1 rounded bg-[var(--accent)] hover:bg-[var(--accent)] t-micro font-bold text-[var(--text)]">Divert Now</button>
                       </td>
                     </tr>
                     <tr className="hover:bg-[#1A2333]/50 opacity-60">
-                      <td className="py-2.5 font-bold text-slate-400">Hub Gamma (WH-003)</td>
-                      <td className="py-2.5 text-slate-400">3.9 km</td>
-                      <td className="py-2.5 text-slate-400">12 min</td>
-                      <td className="py-2.5 text-rose-400">Dock Full</td>
-                      <td className="py-2.5 text-rose-400">0 pallets</td>
-                      <td className="py-2.5 text-rose-400">Ineligible</td>
+                      <td className="py-2.5 font-bold text-[var(--text-dim)]">Hub Gamma (WH-003)</td>
+                      <td className="py-2.5 text-[var(--text-dim)]">3.9 km</td>
+                      <td className="py-2.5 text-[var(--text-dim)]">12 min</td>
+                      <td className="py-2.5 text-[var(--critical)]">Dock Full</td>
+                      <td className="py-2.5 text-[var(--critical)]">0 pallets</td>
+                      <td className="py-2.5 text-[var(--critical)]">Ineligible</td>
                       <td className="py-2.5 text-right">—</td>
                     </tr>
                   </tbody>
@@ -585,15 +585,15 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
 
             {/* What-If Simulation Divergence (Section 75) */}
             <div className="bg-[var(--surface-card)] p-4 rounded-xl border border-[var(--border)] space-y-3">
-              <div className="t-body-sm font-bold text-slate-300 flex items-center gap-2">
-                <Split size={14} className="text-cyan-400" /> WHAT-IF TRAJECTORY DIVERGENCE (CONTINUE VS DIVERT)
+              <div className="t-body-sm font-bold text-[var(--border-strong)] flex items-center gap-2">
+                <Split size={14} className="text-[var(--accent)]" /> WHAT-IF TRAJECTORY DIVERGENCE (CONTINUE VS DIVERT)
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
                 {whatIfData.map((d, i) => (
                   <div key={i} className="bg-[var(--surface-subtle)] p-2.5 rounded-lg border border-[var(--border)]">
-                    <div className="t-micro text-slate-400 font-bold">{d.step}</div>
-                    <div className="t-body-sm text-rose-400 mt-1">Continue: {d.continueTemp}°C</div>
-                    <div className="t-body-sm text-emerald-400">Divert: {d.divertTemp}°C</div>
+                    <div className="t-micro text-[var(--text-dim)] font-bold">{d.step}</div>
+                    <div className="t-body-sm text-[var(--critical)] mt-1">Continue: {d.continueTemp}°C</div>
+                    <div className="t-body-sm text-[var(--nominal)]">Divert: {d.divertTemp}°C</div>
                   </div>
                 ))}
               </div>

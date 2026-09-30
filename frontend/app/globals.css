@@ -6,36 +6,36 @@
    ============================================================ */
 :root {
   /* Surfaces */
-  --canvas: #080a0f;
-  --surface-subtle: #0a0d14;
-  --surface-raised: #0e121a;
-  --surface-card: #141b26;
+  --canvas: #0a0a0b;
+  --surface-subtle: #0e0e10;
+  --surface-raised: #121214;
+  --surface-card: #17171a;
   --surface-elevated: #1c2433;
-  --surface-inset: #0d141f;
+  --surface-inset: #131316;
 
   /* Structure */
-  --border: #1e2638;
-  --border-strong: #2d3a52;
+  --border: #232326;
+  --border-strong: #34343a;
   --border-accent: #2b5b8b;
   --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.07);
 
   /* Type */
-  --text: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-dim: #475569;
+  --text: #ededf0;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --text-dim: #52525b;
 
   /* Semantic status */
-  --nominal: #10b981;
+  --nominal: #4b9d6f;
   --nominal-soft: #34d399;
-  --warning: #f59e0b;
+  --warning: #c08a3e;
   --warning-soft: #fbbf24;
-  --critical: #f43f5e;
+  --critical: #b8453f;
   --critical-soft: #f87171;
   --ai: #06b6d4;
   --ai-soft: #22d3ee;
 
-  --accent: #38bdf8;
+  --accent: #d4a24c;
   --accent-ink: #8dccff;
   --accent-ink-hover: #a9dbff;
 

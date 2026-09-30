@@ -191,11 +191,11 @@ export default function DashboardPage() {
       {/* 1. SECTION 9 TOP HEADER AREA */}
       <div className="h-11 shrink-0 px-4 bg-[var(--surface-subtle)] border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-3 t-body-sm font-mono z-20">
         <div className="flex items-center gap-3">
-          <div className="t-title m-0 font-bold text-white tracking-wide flex items-center gap-1.5">
-            <span className="text-cyan-400">ColdChain Rescue</span>
-            <span className="text-slate-600" aria-hidden>·</span>
-            <span className="flex items-center gap-1 text-emerald-400 t-label font-normal">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden></span>
+          <div className="t-title m-0 font-bold text-[var(--text)] tracking-wide flex items-center gap-1.5">
+            <span className="text-[var(--accent)]">ColdChain Rescue</span>
+            <span className="text-[var(--text-muted)]" aria-hidden>·</span>
+            <span className="flex items-center gap-1 text-[var(--nominal)] t-label font-normal">
+              <span className="w-2 h-2 rounded-full bg-[var(--nominal)] animate-pulse" aria-hidden></span>
               Live Simulation
             </span>
           </div>
@@ -207,8 +207,8 @@ export default function DashboardPage() {
           <MetricChip label="In Transit" value={fleetCounts?.vehicles ? fleetCounts.in_transit : null} />
           <MetricChip label="At Risk" value={fleetCounts?.vehicles ? fleetCounts.at_risk : null} tone="warning" />
           <MetricChip label="Critical" value={fleetCounts?.vehicles ? fleetCounts.critical : null} tone="critical" pulse />
-          <span className="flex items-center gap-1.5 rounded border border-cyan-800/60 bg-cyan-950 px-2 py-0.5 t-micro font-bold text-cyan-400">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />
+          <span className="flex items-center gap-1.5 rounded border border-[var(--border)] bg-[var(--surface-inset)] px-2 py-0.5 t-micro font-bold text-[var(--accent)]">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--accent)]" />
             AI ONLINE
           </span>
         </div>
@@ -218,8 +218,8 @@ export default function DashboardPage() {
 
       {/* TACTICAL LIVE TELEMETRY MARQUEE (Awwwards Style) */}
       <div className="h-7 shrink-0 bg-[#06080C] border-b border-[var(--border)] flex items-center overflow-hidden z-20">
-        <div className="shrink-0 px-3 h-full bg-[var(--surface-raised)] border-r border-[var(--border)] flex items-center gap-1.5 t-micro font-mono text-cyan-400 font-bold uppercase tracking-wider">
-          <Activity size={11} className="text-cyan-400 animate-pulse" />
+        <div className="shrink-0 px-3 h-full bg-[var(--surface-raised)] border-r border-[var(--border)] flex items-center gap-1.5 t-micro font-mono text-[var(--accent)] font-bold uppercase tracking-wider">
+          <Activity size={11} className="text-[var(--accent)] animate-pulse" />
           <span>TELEMETRY STREAM</span>
         </div>
         <Marquee pauseOnHover={true} className="flex-1 py-0 font-mono t-label text-[var(--text-secondary)]">
@@ -248,8 +248,8 @@ export default function DashboardPage() {
           </span>
           <span className="text-[var(--text-dim)]">│</span>
           <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />
-            <span className="font-bold text-cyan-400">AI COORDINATOR</span>
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--accent)]" />
+            <span className="font-bold text-[var(--accent)]">AI COORDINATOR</span>
             <span className="text-[var(--text-muted)]">Continuous Multi-Agent Re-evaluation Active (100% Deterministic Twin)</span>
           </span>
         </Marquee>
@@ -273,14 +273,14 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-[var(--surface-raised)]/95 backdrop-blur border border-cyan-500/40 shadow-xl flex items-center gap-3 t-body-sm font-mono">
-              <span className="flex items-center gap-1.5 text-cyan-300 font-bold">
-                <Radio size={12} className="text-cyan-400 animate-pulse" />
+              className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-[var(--surface-raised)] backdrop-blur border border-[var(--accent)] shadow-xl flex items-center gap-3 t-body-sm font-mono">
+              <span className="flex items-center gap-1.5 text-[var(--text)] font-bold">
+                <Radio size={12} className="text-[var(--accent)] animate-pulse" />
                 FOLLOWING {trackingId}
               </span>
               <button
                 onClick={() => setTrackingId(null)}
-                className="t-micro uppercase font-bold text-slate-400 hover:text-white px-2 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] transition-colors cursor-pointer">
+                className="t-micro uppercase font-bold text-[var(--text-dim)] hover:text-[var(--text)] px-2 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] transition-colors cursor-pointer">
                 Stop Following
               </button>
             </motion.div>
@@ -301,7 +301,7 @@ export default function DashboardPage() {
 
         {/* Compact Operations Overlay Bar (Bottom Left) */}
         <div className="pointer-events-none absolute bottom-4 left-4 z-20 w-[min(52rem,calc(100%-2rem))] space-y-2">
-          <div className="pointer-events-auto relative flex items-center gap-5 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-raised)]/95 p-3 font-mono t-body-sm shadow-2xl backdrop-blur-md">
+          <div className="pointer-events-auto relative flex items-center gap-5 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3 font-mono t-body-sm shadow-2xl backdrop-blur-md">
             <BorderBeam
               size={85}
               duration={3.5}
@@ -313,9 +313,9 @@ export default function DashboardPage() {
               <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-[var(--critical)]" />
               <div className="min-w-0">
                 <div className="flex items-center gap-2 whitespace-nowrap">
-                  <span className="truncate font-bold text-white">{focusVehicleId ?? "No vehicle selected"}</span>
+                  <span className="truncate font-bold text-[var(--text)]">{focusVehicleId ?? "No vehicle selected"}</span>
                   {breached && (
-                    <span className="shrink-0 rounded border border-rose-800 bg-rose-950 px-1.5 t-micro font-bold text-rose-400">
+                    <span className="shrink-0 rounded border border-[var(--border)] bg-[var(--surface-inset)] px-1.5 t-micro font-bold text-[var(--critical)]">
                       CRITICAL EXCURSION
                     </span>
                   )}
@@ -337,13 +337,13 @@ export default function DashboardPage() {
               <button
                 onClick={() => { setSelectedId(focusVehicleId); setTrackingId(focusVehicleId); }}
                 disabled={!focusVehicleId}
-                className="cursor-pointer whitespace-nowrap rounded-lg border border-[var(--border)] bg-[var(--surface-card)] px-2.5 py-1.5 t-body-sm font-semibold text-cyan-300 transition-colors hover:bg-[var(--surface-elevated)] disabled:cursor-not-allowed disabled:opacity-50">
+                className="cursor-pointer whitespace-nowrap rounded-lg border border-[var(--border)] bg-[var(--surface-card)] px-2.5 py-1.5 t-body-sm font-semibold text-[var(--text)] transition-colors hover:bg-[var(--surface-elevated)] disabled:cursor-not-allowed disabled:opacity-50">
                 Focus Map
               </button>
               <button
                 onClick={() => setDrawerOpen(true)}
                 disabled={!selectedVehicle}
-                className="cursor-pointer whitespace-nowrap rounded-lg bg-cyan-600 px-3 py-1.5 t-body-sm font-semibold text-white shadow-sm transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-50">
+                className="cursor-pointer whitespace-nowrap rounded-lg bg-[var(--accent)] px-3 py-1.5 t-body-sm font-semibold text-[var(--text)] shadow-sm transition-colors hover:bg-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50">
                 AI Detour
               </button>
             </div>
@@ -353,12 +353,12 @@ export default function DashboardPage() {
           <div className="pointer-events-auto flex items-center gap-2">
             <button
               onClick={handleLaunchSimulation}
-              className="py-2 px-3.5 rounded-lg t-body-sm font-semibold bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-2 shadow-lg shadow-cyan-950/40 transition-colors font-mono">
+              className="py-2 px-3.5 rounded-lg t-body-sm font-semibold bg-[var(--accent)] hover:bg-[var(--accent)] text-[var(--text)] flex items-center gap-2 shadow-lg shadow-[var(--surface-inset)] transition-colors font-mono">
               <Play size={13} fill="currentColor" /> Run Autonomous Rescue Demo
             </button>
             <Link
               href="/live-map"
-              className="py-2 px-3 rounded-lg t-body-sm font-medium bg-[var(--surface-card)]/90 hover:bg-[var(--border)] text-slate-300 border border-[var(--border)] flex items-center gap-1.5 transition-colors font-mono">
+              className="py-2 px-3 rounded-lg t-body-sm font-medium bg-[var(--surface-card)] hover:bg-[var(--border)] text-[var(--border-strong)] border border-[var(--border)] flex items-center gap-1.5 transition-colors font-mono">
               <Maximize2 size={12} /> Full Screen Map
             </Link>
           </div>
@@ -369,19 +369,19 @@ export default function DashboardPage() {
           {/* AI Status Bar */}
           <div className="flex items-center gap-2 p-2 rounded-xl glass-panel font-mono t-label">
             <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--surface-card)]">
-              <Bot size={13} className="text-cyan-400" />
-              <span className="text-slate-400">AI STATUS:</span>
-              <span className="text-emerald-400 font-bold">ACTIVE MONITORING</span>
+              <Bot size={13} className="text-[var(--accent)]" />
+              <span className="text-[var(--text-dim)]">AI STATUS:</span>
+              <span className="text-[var(--nominal)] font-bold">ACTIVE MONITORING</span>
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--surface-card)]">
-              <Thermometer size={13} className="text-amber-400" />
-              <span className="text-slate-400">HEAT SHIELD:</span>
-              <span className="text-white font-bold">ARRHENIUS GATED</span>
+              <Thermometer size={13} className="text-[var(--warning)]" />
+              <span className="text-[var(--text-dim)]">HEAT SHIELD:</span>
+              <span className="text-[var(--text)] font-bold">ARRHENIUS GATED</span>
             </div>
           </div>
           {/* Live Telemetry Data Stream */}
           <div className="glass-panel rounded-xl p-3 max-h-40 overflow-hidden">
-            <div className="flex items-center gap-1.5 mb-2 t-micro font-mono text-cyan-400 font-bold uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 mb-2 t-micro font-mono text-[var(--accent)] font-bold uppercase tracking-wider">
               <Activity size={10} className="animate-pulse" />
               <span>LIVE TELEMETRY FEED</span>
             </div>
@@ -419,7 +419,7 @@ function MetricChip({
   pulse?: boolean;
 }) {
   const valueColor =
-    tone === "critical" ? "text-[var(--critical-soft)]" : tone === "warning" ? "text-[var(--warning-soft)]" : "text-white";
+    tone === "critical" ? "text-[var(--critical-soft)]" : tone === "warning" ? "text-[var(--warning-soft)]" : "text-[var(--text)]";
   return (
     <span className="flex items-baseline gap-1.5">
       {pulse && <span className="h-1.5 w-1.5 self-center rounded-full bg-[var(--critical)] animate-ping" />}
