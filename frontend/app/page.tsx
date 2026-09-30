@@ -311,6 +311,7 @@ export default function Home() {
                   muted 
                   loop 
                   playsInline
+                  preload="none"
                   onMouseEnter={e => (e.target as HTMLVideoElement).play().catch(() => {})}
                   onMouseLeave={e => { const vid = (e.target as HTMLVideoElement); vid.pause(); vid.currentTime = 0; }}
                   className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
