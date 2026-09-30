@@ -221,13 +221,13 @@ function IncidentsInner() {
                         const x = 50 + i * 130;
                         return (
                           <g key={alt.cause}>
-                            <motion.line x1="200" y1="86" x2={x + 55} y2="118" stroke={alt.probability > 0.5 ? "#f87171" : "#2b3f57"}
+                            <motion.line x1="200" y1="86" x2={x + 55} y2="118" stroke={alt.probability > 0.5 ? "var(--critical-soft)" : "#2b3f57"}
                                          strokeWidth="1.2" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5, delay: i * 0.1 }} />
                             <motion.rect x={x} y={118 - 10} width="112" height="38" rx="6" fill="#0d1623"
-                                         stroke={alt.probability > 0.5 ? "#f87171" : "#1d2a3a"}
+                                         stroke={alt.probability > 0.5 ? "var(--critical-soft)" : "#1d2a3a"}
                                          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} />
                             <text x={x + 56} y={123} fill="#c9d5e4" fontSize="10" textAnchor="middle">{alt.cause.replace(/_/g, " ")}</text>
-                            <text x={x + 56} y={136 + 4} fill={alt.probability > 0.5 ? "#f87171" : "#93a3b8"} fontSize="10" textAnchor="middle" fontWeight="700">
+                            <text x={x + 56} y={136 + 4} fill={alt.probability > 0.5 ? "var(--critical-soft)" : "#93a3b8"} fontSize="10" textAnchor="middle" fontWeight="700">
                               {Math.round(alt.probability * 100)}%
                             </text>
                           </g>

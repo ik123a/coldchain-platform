@@ -14,10 +14,10 @@ export type MapPoint = {
 };
 
 const TONE: Record<MapPoint["tone"], { dot: string; ring: string }> = {
-  nominal: { dot: "#10b981", ring: "rgba(16,185,129,0.28)" },
-  warning: { dot: "#f59e0b", ring: "rgba(245,158,11,0.28)" },
-  critical: { dot: "#f43f5e", ring: "rgba(244,63,94,0.32)" },
-  selected: { dot: "#38bdf8", ring: "rgba(56,189,248,0.32)" },
+  nominal: { dot: "var(--nominal)", ring: "rgba(16,185,129,0.28)" },
+  warning: { dot: "var(--warning)", ring: "rgba(245,158,11,0.28)" },
+  critical: { dot: "var(--critical)", ring: "rgba(244,63,94,0.32)" },
+  selected: { dot: "var(--accent)", ring: "rgba(56,189,248,0.32)" },
 };
 
 /** Top-down reefer truck pointing north, so CSS rotation equals compass heading. */
@@ -134,7 +134,7 @@ export function MapMarkers({
                     width: 19 * zscale,
                     height: 19 * zscale,
                     transform: `translate(-50%,-50%) rotate(${Number.isFinite(p.heading) ? p.heading! : 0}deg)`,
-                    filter: p.tone === "selected" ? "drop-shadow(0 0 5px #38bdf8)" : undefined,
+                    filter: p.tone === "selected" ? "drop-shadow(0 0 5px var(--accent))" : undefined,
                   }}
                 >
                   <TruckGlyph fill={tone.dot} dim={p.tone === "critical" || p.tone === "warning"} />
@@ -152,7 +152,7 @@ export function MapMarkers({
             )}
             {p.label && (
               <span
-                className="absolute left-1/2 mt-4 -translate-x-1/2 whitespace-nowrap rounded bg-[#080A0F]/85 px-1.5 py-0.5 font-mono t-micro font-bold tracking-tight"
+                className="absolute left-1/2 mt-4 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--canvas)]/85 px-1.5 py-0.5 font-mono t-micro font-bold tracking-tight"
                 style={{ color: tone.dot, textShadow: "0 1px 2px #000" }}
               >
                 {p.label}

@@ -167,7 +167,7 @@ export default function SimulationPage() {
             ].map(s => (
               <div 
                 key={s.num} 
-                className={`p-2 rounded border text-center transition-all ${s.active ? "bg-cyan-950/60 border-cyan-700/60 text-cyan-300 font-bold" : "bg-[#0E121A]/60 border-[#1E2638] text-slate-500"}`}>
+                className={`p-2 rounded border text-center transition-all ${s.active ? "bg-cyan-950/60 border-cyan-700/60 text-cyan-300 font-bold" : "bg-[var(--surface-raised)]/60 border-[var(--border)] text-slate-500"}`}>
                 <div className="t-micro text-slate-400">{s.num}</div>
                 <div className="t-micro mt-0.5">{s.name}</div>
               </div>
@@ -180,8 +180,8 @@ export default function SimulationPage() {
           <BorderBeam
             size={120}
             duration={4}
-            colorFrom={sim && sim.true_temperature > (sim?.zone?.mx || 8) ? "#f43f5e" : "#38bdf8"}
-            colorTo={sim && sim.true_temperature > (sim?.zone?.mx || 8) ? "#f59e0b" : "#10b981"}
+            colorFrom={sim && sim.true_temperature > (sim?.zone?.mx || 8) ? "var(--critical)" : "var(--accent)"}
+            colorTo={sim && sim.true_temperature > (sim?.zone?.mx || 8) ? "var(--warning)" : "var(--nominal)"}
             borderWidth={1.5}
           />
           <div className="flex items-center justify-between mb-1 relative z-10">
@@ -245,7 +245,7 @@ export default function SimulationPage() {
                 </div>
               </div>
             ) : (
-              <div className="p-3 rounded-lg bg-[#0E121A] border border-[#1E2638] t-label text-slate-400 font-mono space-y-1">
+              <div className="p-3 rounded-lg bg-[var(--surface-raised)] border border-[var(--border)] t-label text-slate-400 font-mono space-y-1">
                 <div className="text-slate-300 font-semibold">No incident projected yet</div>
                 <div>Inject a failure (e.g. Compressor failure or Heatwave) above to unlock live dual-trajectory comparison.</div>
               </div>

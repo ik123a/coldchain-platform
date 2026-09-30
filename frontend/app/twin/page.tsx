@@ -88,13 +88,13 @@ export default function Twin() {
 
           {/* infrastructure icons */}
           <g transform="translate(520, 338)">
-            <rect width="110" height="44" rx="6" fill="#0d1623" stroke={sim?.backup_cooling ? "#34d399" : "#1d2a3a"} />
-            <text x="10" y="18" fill={sim?.backup_cooling ? "#34d399" : "#93a3b8"} fontSize="10">Backup: {sim?.backup_cooling ? "ON" : "STANDBY"}</text>
+            <rect width="110" height="44" rx="6" fill="#0d1623" stroke={sim?.backup_cooling ? "var(--nominal-soft)" : "#1d2a3a"} />
+            <text x="10" y="18" fill={sim?.backup_cooling ? "var(--nominal-soft)" : "#93a3b8"} fontSize="10">Backup: {sim?.backup_cooling ? "ON" : "STANDBY"}</text>
             <text x="10" y="30" fill="#5b6b80" fontSize="10">loop B east</text>
           </g>
           <g transform="translate(650, 338)">
-            <rect width="110" height="44" rx="6" fill="#0d1623" stroke={sim?.power_ok === false ? "#f87171" : "#1d2a3a"} />
-            <text x="10" y="18" fill={sim?.power_ok === false ? "#f87171" : "#93a3b8"} fontSize="10">
+            <rect width="110" height="44" rx="6" fill="#0d1623" stroke={sim?.power_ok === false ? "var(--critical-soft)" : "#1d2a3a"} />
+            <text x="10" y="18" fill={sim?.power_ok === false ? "var(--critical-soft)" : "#93a3b8"} fontSize="10">
               Power: {sim?.power_ok === false ? "BATTERY " + Math.round(sim.battery_level) + "%" : "GRID"}
             </text>
             <text x="10" y="30" fill="#5b6b80" fontSize="10">substation S1</text>

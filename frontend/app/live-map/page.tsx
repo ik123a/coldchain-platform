@@ -19,7 +19,7 @@ import { MapMarkers, type MapPoint } from "@/components/ui/map-markers";
 import { MapOverlay, type IncidentPin, type LL, type RouteGeom } from "@/components/ui/map-overlay";
 
 const RISK_COLORS: Record<string, string> = {
-  LOW: "#34d399", MEDIUM: "#fbbf24", HIGH: "#f97316", CRITICAL: "#f87171",
+  LOW: "var(--nominal-soft)", MEDIUM: "var(--warning-soft)", HIGH: "#f97316", CRITICAL: "var(--critical-soft)",
 };
 
 interface VSnap {
@@ -389,7 +389,7 @@ export default function LiveMapPage() {
           },
         },
         layers: [
-          { id: "bg", type: "background", paint: { "background-color": "#080A0F" } },
+          { id: "bg", type: "background", paint: { "background-color": "var(--canvas)" } },
           { id: "esri-base", type: "raster", source: "esriBase" },
           { id: "esri-labels", type: "raster", source: "esriLabels" },
         ],
@@ -411,7 +411,7 @@ export default function LiveMapPage() {
       map.addSource("inc", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({
         id: "wh-c", type: "circle", source: "wh",
-        paint: { "circle-radius": 9, "circle-color": "#38bdf8",
+        paint: { "circle-radius": 9, "circle-color": "var(--accent)",
                  "circle-stroke-color": "#7dd3fc", "circle-stroke-width": 1.5 },
       });
       map.addLayer({
@@ -426,7 +426,7 @@ export default function LiveMapPage() {
       });
       map.addLayer({
         id: "trail-line", type: "line", source: "trail",
-        paint: { "line-color": "#38bdf8", "line-width": 1.6, "line-opacity": 0.4 },
+        paint: { "line-color": "var(--accent)", "line-width": 1.6, "line-opacity": 0.4 },
         layout: { "line-cap": "round" },
       });
       map.addLayer({
@@ -437,12 +437,12 @@ export default function LiveMapPage() {
       });
       map.addLayer({
         id: "inc-pulse", type: "circle", source: "inc",
-        paint: { "circle-radius": 18, "circle-color": "#f8717122",
-                 "circle-stroke-color": "#f87171", "circle-stroke-width": 1.2 },
+        paint: { "circle-radius": 18, "circle-color": "var(--critical-soft)22",
+                 "circle-stroke-color": "var(--critical-soft)", "circle-stroke-width": 1.2 },
       });
       map.addLayer({
         id: "inc-core", type: "circle", source: "inc",
-        paint: { "circle-radius": 6, "circle-color": "#f87171" },
+        paint: { "circle-radius": 6, "circle-color": "var(--critical-soft)" },
       });
       map.addLayer({
         id: "veh-halo", type: "circle", source: "veh",
@@ -599,9 +599,9 @@ export default function LiveMapPage() {
       const pct = snap?.trip?.route_progress_percent ?? 50;
       const { done, todo } = splitRoute(routeData.geometry as [number, number][], pct);
       feats.push({ type: "Feature", geometry: { type: "LineString", coordinates: done },
-                   properties: { color: "#34d399", dash: [1, 0] } });
+                   properties: { color: "var(--nominal-soft)", dash: [1, 0] } });
       feats.push({ type: "Feature", geometry: { type: "LineString", coordinates: todo },
-                   properties: { color: "#38bdf8", dash: [2, 1.5] } });
+                   properties: { color: "var(--accent)", dash: [2, 1.5] } });
     }
     (map.getSource("route") as GeoJSONSource)?.setData({ type: "FeatureCollection", features: feats } as any);
   }, [routeData, vehicles, selected]);
@@ -746,14 +746,14 @@ export default function LiveMapPage() {
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-[#0E121A]/95 backdrop-blur border border-cyan-500/40 shadow-xl flex items-center gap-3 t-body-sm font-mono">
+                  className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-[var(--surface-raised)]/95 backdrop-blur border border-cyan-500/40 shadow-xl flex items-center gap-3 t-body-sm font-mono">
                   <span className="flex items-center gap-1.5 text-cyan-300 font-bold">
                     <Radio size={12} className="text-cyan-400 breathe" />
                     FOLLOWING {following}
                   </span>
                   <button
                     onClick={() => setFollowing(null)}
-                    className="t-micro uppercase font-bold text-slate-400 hover:text-white px-2 py-0.5 rounded bg-[#141B26] border border-[#1E2638] transition-colors">
+                    className="t-micro uppercase font-bold text-slate-400 hover:text-white px-2 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] transition-colors">
                     Stop Following
                   </button>
                 </motion.div>
@@ -796,8 +796,8 @@ export default function LiveMapPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute top-4 right-4 z-30 w-72 bg-[#0E121A]/95 backdrop-blur-md border border-[#1E2638] rounded-xl p-4 shadow-2xl text-slate-100 space-y-2.5">
-                  <div className="flex items-center justify-between border-b border-[#1E2638] pb-2">
+                  className="absolute top-4 right-4 z-30 w-72 bg-[var(--surface-raised)]/95 backdrop-blur-md border border-[var(--border)] rounded-xl p-4 shadow-2xl text-slate-100 space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
                     <b className="t-body font-mono text-white">{selWh.name}</b>
                     <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-white t-body-sm">✕</button>
                   </div>
@@ -873,8 +873,8 @@ export default function LiveMapPage() {
             <BorderBeam
               size={90}
               duration={4}
-              colorFrom={decision.decision === "DIVERT" ? "#f59e0b" : "#38bdf8"}
-              colorTo={decision.decision === "DIVERT" ? "#06b6d4" : "#10b981"}
+              colorFrom={decision.decision === "DIVERT" ? "var(--warning)" : "var(--accent)"}
+              colorTo={decision.decision === "DIVERT" ? "var(--ai)" : "var(--nominal)"}
               borderWidth={1.5}
             />
             <div className="relative z-10">

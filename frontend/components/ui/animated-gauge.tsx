@@ -62,7 +62,7 @@ export function AnimatedGauge({
 
   const isCritical = safeValue >= criticalThreshold;
   const isWarning = safeValue >= warningThreshold && safeValue < criticalThreshold;
-  const statusColor = isCritical ? "#f43f5e" : isWarning ? "#f59e0b" : "#10b981";
+  const statusColor = isCritical ? "var(--critical)" : isWarning ? "var(--warning)" : "var(--nominal)";
   
   const [currentDisplayValue, setCurrentDisplayValue] = useState(Math.round(safeValue));
 

@@ -22,7 +22,7 @@ interface Particle {
 
 export function ParticleField({
   count = 40,
-  color = "#38bdf8",
+  color = "var(--accent)",
   speed = 0.3,
   className,
   opacity = 0.15,

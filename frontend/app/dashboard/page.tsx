@@ -112,7 +112,7 @@ export default function DashboardPage() {
           },
         },
         layers: [
-          { id: "bg", type: "background", paint: { "background-color": "#080A0F" } },
+          { id: "bg", type: "background", paint: { "background-color": "var(--canvas)" } },
           {
             id: "esri-base",
             type: "raster",
@@ -184,10 +184,10 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden bg-[#080A0F] select-none font-sans">
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-[var(--canvas)] select-none font-sans">
       
       {/* 1. SECTION 9 TOP HEADER AREA */}
-      <div className="h-11 shrink-0 px-4 bg-[#0A0D14] border-b border-[#1E2638] flex flex-wrap items-center justify-between gap-3 t-body-sm font-mono z-20">
+      <div className="h-11 shrink-0 px-4 bg-[var(--surface-subtle)] border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-3 t-body-sm font-mono z-20">
         <div className="flex items-center gap-3">
           <div className="t-title m-0 font-bold text-white tracking-wide flex items-center gap-1.5">
             <span className="text-cyan-400">ColdChain Rescue</span>
@@ -215,8 +215,8 @@ export default function DashboardPage() {
       <h1 className="sr-only">Operations dashboard — live fleet overview</h1>
 
       {/* TACTICAL LIVE TELEMETRY MARQUEE (Awwwards Style) */}
-      <div className="h-7 shrink-0 bg-[#06080C] border-b border-[#1E2638] flex items-center overflow-hidden z-20">
-        <div className="shrink-0 px-3 h-full bg-[#0E121A] border-r border-[#1E2638] flex items-center gap-1.5 t-micro font-mono text-cyan-400 font-bold uppercase tracking-wider">
+      <div className="h-7 shrink-0 bg-[#06080C] border-b border-[var(--border)] flex items-center overflow-hidden z-20">
+        <div className="shrink-0 px-3 h-full bg-[var(--surface-raised)] border-r border-[var(--border)] flex items-center gap-1.5 t-micro font-mono text-cyan-400 font-bold uppercase tracking-wider">
           <Activity size={11} className="text-cyan-400 animate-pulse" />
           <span>TELEMETRY STREAM</span>
         </div>
@@ -259,7 +259,7 @@ export default function DashboardPage() {
         <MapMarkers map={mapReady ? mapRef.current : null} points={mapPoints} onSelect={(id) => { if (!id.startsWith("wh-")) setSelectedId(id); }} />
 
         {/* Ambient Particle Field */}
-        <ParticleField count={30} color="#38bdf8" opacity={0.08} speed={0.15} connected className="z-10" />
+        <ParticleField count={30} color="var(--accent)" opacity={0.08} speed={0.15} connected className="z-10" />
 
         {/* Simulated Heatwave Weather Effect */}
         <WeatherOverlay condition="heatwave" intensity={0.3} className="z-10" />
@@ -271,14 +271,14 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-[#0E121A]/95 backdrop-blur border border-cyan-500/40 shadow-xl flex items-center gap-3 t-body-sm font-mono">
+              className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-[var(--surface-raised)]/95 backdrop-blur border border-cyan-500/40 shadow-xl flex items-center gap-3 t-body-sm font-mono">
               <span className="flex items-center gap-1.5 text-cyan-300 font-bold">
                 <Radio size={12} className="text-cyan-400 animate-pulse" />
                 FOLLOWING {trackingId}
               </span>
               <button
                 onClick={() => setTrackingId(null)}
-                className="t-micro uppercase font-bold text-slate-400 hover:text-white px-2 py-0.5 rounded bg-[#141B26] border border-[#1E2638] transition-colors cursor-pointer">
+                className="t-micro uppercase font-bold text-slate-400 hover:text-white px-2 py-0.5 rounded bg-[var(--surface-card)] border border-[var(--border)] transition-colors cursor-pointer">
                 Stop Following
               </button>
             </motion.div>
@@ -303,8 +303,8 @@ export default function DashboardPage() {
             <BorderBeam
               size={85}
               duration={3.5}
-              colorFrom="#f43f5e"
-              colorTo="#fbbf24"
+              colorFrom="var(--critical)"
+              colorTo="var(--warning-soft)"
               borderWidth={1.5}
             />
             <div className="relative z-10 flex min-w-0 flex-1 items-center gap-2.5">
@@ -328,8 +328,8 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="relative z-10 flex shrink-0 items-center gap-2">
-              <AnimatedGauge value={coreGaugePct} label="CORE" unit="°C" colorFrom="#10b981" colorTo="#38bdf8" warningThreshold={53} criticalThreshold={67} size={60} />
-              <AnimatedGauge value={cargoHealth} label="CARGO" unit="%" colorFrom="#38bdf8" colorTo="#10b981" warningThreshold={70} criticalThreshold={40} size={60} />
+              <AnimatedGauge value={coreGaugePct} label="CORE" unit="°C" colorFrom="var(--nominal)" colorTo="var(--accent)" warningThreshold={53} criticalThreshold={67} size={60} />
+              <AnimatedGauge value={cargoHealth} label="CARGO" unit="%" colorFrom="var(--accent)" colorTo="var(--nominal)" warningThreshold={70} criticalThreshold={40} size={60} />
             </div>
             <div className="relative z-10 flex shrink-0 items-center gap-2">
               <button
@@ -356,7 +356,7 @@ export default function DashboardPage() {
             </button>
             <Link
               href="/live-map"
-              className="py-2 px-3 rounded-lg t-body-sm font-medium bg-[#141B26]/90 hover:bg-[#1E2638] text-slate-300 border border-[#1E2638] flex items-center gap-1.5 transition-colors font-mono">
+              className="py-2 px-3 rounded-lg t-body-sm font-medium bg-[var(--surface-card)]/90 hover:bg-[var(--border)] text-slate-300 border border-[var(--border)] flex items-center gap-1.5 transition-colors font-mono">
               <Maximize2 size={12} /> Full Screen Map
             </Link>
           </div>
@@ -366,12 +366,12 @@ export default function DashboardPage() {
         <div className="absolute bottom-4 right-4 z-20 hidden lg:flex flex-col gap-2 w-72">
           {/* AI Status Bar */}
           <div className="flex items-center gap-2 p-2 rounded-xl glass-panel font-mono t-label">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#141B26]">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--surface-card)]">
               <Bot size={13} className="text-cyan-400" />
               <span className="text-slate-400">AI STATUS:</span>
               <span className="text-emerald-400 font-bold">ACTIVE MONITORING</span>
             </div>
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#141B26]">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--surface-card)]">
               <Thermometer size={13} className="text-amber-400" />
               <span className="text-slate-400">HEAT SHIELD:</span>
               <span className="text-white font-bold">ARRHENIUS GATED</span>

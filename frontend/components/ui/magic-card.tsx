@@ -44,7 +44,7 @@ export function MagicCard({
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
       className={cn(
-        "group relative isolate overflow-hidden rounded-xl border border-[#1E2638] bg-[#0E121A] transition-colors duration-200 hover:border-[#2D3A52]",
+        "group relative isolate overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] transition-colors duration-200 hover:border-[var(--border-strong)]",
         className
       )}
       style={{

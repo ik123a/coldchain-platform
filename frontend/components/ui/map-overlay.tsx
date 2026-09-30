@@ -7,15 +7,15 @@ export type RouteGeom = { done: LL[]; todo: LL[]; tone: "normal" | "warning" | "
 export type IncidentPin = { id: string; lng: number; lat: number; severity: string; vehicle_id?: string; cause?: string };
 
 const ROUTE_TONE: Record<RouteGeom["tone"], { done: string; todo: string; width: number }> = {
-  normal: { done: "#34d399", todo: "#38bdf8", width: 2.2 },
-  warning: { done: "#fbbf24", todo: "#fbbf24", width: 2.6 },
-  critical: { done: "#f87171", todo: "#f87171", width: 2.8 },
+  normal: { done: "var(--nominal-soft)", todo: "var(--accent)", width: 2.2 },
+  warning: { done: "var(--warning-soft)", todo: "var(--warning-soft)", width: 2.6 },
+  critical: { done: "var(--critical-soft)", todo: "var(--critical-soft)", width: 2.8 },
   reroute: { done: "#a78bfa", todo: "#a78bfa", width: 3 },
-  stale: { done: "#64748b", todo: "#64748b", width: 1.6 },
+  stale: { done: "var(--text-muted)", todo: "var(--text-muted)", width: 1.6 },
 };
 
 const SEV_COLOR: Record<string, string> = {
-  CRITICAL: "#f87171", HIGH: "#fb923c", MEDIUM: "#fbbf24", LOW: "#38bdf8", INFO: "#7dd3fc",
+  CRITICAL: "var(--critical-soft)", HIGH: "#fb923c", MEDIUM: "var(--warning-soft)", LOW: "var(--accent)", INFO: "#7dd3fc",
 };
 
 function project(map: MLMap, path: LL[]): string {

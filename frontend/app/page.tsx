@@ -97,13 +97,13 @@ export default function Home() {
           >
             <source src="/design-references/videos/vid-01-live-map-push.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-gradient-to-b from-[#080A0F]/60 via-[#080A0F]/85 to-[#080A0F]"></div>
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_15%,_#080A0F_80%)]"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[var(--canvas)]/60 via-[var(--canvas)]/85 to-[var(--canvas)]"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_15%,_var(--canvas)_80%)]"></div>
         </div>
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12 relative z-10">
           <div className="flex-1 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0E121A]/90 backdrop-blur-md border border-[#1E2638] t-label font-mono shadow-lg">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-raised)]/90 backdrop-blur-md border border-[var(--border)] t-label font-mono shadow-lg">
               <StatusBeacon status="online" size="sm" />
               <span className="text-slate-400">DIGITAL TWIN 2.0</span>
               <span className="text-slate-600">·</span>
@@ -128,19 +128,19 @@ export default function Home() {
 
               <Link
                 href="/live-map"
-                className="px-6 py-3.5 rounded-xl font-semibold t-body bg-[#141B26] hover:bg-[#1E2638] text-slate-200 border border-[#1E2638] flex items-center gap-2 transition-colors">
+                className="px-6 py-3.5 rounded-xl font-semibold t-body bg-[var(--surface-card)] hover:bg-[var(--border)] text-slate-200 border border-[var(--border)] flex items-center gap-2 transition-colors">
                 <Navigation size={16} className="text-cyan-400" /> Open Live Map
               </Link>
 
               <Link
                 href="/dashboard"
-                className="px-5 py-3.5 rounded-xl font-semibold t-body text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors bg-[#141B26]/80 border border-[#1E2638]">
+                className="px-5 py-3.5 rounded-xl font-semibold t-body text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors bg-[var(--surface-card)]/80 border border-[var(--border)]">
                 <Activity size={16} className="text-cyan-400" /> Command Dashboard <ChevronRight size={14} />
               </Link>
             </div>
 
             {/* Micro Trust & Telemetry Bar */}
-            <div className="flex items-center gap-6 pt-6 t-body-sm text-slate-500 font-mono border-t border-[#1E2638]/70">
+            <div className="flex items-center gap-6 pt-6 t-body-sm text-slate-500 font-mono border-t border-[var(--border)]/70">
               <span className="flex items-center gap-1.5 text-slate-300">
                 <ShieldCheck size={14} className="text-emerald-400" /> 0% Cargo Loss
               </span>
@@ -155,9 +155,9 @@ export default function Home() {
 
           {/* Interactive Floating Telemetry Card (Live Connected with ShineBorder) */}
           <div className="w-full lg:w-96 shrink-0">
-            <div className="relative rounded-2xl bg-[#0E121A]/95 backdrop-blur-md border border-[#1E2638] p-5 shadow-2xl space-y-4 hover:border-cyan-500/40 transition-colors overflow-hidden">
-              <ShineBorder shineColor={["#38bdf8", "#10b981", "#38bdf8"]} borderWidth={1.5} duration={12} />
-              <div className="flex items-center justify-between border-b border-[#1E2638] pb-3">
+            <div className="relative rounded-2xl bg-[var(--surface-raised)]/95 backdrop-blur-md border border-[var(--border)] p-5 shadow-2xl space-y-4 hover:border-cyan-500/40 transition-colors overflow-hidden">
+              <ShineBorder shineColor={["var(--accent)", "var(--nominal)", "var(--accent)"]} borderWidth={1.5} duration={12} />
+              <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
                 <div className="flex items-center gap-2">
                   <span className={`w-2.5 h-2.5 rounded-full ${liveTruck?.status === "CRITICAL" ? "bg-rose-400 animate-ping" : liveTruck?.status === "AT_RISK" ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`}></span>
                   <span className="t-body-sm font-mono font-bold text-white">{liveTruck?.vehicle_id || "TRUCK-104"}</span>
@@ -169,14 +169,14 @@ export default function Home() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
+                <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)]">
                   <div className="t-micro font-mono text-slate-400">INSIDE CORE</div>
                   <div className={`t-metric-lg font-bold font-mono mt-1 ${truckTemp > 8 ? "text-rose-400" : truckTemp > 6 ? "text-amber-400" : "text-white"}`}>
                     {truckTemp.toFixed(1)}°C
                   </div>
                   <div className="t-body-sm text-emerald-400 font-mono mt-0.5">Target: 2.0–8.0°C</div>
                 </div>
-                <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
+                <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)]">
                   <div className="t-micro font-mono text-slate-400">OUTSIDE AMBIENT</div>
                   <div className="t-metric-lg font-bold font-mono text-amber-400 mt-1">
                     {truckAmbient.toFixed(1)}°C
@@ -215,7 +215,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638] t-body-sm font-mono flex items-center justify-between text-slate-300">
+              <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)] t-body-sm font-mono flex items-center justify-between text-slate-300">
                 <span className="flex items-center gap-1.5">
                   <MapPin size={13} className="text-cyan-400" /> Dest: {truckDest}
                 </span>
@@ -235,7 +235,7 @@ export default function Home() {
 
       {/* 2. THE COLD-CHAIN PROBLEM & ARRHENIUS DEGRADATION KINETICS */}
       <section className="space-y-6">
-        <div className="border-t border-[#1E2638] pt-12">
+        <div className="border-t border-[var(--border)] pt-12">
           <div className="t-body-sm font-mono text-cyan-400 uppercase tracking-wider mb-2">THERMAL PHYSICS ENGINE</div>
           <h2 className="t-metric-lg md:t-display font-bold text-white tracking-tight">
             When ambient heat hits 42°C, traditional logistics fail silently.
@@ -247,7 +247,7 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="bg-[#0E121A] p-6 rounded-2xl border border-[#1E2638] space-y-3">
+          <div className="bg-[var(--surface-raised)] p-6 rounded-2xl border border-[var(--border)] space-y-3">
             <div className="w-10 h-10 rounded-xl bg-amber-950/60 border border-amber-800/40 text-amber-400 grid place-items-center">
               <Flame size={20} />
             </div>
@@ -257,7 +257,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="bg-[#0E121A] p-6 rounded-2xl border border-[#1E2638] space-y-3">
+          <div className="bg-[var(--surface-raised)] p-6 rounded-2xl border border-[var(--border)] space-y-3">
             <div className="w-10 h-10 rounded-xl bg-rose-950/60 border border-rose-800/40 text-rose-400 grid place-items-center">
               <ShieldAlert size={20} />
             </div>
@@ -268,7 +268,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="bg-[#0E121A] p-6 rounded-2xl border border-[#1E2638] space-y-3">
+          <div className="bg-[var(--surface-raised)] p-6 rounded-2xl border border-[var(--border)] space-y-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-950/60 border border-emerald-800/40 text-emerald-400 grid place-items-center">
               <Navigation size={20} />
             </div>
@@ -280,8 +280,8 @@ export default function Home() {
         </div>
 
         {/* Arrhenius Shelf-Life Rate Comparison Matrix */}
-        <div className="bg-[#0E121A] p-6 rounded-2xl border border-[#1E2638] space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1E2638] pb-3">
+        <div className="bg-[var(--surface-raised)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
             <div>
               <span className="t-body-sm font-mono text-cyan-400 font-bold uppercase">KINETICS BENCHMARK</span>
               <h4 className="t-body font-semibold text-white mt-0.5">Thermal Degradation Rate Multiplier vs Temperature</h4>
@@ -292,22 +292,22 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 t-body-sm font-mono">
-            <div className="p-3 rounded-xl bg-[#141B26] border border-emerald-800/40">
+            <div className="p-3 rounded-xl bg-[var(--surface-card)] border border-emerald-800/40">
               <div className="text-slate-400 t-body-sm">4.0°C (NOMINAL)</div>
               <div className="t-metric font-bold text-emerald-400 mt-1">1.0x</div>
               <div className="t-body-sm text-slate-400 mt-1">Baseline shelf-life: 24.0h</div>
             </div>
-            <div className="p-3 rounded-xl bg-[#141B26] border border-amber-800/40">
+            <div className="p-3 rounded-xl bg-[var(--surface-card)] border border-amber-800/40">
               <div className="text-slate-400 t-body-sm">8.0°C (THRESHOLD)</div>
               <div className="t-metric font-bold text-amber-400 mt-1">1.6x</div>
               <div className="t-body-sm text-amber-400/80 mt-1">Safe shelf-life: 14.8h</div>
             </div>
-            <div className="p-3 rounded-xl bg-[#141B26] border border-rose-800/40">
+            <div className="p-3 rounded-xl bg-[var(--surface-card)] border border-rose-800/40">
               <div className="text-slate-400 t-body-sm">12.0°C (BREACH)</div>
               <div className="t-metric font-bold text-rose-400 mt-1">4.2x</div>
               <div className="t-body-sm text-rose-400/80 mt-1">Critical threshold: 5.7h</div>
             </div>
-            <div className="p-3 rounded-xl bg-[#141B26] border border-rose-950 bg-rose-950/20">
+            <div className="p-3 rounded-xl bg-[var(--surface-card)] border border-rose-950 bg-rose-950/20">
               <div className="text-slate-400 t-body-sm">18.0°C (EXCURSION)</div>
               <div className="t-metric font-bold text-rose-500 mt-1">11.8x</div>
               <div className="t-body-sm text-rose-500 mt-1">Catastrophic loss in &lt;2.0h</div>
@@ -318,7 +318,7 @@ export default function Home() {
 
       {/* 3. WHAT-IF TRAJECTORY BIFURCATION */}
       <section className="space-y-6">
-        <div className="border-t border-[#1E2638] pt-12">
+        <div className="border-t border-[var(--border)] pt-12">
           <div className="t-body-sm font-mono text-cyan-400 uppercase tracking-wider mb-2">DUAL-TRAJECTORY FORECASTING</div>
           <h2 className="t-metric-lg font-bold text-white tracking-tight">
             Compare the Status Quo vs. Autonomous Rescue
@@ -330,7 +330,7 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Future A: Do Nothing */}
-          <div className="bg-[#0E121A] p-6 rounded-2xl border border-rose-900/40 space-y-4">
+          <div className="bg-[var(--surface-raised)] p-6 rounded-2xl border border-rose-900/40 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
@@ -345,7 +345,7 @@ export default function Home() {
               Vehicle continues on original 42-minute route to Phoenix Central. Core temperature climbs unchecked past the 8.0°C safe threshold within 12 minutes.
             </p>
 
-            <div className="grid grid-cols-3 gap-3 t-body-sm font-mono bg-[#141B26] p-3 rounded-xl border border-[#1E2638]">
+            <div className="grid grid-cols-3 gap-3 t-body-sm font-mono bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
               <div>
                 <div className="t-micro text-slate-500">PEAK TEMP</div>
                 <div className="t-title font-bold text-rose-400 mt-0.5">14.8°C</div>
@@ -362,7 +362,7 @@ export default function Home() {
           </div>
 
           {/* Future B: Autonomous Detour */}
-          <div className="bg-[#0E121A] p-6 rounded-2xl border border-emerald-900/40 space-y-4">
+          <div className="bg-[var(--surface-raised)] p-6 rounded-2xl border border-emerald-900/40 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
@@ -377,7 +377,7 @@ export default function Home() {
               Supervisor diverts to ColdHub South (ETA 9.2 min). Pre-chill bay 03 auto-reserved at 2.0°C. Secondary reefer docked before thermal breach threshold.
             </p>
 
-            <div className="grid grid-cols-3 gap-3 t-body-sm font-mono bg-[#141B26] p-3 rounded-xl border border-[#1E2638]">
+            <div className="grid grid-cols-3 gap-3 t-body-sm font-mono bg-[var(--surface-card)] p-3 rounded-xl border border-[var(--border)]">
               <div>
                 <div className="t-micro text-slate-500">RECOVERY TEMP</div>
                 <div className="t-title font-bold text-emerald-400 mt-0.5">5.2°C</div>
@@ -396,7 +396,7 @@ export default function Home() {
       </section>
 
       {/* 4. MULTI-AGENT RESCUE PIPELINE */}
-      <section className="bg-[#0E121A] rounded-2xl border border-[#1E2638] p-8 space-y-6">
+      <section className="bg-[var(--surface-raised)] rounded-2xl border border-[var(--border)] p-8 space-y-6">
         <div>
           <div className="t-body-sm font-mono text-cyan-400 uppercase tracking-wider mb-1">DECISION ARCHITECTURE</div>
           <h3 className="t-metric-lg font-bold text-white">The 8-Stage Autonomous Rescue Loop</h3>
@@ -414,7 +414,7 @@ export default function Home() {
             { stage: "07", name: "REROUTE", desc: "Detour active", col: "text-emerald-400" },
             { stage: "08", name: "VERIFY", desc: "0% loss verified", col: "text-emerald-400" },
           ].map(s => (
-            <div key={s.stage} className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638] space-y-1">
+            <div key={s.stage} className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)] space-y-1">
               <div className="t-micro text-slate-500">{s.stage}</div>
               <div className={`font-bold ${s.col}`}>{s.name}</div>
               <div className="t-micro text-slate-400 truncate">{s.desc}</div>
@@ -425,7 +425,7 @@ export default function Home() {
 
       {/* 5. AUTONOMOUS MISSION & RESCUE SCENARIOS */}
       <section className="space-y-6">
-        <div className="border-t border-[#1E2638] pt-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="border-t border-[var(--border)] pt-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <div className="t-body-sm font-mono text-cyan-400 uppercase tracking-wider mb-2 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
@@ -449,7 +449,7 @@ export default function Home() {
           {sampleVideos.map(v => (
             <div 
               key={v.id}
-              className="group relative rounded-xl bg-[#0E121A] border border-[#1E2638] overflow-hidden hover:border-cyan-500/50 transition-all card-lift">
+              className="group relative rounded-xl bg-[var(--surface-raised)] border border-[var(--border)] overflow-hidden hover:border-cyan-500/50 transition-all card-lift">
               <div className="relative aspect-video bg-black overflow-hidden">
                 <video 
                   src={v.src}
@@ -478,7 +478,7 @@ export default function Home() {
       </section>
 
       {/* 6. CALL TO ACTION FOOTER */}
-      <section className="bg-gradient-to-r from-[#0E121A] to-[#141B26] rounded-2xl border border-[#1E2638] p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      <section className="bg-gradient-to-r from-[var(--surface-raised)] to-[var(--surface-card)] rounded-2xl border border-[var(--border)] p-8 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-2 t-body-sm font-mono text-cyan-400">
             <Sparkles size={14} /> READY FOR AUTONOMOUS DEMO
@@ -497,7 +497,7 @@ export default function Home() {
           </button>
           <Link
             href="/simulation"
-            className="px-5 py-3 rounded-xl t-body-sm font-semibold bg-[#1C2433] hover:bg-[#253043] text-slate-200 border border-[#1E2638] transition-colors">
+            className="px-5 py-3 rounded-xl t-body-sm font-semibold bg-[var(--surface-elevated)] hover:bg-[#253043] text-slate-200 border border-[var(--border)] transition-colors">
             Simulation Controls
           </Link>
         </div>

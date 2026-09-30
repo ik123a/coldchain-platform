@@ -28,7 +28,7 @@ export default function DesignReferenceBoardPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-24 text-slate-100">
       {/* Hero Header */}
-      <div className="border-b border-[#1E2638] pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="border-b border-[var(--border)] pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2.5 py-0.5 rounded t-label font-semibold tracking-wider bg-cyan-950/80 text-cyan-400 border border-cyan-800/60">
@@ -48,7 +48,7 @@ export default function DesignReferenceBoardPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/design-references"
-            className="px-3.5 py-2 rounded-lg t-body-sm font-semibold bg-[#141B26] hover:bg-[#1E2638] text-slate-200 border border-[#1E2638] flex items-center gap-1.5 transition-colors">
+            className="px-3.5 py-2 rounded-lg t-body-sm font-semibold bg-[var(--surface-card)] hover:bg-[var(--border)] text-slate-200 border border-[var(--border)] flex items-center gap-1.5 transition-colors">
             <Layers size={13} /> View Reference Library
           </Link>
           <Link
@@ -60,7 +60,7 @@ export default function DesignReferenceBoardPage() {
       </div>
 
       {/* Navigation Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-[#1E2638]/60 scrollbar-none">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-[var(--border)]/60 scrollbar-none">
         {SECTIONS.map(s => {
           const Icon = s.icon;
           const isActive = activeSection === s.id;
@@ -71,7 +71,7 @@ export default function DesignReferenceBoardPage() {
               className={`px-3 py-1.5 rounded-lg t-body-sm font-medium flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 isActive 
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm" 
-                  : "text-slate-400 hover:text-slate-200 hover:bg-[#0E121A]"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-[var(--surface-raised)]"
               }`}>
               <Icon size={13} /> {s.label}
             </button>
@@ -83,7 +83,7 @@ export default function DesignReferenceBoardPage() {
       {activeSection === "primary" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-[#0E121A] rounded-2xl border border-[#1E2638] p-6 space-y-5">
+            <div className="lg:col-span-2 bg-[var(--surface-raised)] rounded-2xl border border-[var(--border)] p-6 space-y-5">
               <div className="t-body-sm font-mono text-cyan-400 uppercase tracking-wider">AESTHETIC PILLARS</div>
               <h2 className="t-metric-lg font-bold text-white tracking-tight leading-snug">
                 "Simple interface, sophisticated behavior."
@@ -95,19 +95,19 @@ export default function DesignReferenceBoardPage() {
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
+                <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)]">
                   <div className="t-micro font-mono text-slate-400">CANVAS TONE</div>
-                  <div className="t-body-sm font-bold text-white mt-1">#080A0F Dark</div>
+                  <div className="t-body-sm font-bold text-white mt-1">var(--canvas) Dark</div>
                 </div>
-                <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
+                <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)]">
                   <div className="t-micro font-mono text-slate-400">MAP WEIGHT</div>
                   <div className="t-body-sm font-bold text-cyan-400 mt-1">70%+ Dominant</div>
                 </div>
-                <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
+                <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)]">
                   <div className="t-micro font-mono text-slate-400">TYPOGRAPHY</div>
                   <div className="t-body-sm font-bold text-white mt-1">Inter + Monospace</div>
                 </div>
-                <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
+                <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)]">
                   <div className="t-micro font-mono text-slate-400">MOTION ROLE</div>
                   <div className="t-body-sm font-bold text-emerald-400 mt-1">State & Direction</div>
                 </div>
@@ -115,14 +115,14 @@ export default function DesignReferenceBoardPage() {
             </div>
 
             {/* Anti-Slop Discipline Card */}
-            <div className="bg-[#0E121A] rounded-2xl border border-[#1E2638] p-6 space-y-4">
+            <div className="bg-[var(--surface-raised)] rounded-2xl border border-[var(--border)] p-6 space-y-4">
               <div className="t-body-sm font-mono text-rose-400 uppercase tracking-wider flex items-center gap-1">
                 <ShieldCheck size={14} /> ANTI-AI-SLOP DISCIPLINE
               </div>
               <ul className="space-y-2.5 t-body-sm text-slate-300">
                 <li className="flex items-start gap-2">
                   <span className="text-emerald-400 font-bold">✓</span>
-                  <span>Restrained dark charcoal surfaces (#080A0F, #0E121A)</span>
+                  <span>Restrained dark charcoal surfaces (var(--canvas), var(--surface-raised))</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-emerald-400 font-bold">✓</span>
@@ -152,8 +152,8 @@ export default function DesignReferenceBoardPage() {
           <div className="space-y-4">
             <h3 className="t-body font-mono text-slate-400 uppercase tracking-wider">CORE VISUAL REFERENCE ANCHORS</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div className="bg-[#0E121A] rounded-xl border border-[#1E2638] overflow-hidden group">
-                <div className="aspect-video bg-[#080A0F] overflow-hidden">
+              <div className="bg-[var(--surface-raised)] rounded-xl border border-[var(--border)] overflow-hidden group">
+                <div className="aspect-video bg-[var(--canvas)] overflow-hidden">
                   <img 
                     src="/design-references/images/hero-01-editorial-landing.png" 
                     alt="Editorial Hero"
@@ -167,8 +167,8 @@ export default function DesignReferenceBoardPage() {
                 </div>
               </div>
 
-              <div className="bg-[#0E121A] rounded-xl border border-[#1E2638] overflow-hidden group">
-                <div className="aspect-video bg-[#080A0F] overflow-hidden">
+              <div className="bg-[var(--surface-raised)] rounded-xl border border-[var(--border)] overflow-hidden group">
+                <div className="aspect-video bg-[var(--canvas)] overflow-hidden">
                   <img 
                     src="/design-references/images/map-01-dark-command-center.png" 
                     alt="Map Architecture"
@@ -182,8 +182,8 @@ export default function DesignReferenceBoardPage() {
                 </div>
               </div>
 
-              <div className="bg-[#0E121A] rounded-xl border border-[#1E2638] overflow-hidden group">
-                <div className="aspect-video bg-[#080A0F] overflow-hidden">
+              <div className="bg-[var(--surface-raised)] rounded-xl border border-[var(--border)] overflow-hidden group">
+                <div className="aspect-video bg-[var(--canvas)] overflow-hidden">
                   <img 
                     src="/design-references/images/ai-01-operations-panel.png" 
                     alt="AI Operations"
@@ -204,7 +204,7 @@ export default function DesignReferenceBoardPage() {
       {/* Section 2: Map Architecture */}
       {activeSection === "map" && (
         <div className="space-y-6">
-          <div className="bg-[#0E121A] p-6 rounded-2xl border border-[#1E2638] grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+          <div className="bg-[var(--surface-raised)] p-6 rounded-2xl border border-[var(--border)] grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
             <div className="space-y-4">
               <span className="px-2 py-0.5 rounded t-label font-mono bg-cyan-950 text-cyan-400 border border-cyan-800">
                 MAP DESIGN SPECIFICATION
@@ -212,7 +212,7 @@ export default function DesignReferenceBoardPage() {
               <h2 className="t-metric-lg font-bold text-white">70%+ Map-Dominant Operational Canvas</h2>
               <p className="t-body-sm text-slate-300 leading-relaxed">
                 The map is the primary visual surface. Standard views do not pinch the map into an arbitrary card. 
-                Instead, map tiles render in deep charcoal (`#080A0F`), road vectors remain subdued, and active refrigerated trucks move smoothly along routes with heading orientation.
+                Instead, map tiles render in deep charcoal (`var(--canvas)`), road vectors remain subdued, and active refrigerated trucks move smoothly along routes with heading orientation.
               </p>
               <div className="space-y-2 t-body-sm text-slate-300">
                 <div className="flex items-center gap-2">
@@ -229,7 +229,7 @@ export default function DesignReferenceBoardPage() {
                 </div>
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-[#1E2638] shadow-2xl">
+            <div className="rounded-xl overflow-hidden border border-[var(--border)] shadow-2xl">
               <img 
                 src="/design-references/images/map-02-selected-truck.png" 
                 alt="Selected Vehicle Map Focus" 
@@ -239,24 +239,24 @@ export default function DesignReferenceBoardPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="bg-[#0E121A] p-5 rounded-xl border border-[#1E2638]">
+            <div className="bg-[var(--surface-raised)] p-5 rounded-xl border border-[var(--border)]">
               <h4 className="t-body font-bold text-white mb-2">Emergency Rerouting Layer</h4>
               <img 
                 src="/design-references/images/map-04-emergency-rerouting.png" 
                 alt="Emergency Rerouting" 
-                className="w-full h-48 object-cover rounded-lg border border-[#1E2638] mb-3"
+                className="w-full h-48 object-cover rounded-lg border border-[var(--border)] mb-3"
               />
               <p className="t-body-sm text-slate-400 leading-relaxed">
                 Old obstructed corridor fades to dashed slate. The relief corridor to the rescue hub draws with high-contrast emerald stroke.
               </p>
             </div>
 
-            <div className="bg-[#0E121A] p-5 rounded-xl border border-[#1E2638]">
+            <div className="bg-[var(--surface-raised)] p-5 rounded-xl border border-[var(--border)]">
               <h4 className="t-body font-bold text-white mb-2">Selected Vehicle Floating HUD</h4>
               <img 
                 src="/design-references/images/temp-01-telemetry-panel.png" 
                 alt="Telemetry Panel" 
-                className="w-full h-48 object-cover rounded-lg border border-[#1E2638] mb-3"
+                className="w-full h-48 object-cover rounded-lg border border-[var(--border)] mb-3"
               />
               <p className="t-body-sm text-slate-400 leading-relaxed">
                 Compact 340px inspector displaying outside temperature (41.8°C), inside core (5.2°C), target range (2-8°C), and kinetic RSL countdown.
@@ -270,10 +270,10 @@ export default function DesignReferenceBoardPage() {
       {activeSection === "telemetry" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            <div className="bg-[#0E121A] p-5 rounded-xl border border-[#1E2638] space-y-3">
+            <div className="bg-[var(--surface-raised)] p-5 rounded-xl border border-[var(--border)] space-y-3">
               <div className="t-micro font-mono text-cyan-400">TELEMETRY PANEL</div>
               <h3 className="t-title font-bold text-white">Minimalist Sensor Display</h3>
-              <div className="rounded-lg overflow-hidden border border-[#1E2638]">
+              <div className="rounded-lg overflow-hidden border border-[var(--border)]">
                 <img src="/design-references/images/temp-01-telemetry-panel.png" alt="Telemetry" className="w-full h-auto" />
               </div>
               <p className="t-body-sm text-slate-400">
@@ -281,10 +281,10 @@ export default function DesignReferenceBoardPage() {
               </p>
             </div>
 
-            <div className="bg-[#0E121A] p-5 rounded-xl border border-[#1E2638] space-y-3">
+            <div className="bg-[var(--surface-raised)] p-5 rounded-xl border border-[var(--border)] space-y-3">
               <div className="t-micro font-mono text-amber-400">TEMPERATURE CURVES</div>
               <h3 className="t-title font-bold text-white">Inside vs. Outside Spectrum</h3>
-              <div className="rounded-lg overflow-hidden border border-[#1E2638]">
+              <div className="rounded-lg overflow-hidden border border-[var(--border)]">
                 <img src="/design-references/images/temp-02-temp-graph.png" alt="Temp Graph" className="w-full h-auto" />
               </div>
               <p className="t-body-sm text-slate-400">
@@ -292,10 +292,10 @@ export default function DesignReferenceBoardPage() {
               </p>
             </div>
 
-            <div className="bg-[#0E121A] p-5 rounded-xl border border-[#1E2638] space-y-3">
+            <div className="bg-[var(--surface-raised)] p-5 rounded-xl border border-[var(--border)] space-y-3">
               <div className="t-micro font-mono text-emerald-400">STABILIZATION</div>
               <h3 className="t-title font-bold text-white">Verified Thermal Recovery</h3>
-              <div className="rounded-lg overflow-hidden border border-[#1E2638]">
+              <div className="rounded-lg overflow-hidden border border-[var(--border)]">
                 <img src="/design-references/images/temp-04-recovery-curve.png" alt="Recovery Curve" className="w-full h-auto" />
               </div>
               <p className="t-body-sm text-slate-400">
@@ -309,7 +309,7 @@ export default function DesignReferenceBoardPage() {
       {/* Section 4: AI Operations */}
       {activeSection === "ai" && (
         <div className="space-y-6">
-          <div className="bg-[#0E121A] p-6 rounded-2xl border border-[#1E2638] grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+          <div className="bg-[var(--surface-raised)] p-6 rounded-2xl border border-[var(--border)] grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
             <div className="space-y-4">
               <span className="px-2 py-0.5 rounded t-label font-mono bg-cyan-950 text-cyan-400 border border-cyan-800">
                 AI REASONING SPECIFICATION
@@ -319,12 +319,12 @@ export default function DesignReferenceBoardPage() {
                 The AI does not speak like a playful chatbot or present glowing sci-fi brains. 
                 It communicates with the calm precision of an aerospace flight controller or cold-chain operations analyst.
               </p>
-              <div className="bg-[#141B26] p-4 rounded-xl border border-[#1E2638] font-mono t-body-sm text-slate-300 space-y-2">
+              <div className="bg-[var(--surface-card)] p-4 rounded-xl border border-[var(--border)] font-mono t-body-sm text-slate-300 space-y-2">
                 <div className="text-emerald-400 font-semibold">● DETERMINISTIC BY DEFAULT · LLM ENHANCED</div>
                 <div className="text-slate-400">"Temperature is rising at +0.28°C/min. At current trajectory, threshold breach estimated in 7m 42s. 5 facilities evaluated. Diversion to Hub Beta provides lowest risk resolution."</div>
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-[#1E2638] shadow-2xl">
+            <div className="rounded-xl overflow-hidden border border-[var(--border)] shadow-2xl">
               <img src="/design-references/images/ai-01-operations-panel.png" alt="AI Operations Panel" className="w-full h-auto" />
             </div>
           </div>
@@ -335,63 +335,63 @@ export default function DesignReferenceBoardPage() {
       {activeSection === "tokens" && (
         <div className="space-y-6">
           {/* Colors */}
-          <div className="bg-[#0E121A] p-6 rounded-2xl border border-[#1E2638] space-y-4">
+          <div className="bg-[var(--surface-raised)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
             <h3 className="t-body font-mono text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
               <Palette size={14} /> COLOR SYSTEM TOKENS
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-              <div className="bg-[#080A0F] border border-[#1E2638] p-3 rounded-lg">
-                <div className="w-full h-8 rounded bg-[#080A0F] border border-white/10 mb-2"></div>
-                <div className="t-body-sm font-bold text-white">#080A0F</div>
+              <div className="bg-[var(--canvas)] border border-[var(--border)] p-3 rounded-lg">
+                <div className="w-full h-8 rounded bg-[var(--canvas)] border border-white/10 mb-2"></div>
+                <div className="t-body-sm font-bold text-white">var(--canvas)</div>
                 <div className="t-micro text-slate-400 font-mono">Surface Canvas</div>
               </div>
-              <div className="bg-[#0E121A] border border-[#1E2638] p-3 rounded-lg">
-                <div className="w-full h-8 rounded bg-[#0E121A] border border-white/10 mb-2"></div>
-                <div className="t-body-sm font-bold text-white">#0E121A</div>
+              <div className="bg-[var(--surface-raised)] border border-[var(--border)] p-3 rounded-lg">
+                <div className="w-full h-8 rounded bg-[var(--surface-raised)] border border-white/10 mb-2"></div>
+                <div className="t-body-sm font-bold text-white">var(--surface-raised)</div>
                 <div className="t-micro text-slate-400 font-mono">Surface Subtle</div>
               </div>
-              <div className="bg-[#141B26] border border-[#1E2638] p-3 rounded-lg">
-                <div className="w-full h-8 rounded bg-[#141B26] border border-white/10 mb-2"></div>
-                <div className="t-body-sm font-bold text-white">#141B26</div>
+              <div className="bg-[var(--surface-card)] border border-[var(--border)] p-3 rounded-lg">
+                <div className="w-full h-8 rounded bg-[var(--surface-card)] border border-white/10 mb-2"></div>
+                <div className="t-body-sm font-bold text-white">var(--surface-card)</div>
                 <div className="t-micro text-slate-400 font-mono">Surface Card</div>
               </div>
-              <div className="bg-[#10B981]/10 border border-emerald-500/30 p-3 rounded-lg">
-                <div className="w-full h-8 rounded bg-[#10B981] mb-2"></div>
-                <div className="t-body-sm font-bold text-emerald-400">#10B981</div>
+              <div className="bg-[var(--nominal)]/10 border border-emerald-500/30 p-3 rounded-lg">
+                <div className="w-full h-8 rounded bg-[var(--nominal)] mb-2"></div>
+                <div className="t-body-sm font-bold text-emerald-400">var(--nominal)</div>
                 <div className="t-micro text-emerald-300 font-mono">Nominal / Recovery</div>
               </div>
-              <div className="bg-[#F59E0B]/10 border border-amber-500/30 p-3 rounded-lg">
-                <div className="w-full h-8 rounded bg-[#F59E0B] mb-2"></div>
-                <div className="t-body-sm font-bold text-amber-400">#F59E0B</div>
+              <div className="bg-[var(--warning)]/10 border border-amber-500/30 p-3 rounded-lg">
+                <div className="w-full h-8 rounded bg-[var(--warning)] mb-2"></div>
+                <div className="t-body-sm font-bold text-amber-400">var(--warning)</div>
                 <div className="t-micro text-amber-300 font-mono">Warning / Heat</div>
               </div>
-              <div className="bg-[#F43F5E]/10 border border-rose-500/30 p-3 rounded-lg">
-                <div className="w-full h-8 rounded bg-[#F43F5E] mb-2"></div>
-                <div className="t-body-sm font-bold text-rose-400">#F43F5E</div>
+              <div className="bg-[var(--critical)]/10 border border-rose-500/30 p-3 rounded-lg">
+                <div className="w-full h-8 rounded bg-[var(--critical)] mb-2"></div>
+                <div className="t-body-sm font-bold text-rose-400">var(--critical)</div>
                 <div className="t-micro text-rose-300 font-mono">Critical Excursion</div>
               </div>
             </div>
           </div>
 
           {/* Typography Scale */}
-          <div className="bg-[#0E121A] p-6 rounded-2xl border border-[#1E2638] space-y-4">
+          <div className="bg-[var(--surface-raised)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
             <h3 className="t-body font-mono text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
               <Type size={14} /> TYPOGRAPHY SCALE (INTER & TABULAR MONO)
             </h3>
             <div className="space-y-3 font-sans">
-              <div className="flex items-baseline justify-between border-b border-[#1E2638] pb-2">
+              <div className="flex items-baseline justify-between border-b border-[var(--border)] pb-2">
                 <span className="t-display font-bold tracking-tight text-white">Keep every shipment inside the safe zone.</span>
                 <span className="t-body-sm font-mono text-slate-500">Display Hero (56px)</span>
               </div>
-              <div className="flex items-baseline justify-between border-b border-[#1E2638] pb-2">
+              <div className="flex items-baseline justify-between border-b border-[var(--border)] pb-2">
                 <span className="t-metric-lg font-bold text-white tracking-tight">Live Fleet Operations Command Center</span>
                 <span className="t-body-sm font-mono text-slate-500">Section Headline (28px)</span>
               </div>
-              <div className="flex items-baseline justify-between border-b border-[#1E2638] pb-2">
+              <div className="flex items-baseline justify-between border-b border-[var(--border)] pb-2">
                 <span className="t-metric-lg font-bold font-mono text-emerald-400">4.8°C · ETA 14m · 42 km/h</span>
                 <span className="t-body-sm font-mono text-slate-500">Telemetry Metric (36px Tabular)</span>
               </div>
-              <div className="flex items-baseline justify-between border-b border-[#1E2638] pb-2">
+              <div className="flex items-baseline justify-between border-b border-[var(--border)] pb-2">
                 <span className="t-body text-slate-300">Compressor wear 84%. Backup staging dock reserved at Hub Alpha.</span>
                 <span className="t-body-sm font-mono text-slate-500">Body Primary (14px)</span>
               </div>
@@ -412,8 +412,8 @@ export default function DesignReferenceBoardPage() {
               { id: "vid-07-recovery-transition", title: "Thermal Stabilization", duration: "8s", desc: "Temperature descending back into safe band." },
               { id: "vid-15-full-autonomous-demo", title: "Full Autonomous Demo", duration: "8s", desc: "Anomaly -> Detection -> Reroute -> Recovery sequence." }
             ].map(v => (
-              <div key={v.id} className="bg-[#0E121A] rounded-xl border border-[#1E2638] overflow-hidden group">
-                <div className="aspect-video bg-[#080A0F] relative">
+              <div key={v.id} className="bg-[var(--surface-raised)] rounded-xl border border-[var(--border)] overflow-hidden group">
+                <div className="aspect-video bg-[var(--canvas)] relative">
                   <video 
                     src={`/design-references/videos/${v.id}.mp4`}
                     poster={`/design-references/videos/${v.id}-thumb.png`}
@@ -443,7 +443,7 @@ export default function DesignReferenceBoardPage() {
 
       {/* Other sections fallback preview */}
       {["vehicles", "routes", "incidents", "warehouses", "mobile"].includes(activeSection) && (
-        <div className="bg-[#0E121A] p-8 rounded-2xl border border-[#1E2638] text-center space-y-4">
+        <div className="bg-[var(--surface-raised)] p-8 rounded-2xl border border-[var(--border)] text-center space-y-4">
           <div className="w-12 h-12 rounded-xl bg-cyan-950/60 border border-cyan-800/40 text-cyan-400 grid place-items-center mx-auto">
             <Compass size={24} />
           </div>

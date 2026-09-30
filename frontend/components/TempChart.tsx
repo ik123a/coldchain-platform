@@ -4,8 +4,8 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { Reading } from "@/lib/store";
 
 const TEMP_COLOR = "#7dd3fc";
-const RISK_COLOR = "#fbbf24";
-const SAFE_COLOR = "#34d399";
+const RISK_COLOR = "var(--warning-soft)";
+const SAFE_COLOR = "var(--nominal-soft)";
 
 export function TempChart({ history, zone }: { history: Reading[]; zone: any }) {
   const data = history.slice(-140).map(r => ({
@@ -27,7 +27,7 @@ export function TempChart({ history, zone }: { history: Reading[]; zone: any }) 
           formatter={(v: any, n: any) => n === "risk" ? [v, "risk"] : [`${v}°C`, "temp"]}
         />
         <ReferenceArea y1={mn} y2={mx} fill={SAFE_COLOR} fillOpacity={0.05} strokeOpacity={0} />
-        <ReferenceLine y={mx} stroke="#f87171" strokeDasharray="4 3" strokeWidth={1} label={{ value: "max", fill: "#f87171", fontSize: 9, position: "insideTopRight" }} />
+        <ReferenceLine y={mx} stroke="#f87171" strokeDasharray="4 3" strokeWidth={1} label={{ value: "max", fill: "var(--critical-soft)", fontSize: 9, position: "insideTopRight" }} />
         <ReferenceLine y={mn} stroke="#f8734d" strokeDasharray="4 3" strokeWidth={1} label={{ value: "min", fill: "#f8734d", fontSize: 9, position: "insideBottomRight" }} />
         <Line type="monotone" dataKey="temp" stroke={TEMP_COLOR} strokeWidth={2} dot={false} isAnimationActive={true} animationDuration={300} />
         <Line type="monotone" dataKey="risk" stroke={RISK_COLOR} strokeWidth={1} dot={false} isAnimationActive={true} animationDuration={300} opacity={0.55} />

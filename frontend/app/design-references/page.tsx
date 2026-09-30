@@ -133,7 +133,7 @@ export default function DesignReferencesPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20 text-slate-100">
       {/* Header Banner */}
-      <div className="border-b border-[#1E2638] pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="border-b border-[var(--border)] pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2.5 py-0.5 rounded t-label font-semibold tracking-wider bg-cyan-950/80 text-cyan-400 border border-cyan-800/60">
@@ -150,27 +150,27 @@ export default function DesignReferencesPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 bg-[#0E121A] border border-[#1E2638] p-1 rounded-lg">
+        <div className="flex items-center gap-2 bg-[var(--surface-raised)] border border-[var(--border)] p-1 rounded-lg">
           <button 
             onClick={() => setActiveTab("all")}
-            className={`px-3 py-1.5 rounded t-body-sm font-medium transition-colors ${activeTab === "all" ? "bg-[#1C2433] text-white" : "text-slate-400 hover:text-slate-200"}`}>
+            className={`px-3 py-1.5 rounded t-body-sm font-medium transition-colors ${activeTab === "all" ? "bg-[var(--surface-elevated)] text-white" : "text-slate-400 hover:text-slate-200"}`}>
             All Assets ({items.length})
           </button>
           <button 
             onClick={() => setActiveTab("images")}
-            className={`px-3 py-1.5 rounded t-body-sm font-medium transition-colors flex items-center gap-1.5 ${activeTab === "images" ? "bg-[#1C2433] text-white" : "text-slate-400 hover:text-slate-200"}`}>
+            className={`px-3 py-1.5 rounded t-body-sm font-medium transition-colors flex items-center gap-1.5 ${activeTab === "images" ? "bg-[var(--surface-elevated)] text-white" : "text-slate-400 hover:text-slate-200"}`}>
             <ImageIcon size={13} /> Still References
           </button>
           <button 
             onClick={() => setActiveTab("videos")}
-            className={`px-3 py-1.5 rounded t-body-sm font-medium transition-colors flex items-center gap-1.5 ${activeTab === "videos" ? "bg-[#1C2433] text-white" : "text-slate-400 hover:text-slate-200"}`}>
+            className={`px-3 py-1.5 rounded t-body-sm font-medium transition-colors flex items-center gap-1.5 ${activeTab === "videos" ? "bg-[var(--surface-elevated)] text-white" : "text-slate-400 hover:text-slate-200"}`}>
             <Video size={13} /> Veo Motion
           </button>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#0E121A] p-3 rounded-lg border border-[#1E2638]">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[var(--surface-raised)] p-3 rounded-lg border border-[var(--border)]">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           {CATEGORIES.map(c => (
             <button
@@ -179,7 +179,7 @@ export default function DesignReferencesPage() {
               className={`px-3 py-1 rounded-md t-body-sm font-medium whitespace-nowrap transition-all ${
                 category === c.id 
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40" 
-                  : "text-slate-400 hover:text-slate-200 hover:bg-[#141B26]"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-[var(--surface-card)]"
               }`}>
               {c.label}
             </button>
@@ -193,7 +193,7 @@ export default function DesignReferencesPage() {
             placeholder="Search references or prompts..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-[#141B26] border border-[#1E2638] rounded-md pl-9 pr-3 py-1.5 t-body-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/60"
+            className="w-full bg-[var(--surface-card)] border border-[var(--border)] rounded-md pl-9 pr-3 py-1.5 t-body-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/60"
           />
         </div>
       </div>
@@ -207,12 +207,12 @@ export default function DesignReferencesPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="group relative bg-[#0E121A] rounded-xl border border-[#1E2638] overflow-hidden hover:border-[#2D3A52] transition-all flex flex-col">
+            className="group relative bg-[var(--surface-raised)] rounded-xl border border-[var(--border)] overflow-hidden hover:border-[var(--border-strong)] transition-all flex flex-col">
             
             {/* Asset Media Container */}
             <div 
               onClick={() => setSelectedAsset(item)}
-              className="relative aspect-video bg-[#080A0F] overflow-hidden cursor-pointer flex items-center justify-center">
+              className="relative aspect-video bg-[var(--canvas)] overflow-hidden cursor-pointer flex items-center justify-center">
               
               {item.type === "video" ? (
                 <div className="w-full h-full relative">
@@ -284,7 +284,7 @@ export default function DesignReferencesPage() {
               </div>
 
               {/* Action Toolbar */}
-              <div className="pt-3.5 mt-3.5 border-t border-[#1E2638] flex items-center justify-between">
+              <div className="pt-3.5 mt-3.5 border-t border-[var(--border)] flex items-center justify-between">
                 <button
                   onClick={() => setSelectedAsset(item)}
                   className="t-body-sm text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-medium transition-colors">
@@ -306,7 +306,7 @@ export default function DesignReferencesPage() {
                   <a
                     href={item.file_url}
                     download
-                    className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-[#1C2433] transition-colors"
+                    className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-[var(--surface-elevated)] transition-colors"
                     title="Download Asset">
                     <Download size={13} />
                   </a>
@@ -325,10 +325,10 @@ export default function DesignReferencesPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#0E121A] border border-[#1E2638] rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl">
+              className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl">
               
               {/* Modal Header */}
-              <div className="p-4 border-b border-[#1E2638] flex items-center justify-between">
+              <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <span className="px-2 py-0.5 rounded t-label font-mono bg-cyan-950 text-cyan-400 border border-cyan-800">
                     {selectedAsset.type.toUpperCase()} SPEC
@@ -337,26 +337,26 @@ export default function DesignReferencesPage() {
                 </div>
                 <button
                   onClick={() => setSelectedAsset(null)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1C2433] transition-colors">
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[var(--surface-elevated)] transition-colors">
                   <X size={18} />
                 </button>
               </div>
 
               {/* Modal Media Preview */}
-              <div className="bg-[#080A0F] p-4 flex items-center justify-center border-b border-[#1E2638]">
+              <div className="bg-[var(--canvas)] p-4 flex items-center justify-center border-b border-[var(--border)]">
                 {selectedAsset.type === "video" ? (
                   <video 
                     src={selectedAsset.file_url}
                     controls
                     autoPlay
                     loop
-                    className="max-h-[480px] rounded-lg shadow-lg border border-[#1E2638]"
+                    className="max-h-[480px] rounded-lg shadow-lg border border-[var(--border)]"
                   />
                 ) : (
                   <img
                     src={selectedAsset.file_url}
                     alt={selectedAsset.title}
-                    className="max-h-[480px] object-contain rounded-lg shadow-lg border border-[#1E2638]"
+                    className="max-h-[480px] object-contain rounded-lg shadow-lg border border-[var(--border)]"
                   />
                 )}
               </div>
@@ -364,29 +364,29 @@ export default function DesignReferencesPage() {
               {/* Modal Technical Details */}
               <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
+                  <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)]">
                     <div className="t-micro font-mono text-slate-400">MODEL</div>
                     <div className="t-body-sm font-semibold text-white mt-1">{selectedAsset.model}</div>
                   </div>
-                  <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
+                  <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)]">
                     <div className="t-micro font-mono text-slate-400">ASPECT RATIO</div>
                     <div className="t-body-sm font-semibold text-white mt-1">{selectedAsset.aspect_ratio}</div>
                   </div>
-                  <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
+                  <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)]">
                     <div className="t-micro font-mono text-slate-400">CRITIQUE SCORE</div>
                     <div className="t-body-sm font-semibold text-emerald-400 mt-1">{selectedAsset.critique_score} / 10</div>
                   </div>
-                  <div className="bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
+                  <div className="bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)]">
                     <div className="t-micro font-mono text-slate-400">AI-SLOP PENALTY</div>
                     <div className="t-body-sm font-semibold text-cyan-300 mt-1">{selectedAsset.ai_slop_score} (Low)</div>
                   </div>
                 </div>
 
-                <div className="bg-[#141B26] p-4 rounded-lg border border-[#1E2638]">
+                <div className="bg-[var(--surface-card)] p-4 rounded-lg border border-[var(--border)]">
                   <div className="t-body-sm font-mono font-semibold text-cyan-400 mb-1 flex items-center gap-1.5">
                     <Terminal size={13} /> MASTER GENERATION PROMPT
                   </div>
-                  <p className="t-body-sm font-mono text-slate-300 leading-relaxed bg-[#080A0F] p-3 rounded border border-[#1E2638]">
+                  <p className="t-body-sm font-mono text-slate-300 leading-relaxed bg-[var(--canvas)] p-3 rounded border border-[var(--border)]">
                     {selectedAsset.prompt}
                   </p>
                 </div>
@@ -406,7 +406,7 @@ export default function DesignReferencesPage() {
                   <a
                     href={selectedAsset.file_url}
                     download
-                    className="px-4 py-2 rounded-lg t-body-sm font-semibold bg-[#1C2433] hover:bg-[#253043] text-white flex items-center gap-1.5 transition-colors">
+                    className="px-4 py-2 rounded-lg t-body-sm font-semibold bg-[var(--surface-elevated)] hover:bg-[#253043] text-white flex items-center gap-1.5 transition-colors">
                     <Download size={14} /> Download File
                   </a>
                 </div>
@@ -424,9 +424,9 @@ export default function DesignReferencesPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#0E121A] border border-[#1E2638] rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+              className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
               
-              <div className="flex items-center justify-between border-b border-[#1E2638] pb-3">
+              <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
                 <div className="flex items-center gap-2">
                   <Sparkles size={18} className="text-cyan-400" />
                   <h3 className="t-title font-bold text-white">Animate with Veo 3.1</h3>
@@ -438,11 +438,11 @@ export default function DesignReferencesPage() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-3 bg-[#141B26] p-3 rounded-lg border border-[#1E2638]">
+              <div className="flex items-center gap-3 bg-[var(--surface-card)] p-3 rounded-lg border border-[var(--border)]">
                 <img
                   src={animatingWithVeo.file_url}
                   alt={animatingWithVeo.title}
-                  className="w-20 h-14 object-cover rounded border border-[#1E2638]"
+                  className="w-20 h-14 object-cover rounded border border-[var(--border)]"
                 />
                 <div>
                   <div className="t-label font-mono text-cyan-400">FIRST FRAME ANCHOR</div>
@@ -457,7 +457,7 @@ export default function DesignReferencesPage() {
                   value={veoPrompt}
                   onChange={e => setVeoPrompt(e.target.value)}
                   placeholder="Describe camera push, vehicle movement, or temperature changes..."
-                  className="w-full bg-[#141B26] border border-[#1E2638] rounded-lg p-3 t-body-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-[var(--surface-card)] border border-[var(--border)] rounded-lg p-3 t-body-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
@@ -467,7 +467,7 @@ export default function DesignReferencesPage() {
                   <select
                     value={veoDuration}
                     onChange={e => setVeoDuration(e.target.value)}
-                    className="w-full bg-[#141B26] border border-[#1E2638] rounded-lg p-2 t-body-sm text-slate-200">
+                    className="w-full bg-[var(--surface-card)] border border-[var(--border)] rounded-lg p-2 t-body-sm text-slate-200">
                     <option value="6">6 Seconds</option>
                     <option value="8">8 Seconds (Standard)</option>
                     <option value="10">10 Seconds</option>
@@ -479,12 +479,12 @@ export default function DesignReferencesPage() {
                     type="text"
                     disabled
                     value={animatingWithVeo.aspect_ratio}
-                    className="w-full bg-[#141B26] border border-[#1E2638] rounded-lg p-2 t-body-sm text-slate-400"
+                    className="w-full bg-[var(--surface-card)] border border-[var(--border)] rounded-lg p-2 t-body-sm text-slate-400"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1E2638]">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--border)]">
                 <button
                   onClick={() => setAnimatingWithVeo(null)}
                   className="px-4 py-2 rounded-lg t-body-sm font-medium text-slate-400 hover:text-white">
@@ -505,7 +505,7 @@ export default function DesignReferencesPage() {
 
       {/* Toast Notification */}
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#141B26] border border-cyan-500/50 text-white px-4 py-3 rounded-lg shadow-xl t-body-sm flex items-center gap-2">
+        <div className="fixed bottom-6 right-6 z-50 bg-[var(--surface-card)] border border-cyan-500/50 text-white px-4 py-3 rounded-lg shadow-xl t-body-sm flex items-center gap-2">
           <CheckCircle2 size={16} className="text-cyan-400 shrink-0" />
           <span>{toastMsg}</span>
         </div>

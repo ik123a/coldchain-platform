@@ -1,7 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 
-const COLORS: Record<string, string> = { LOW: "#34d399", MEDIUM: "#fbbf24", HIGH: "#f8734d", CRITICAL: "#f87171" };
+const COLORS: Record<string, string> = { LOW: "var(--nominal-soft)", MEDIUM: "var(--warning-soft)", HIGH: "#f8734d", CRITICAL: "var(--critical-soft)" };
 
 export function RiskGauge({ score, level }: { score: number | null; level: string | null }) {
   const s = score ?? 0;

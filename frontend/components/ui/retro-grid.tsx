@@ -42,7 +42,7 @@ export function RetroGrid({
       </div>
 
       {/* Background gradient fade */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#080A0F] via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[var(--canvas)] via-transparent to-transparent" />
     </div>
   );
 }
