@@ -93,7 +93,13 @@ export default function SimulationPage() {
           <div className="t-label text-[var(--text3)]">Speed
             <div className="flex gap-1.5 mt-1">
               {[1, 5, 10, 50, 100].map(s => (
-                <button key={s} onClick={() => { setSpeed(s); cmd(`/speed`); sid && post(`/api/simulations/${sid}/speed`, { speed: s }); }}
+                // The endpoint requires a body ({speed:int}); a bodyless
+                // POST to the same path answered 422, so cmd() is not used here.
+                <button key={s}
+                        onClick={() => {
+                          setSpeed(s);
+                          if (sid) post(`/api/simulations/${sid}/speed`, { speed: s });
+                        }}
                         className={`chip ${speed === s ? "on" : ""}`}>{s}x</button>
               ))}
             </div>
