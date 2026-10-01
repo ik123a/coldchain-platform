@@ -210,13 +210,23 @@ class ReporterAgent:
 
     def run(self, incident_ctx: dict):
         ctx = incident_ctx
-        recovery_t = ctx.get("resolved_tick", ctx.get("tick", 0)) - ctx.get("detected_tick", 0)
+
+        def num(key, default=0):
+            # dict.get returns None when the key exists with a null value, which
+            # is what the API sends for unresolved incidents — arithmetic on it
+            # raised TypeError and 500'd both report formats. A pending
+            # incident has no resolution tick, so recovery time is undefined,
+            # not zero; fall back to the simulation tick.
+            v = ctx.get(key)
+            return default if v is None else v
+
+        recovery_t = num("resolved_tick", num("tick", 0)) - num("detected_tick", 0)
         score = 100
-        score -= min(30, max(0, ctx.get("peak_over_by", 0) * 3))            # severity penalty
-        score -= min(25, max(0, (ctx.get("risk_at_peak", 0) - 55) / 2))     # risk stayed high
+        score -= min(30, max(0, num("peak_over_by", 0) * 3))               # severity penalty
+        score -= min(25, max(0, (num("risk_at_peak", 0) - 55) / 2))        # risk stayed high
         score -= min(20, max(0, recovery_t - 8))                            # slow recovery
-        score -= min(15, max(0, 12 - ctx.get("time_to_plan_ticks", 4)))     # slow driving? handled below
-        score += min(10, ctx.get("early_confidence_bonus", 0))
+        score -= min(15, max(0, 12 - num("time_to_plan_ticks", 4)))     # slow driving? handled below
+        score += min(10, num("early_confidence_bonus", 0))
         score = int(max(35, min(98, score)))
 
         lines = [
