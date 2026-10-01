@@ -3,7 +3,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from ...database.engine import get_db
-from ...models.entities import Incident, AIAnalysis, RecommendedAction, SensorReading, Simulation, Shipment
+from ...models.entities import Incident, AIAnalysis, RecommendedAction, SensorReading, Simulation, Shipment, StorageZone
 from ...schemas.dto import IncidentOut, AskIn, ExecuteActionIn
 from ...simulation.runner import RUNNERS, mark_action_claimed
 from ...simulation.engine import Engine
@@ -60,7 +60,8 @@ async def execute_action(iid: int, body: ExecuteActionIn, db=Depends(get_db)):
         raise HTTPException(409, "simulation runner not active; action cannot modify engine state")
     if r.incident_state is None:
         # claimed before plan exists -> planner will auto-run it
-        from ..simulation.runner import mark_action_claimed
+        # mark_action_claimed is imported at module scope; the local
+        # re-import resolved to app.api.simulation and raised (500).
         await mark_action_claimed(inc.simulation_id, body.action)
         return {"queued": True, "action": body.action}
     return await r.execute_action(body.action)
@@ -122,8 +123,8 @@ async def ask_ai(iid: int, body: AskIn, db=Depends(get_db)):
     readings = list(reversed(readings))
     if not readings: raise HTTPException(409, "no readings for this incident yet")
 
-    from ..simulation.engine import Engine
-    from ..simulation.risk import risk
+    # Engine and risk are already imported at module scope; a local re-import
+    # here resolved to app.api.simulation and raised ModuleNotFoundError (500).
     q = body.question.lower()
 
     # current snapshot from the latest reading
@@ -133,7 +134,7 @@ async def ask_ai(iid: int, body: AskIn, db=Depends(get_db)):
     cargo_type = sh.cargo_type if sh else "fresh_produce"
     z = {"mn": 2.0, "mx": 8.0, "hum_min": 60, "hum_max": 85}
     if sim and sim.storage_zone_id:
-        from ..models.entities import StorageZone
+        # relative depth must reach app.models, not app.api.models
         zone = await db.get(StorageZone, sim.storage_zone_id)
         if zone: z = {"mn": zone.min_temperature, "mx": zone.max_temperature,
                       "hum_min": zone.humidity_min, "hum_max": zone.humidity_max}

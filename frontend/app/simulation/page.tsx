@@ -39,14 +39,24 @@ export default function SimulationPage() {
   const createAndStart = async () => {
     setBusy(true);
     try {
+      // The API requires both ids; sending null makes the backend answer 422.
+      if (shipmentId == null || zoneId == null) return;
       const sim0: any = await post("/api/simulations", {
         shipment_id: shipmentId, storage_zone_id: zoneId, scenario: "normal", simulation_speed: speed,
       });
+      // The create response carries `id`, not `simulation_id` — reading the
+      // wrong key left every control below permanently disabled.
       await post(`/api/simulations/${sim0.id}/start`);
+      // st.sim is populated by the store's `reading` action; mirror the
+      // created simulation into it so the controls below stop being disabled.
+      // The store's Reading shape keys the simulation as `simulation_id`.
+      dispatch({ type: "reading", payload: { ...sim0, simulation_id: sim0.id } });
+    } catch {
+      /* surfaced by the button's disabled state */
     } finally { setBusy(false); }
   };
 
-  const sid = sim?.simulation_id;
+  const sid = sim?.simulation_id ?? null;
   const cmd = (p: string) => sid && post(`/api/simulations/${sid}${p}`);
 
   const latestIncident = st.incidents[0];
