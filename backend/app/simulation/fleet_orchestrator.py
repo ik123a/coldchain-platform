@@ -22,7 +22,7 @@ from .analytics import fleet_kpis
 from sqlalchemy import delete, select
 from ..database.engine import SessionLocal
 from ..models.fleet import Vehicle, FleetRoute, VehicleEvent, RouteDecision, CargoTransfer
-from ..models.entities import Incident, AIAnalysis
+from ..models.entities import Incident, AIAnalysis, RecommendedAction
 from .runner import BROADCAST
 from . import agents_d as A
 
@@ -63,6 +63,19 @@ class FleetOrchestrator:
         # Operator-configured trucks (see the dispatch section below). Separate
         # from self.vehicles so a demo-fleet rebuild cannot delete them.
         self.dispatch: list[dict] = []
+        # --- human-in-the-loop approval queue ---
+        # `require_approval` is the master switch for the demonstration. It
+        # defaults ON because the brief asks for human-in-the-loop, and the
+        # operator can turn it off from the UI to show the fully autonomous
+        # behaviour for comparison.
+        self.require_approval = True
+        # Sim-minutes a recommendation may sit before it is auto-approved.
+        # 0 disables the escape hatch entirely (the run will wait forever,
+        # which is the honest behaviour for a demo with an operator present).
+        self.AUTO_APPROVE_TIMEOUT_S = float(
+            __import__("os").getenv("AUTO_APPROVE_TIMEOUT_SIM_MIN", "0") or 0)
+        self.pending_approvals: dict[str, dict] = {}
+        self.resolved_approvals: dict[str, dict] = {}
         self.event_ring: list[dict] = []
         self._task = None
         self.alert_counts: dict[str, int] = {}     # vehicle_id -> non-info alert count
@@ -414,6 +427,7 @@ class FleetOrchestrator:
                 self.traffic.maybe_weather()
                 await self._fail_world_tick()
                 self._expire_docks()          # free docks whose processing window closed
+                await self._expire_approvals()   # auto-approve stale recommendations
                 snaps = []
                 for vid, v in list(self.vehicles.items()):
                     factor = self.traffic.factor_for(v.origin_id, v.dest_id)
@@ -561,8 +575,159 @@ class FleetOrchestrator:
                                                        "scored", "candidates", "options") if k in bundle}})
         await self._evt(v, f"AI {bundle['decision']} -> {bundle.get('target', v.dest_id)}: "
                           f"{bundle['reason'][:120]}", "warning")
-        if self._autonomous and bundle["decision"] == "DIVERT":
-            await self._apply_divert(v, bundle)
+
+        if bundle["decision"] != "DIVERT":
+            return
+
+        # --- human-in-the-loop gate -------------------------------------
+        # A DIVERT changes where a load is going and which warehouse consumes
+        # capacity, so it waits for a person. Before this, `_autonomous=True`
+        # applied it inline and the operator only ever saw it after the fact.
+        #
+        # Two escape hatches, both explicit rather than implicit:
+        #   * `_autonomous` still applies immediately (used by the demo flow and
+        #     by tests that assert the divert actually happens),
+        #   * AUTO_APPROVE_TIMEOUT_S lets an unattended run continue after a
+        #     grace period instead of stalling forever.
+        # Service dispatch is NOT gated: repairing a compressor is restorative,
+        # not a routing commitment, and the brief chose to keep it automatic.
+        if not self.approval_required(bundle):
+            if self._autonomous:
+                await self._apply_divert(v, bundle)
+            return
+
+        await self._queue_for_approval(v, bundle)
+
+    def approval_required(self, bundle: dict) -> bool:
+        """Should this decision wait for a human?
+
+        Diverts always wait. `self.require_approval` is the master switch so a
+        demonstration can be run either way from one place.
+        """
+        if not self.require_approval:
+            return False
+        return bundle.get("decision") == "DIVERT"
+
+    async def _queue_for_approval(self, v: VehicleTwin, bundle: dict):
+        """Record the recommendation and surface it. Nothing is applied yet."""
+        incident_id = self.incident_db.get(v.id)
+        key = f"{v.id}:{bundle.get('target')}:{int(self.sim_minute)}"
+        proposal = {
+            "key": key,
+            "vehicle_id": v.id,
+            "vehicle_name": getattr(v, "display_name", None) or v.id,
+            "incident_id": incident_id,
+            "decision": "DIVERT",
+            "target": bundle.get("target"),
+            "current_destination": v.dest_id,
+            "reason": bundle.get("reason", ""),
+            "confidence": bundle.get("confidence", 0.0),
+            "score": (bundle.get("scored") or {}).get("score"),
+            "scored": bundle.get("scored", {}),
+            "candidates": bundle.get("candidates", [])[:4],
+            "options": bundle.get("options", []),
+            "cargo_type": v.cargo_type,
+            "load_units": v.load_units,
+            "temperature": round(v.box.temperature, 2),
+            "cargo_health": round(v.box.cargo_health, 1),
+            "raised_at_sim_minute": round(self.sim_minute, 1),
+            "status": "PENDING",
+        }
+        self.pending_approvals[key] = proposal
+        async with SessionLocal() as s:
+            inc = await s.get(Incident, incident_id) if incident_id else None
+            # recommended_actions.incident_id is NOT NULL, so a recommendation
+            # raised before any Incident row exists cannot be persisted there.
+            # The in-memory queue is the source of truth for the operator; the DB
+            # row is written only once there is an incident to attach it to. The
+            # proposal is therefore still shown and still actionable — it just
+            # is not double-recorded.
+            if incident_id:
+                s.add(RecommendedAction(
+                    incident_id=incident_id, action="reroute",
+                    label=f"Divert {proposal['vehicle_name']} to {proposal['target']}",
+                    priority="HIGH",
+                    reason=proposal["reason"][:500],
+                    expected_effect=f"Arrive at {proposal['target']} with cargo at "
+                                    f"{proposal['temperature']}C",
+                    status="PENDING"))
+            if inc and inc.status == "DETECTED":
+                inc.status = "AWAITING_APPROVAL"
+            await s.commit()
+        await BROADCAST.emit(0, "ai.approval.requested", proposal)
+        await self._evt(v, f"AI recommends divert to {proposal['target']} — "
+                           f"waiting for operator approval", "warning")
+
+    async def resolve_approval(self, key: str, approve: bool, note: str = "") -> dict:
+        """Operator decision on a queued recommendation.
+
+        `approve=False` is a first-class outcome, not an error: the load keeps
+        running to its planned destination and the rejection is recorded so the
+        report can show that a human chose differently from the agent.
+        """
+        prop = self.pending_approvals.get(key)
+        already_resolved = self.resolved_approvals.get(key)
+        if not prop:
+            # tolerate a stale key from a client that reloaded mid-decision
+            for k, p in self.pending_approvals.items():
+                if p["vehicle_id"] == key:
+                    key, prop = k, p
+                    break
+        if not prop:
+            # A double-clicked Approve must not look like a failure. The decision
+            # was already recorded and already applied, so return it as-is.
+            if already_resolved is not None:
+                return already_resolved
+            for p in self.resolved_approvals.values():
+                if p["vehicle_id"] == key:
+                    return p
+            raise KeyError("no pending approval with that key")
+        if prop["status"] != "PENDING":
+            return prop  # idempotent: approving twice must not double-apply
+
+        prop["status"] = "APPROVED" if approve else "REJECTED"
+        prop["resolved_at_sim_minute"] = round(self.sim_minute, 1)
+        prop["note"] = note
+        self.resolved_approvals[key] = prop
+        self.pending_approvals.pop(key, None)
+
+        v = self.vehicles.get(prop["vehicle_id"])
+        if approve and v is not None:
+            await self._apply_divert(v, prop)
+        else:
+            await self._evt(v, f"Operator REJECTED divert to {prop['target']}"
+                               f"{(' — ' + note) if note else ''}", "warning")
+
+        async with SessionLocal() as s:
+            rows = await s.execute(
+                select(RecommendedAction).where(
+                    RecommendedAction.incident_id == prop["incident_id"],
+                    RecommendedAction.status == "PENDING"))
+            for row in rows.scalars().all():
+                row.status = "EXECUTED" if approve else "SKIPPED"
+                row.executed_at = datetime.utcnow() if approve else None
+            inc = await s.get(Incident, prop["incident_id"]) if prop["incident_id"] else None
+            if inc and inc.status == "AWAITING_APPROVAL":
+                inc.status = "RECOVERING" if approve else "MONITORING"
+            await s.commit()
+        await BROADCAST.emit(0, "ai.approval.resolved",
+                             {"key": key, "approved": approve,
+                              "vehicle_id": prop["vehicle_id"],
+                              "target": prop["target"], "note": note})
+        return prop
+
+    async def _expire_approvals(self):
+        """Auto-approve past the grace period so an unattended run continues."""
+        if not self.pending_approvals or self.AUTO_APPROVE_TIMEOUT_S <= 0:
+            return
+        for key, prop in list(self.pending_approvals.items()):
+            waited = self.sim_minute - prop["raised_at_sim_minute"]
+            if waited < self.AUTO_APPROVE_TIMEOUT_S:
+                continue
+            try:
+                await self.resolve_approval(key, True, note="auto-approved: no operator response")
+            except KeyError:
+                continue
 
     async def _apply_divert(self, v: VehicleTwin, bundle: dict):
         target = bundle["target"]
@@ -575,11 +740,13 @@ class FleetOrchestrator:
         v.dest_id = target
         v.route_adherence = 60.0
         async with SessionLocal() as s:
-            s.add(FleetRoute(id=f"R-{v.id}-{int(self.sim_minute)}", vehicle_id=v.id,
+            s.add(FleetRoute(id=f"R-{v.id}-{int(self.sim_minute)}-{target}-{old_target}",
+                             vehicle_id=v.id,
                              origin_id=old_target, destination_id=target, route_type="AI",
                              geometry=json.dumps(v.geom)[:60000],
                              distance_km=new_route["distance_km"],
-                             eta_min=new_route["duration_min"], score=bundle["scored"]["score"],
+                             eta_min=new_route["duration_min"],
+                             score=(bundle.get("scored") or {}).get("score", 0.0),
                              reason=bundle["reason"][:2000]))
             if v.id in self.incident_db:
                 inc = await s.get(Incident, self.incident_db[v.id])

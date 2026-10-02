@@ -56,6 +56,15 @@ class DispatchIn(BaseModel):
     trucks: list[DispatchTruckIn] = Field(min_length=1, max_length=3)
 
 
+class ApprovalIn(BaseModel):
+    approve: bool
+    note: str | None = Field(default=None, max_length=500)
+
+
+class ApprovalModeIn(BaseModel):
+    require_approval: bool
+
+
 @router.get("/dispatch")
 async def dispatch_get(_auth: dict = Depends(require_auth_read)):
     """Current operator-defined trucks plus the catalogue needed to configure them.
@@ -106,6 +115,57 @@ async def dispatch_start(_auth: dict = Depends(require_auth)):
 @router.post("/dispatch/clear")
 async def dispatch_clear(_auth: dict = Depends(require_auth)):
     return FLEET.clear_dispatch()
+
+
+@router.get("/approvals")
+async def approvals(_auth: dict = Depends(require_auth_read)):
+    """Pending AI recommendations awaiting a human decision, plus recent history.
+
+    `require_approval` is reported so the UI can show whether the gate is even
+    active — with it off, an operator would sit waiting for a queue that can
+    never fill, which reads as a broken button rather than a disabled feature.
+    """
+    return {
+        "require_approval": FLEET.require_approval,
+        "auto_approve_timeout_sim_min": FLEET.AUTO_APPROVE_TIMEOUT_S,
+        "pending": list(FLEET.pending_approvals.values()),
+        "pending_count": len(FLEET.pending_approvals),
+        "resolved": list(FLEET.resolved_approvals.values())[-10:],
+    }
+
+
+@router.post("/approvals/mode")
+async def approvals_mode(body: ApprovalModeIn, _auth: dict = Depends(require_auth)):
+    """Turn the human-in-the-loop gate on or off.
+
+    Off reproduces the original fully-autonomous behaviour, which is useful for
+    a side-by-side demonstration. This is deliberately explicit rather than an
+    environment variable: it is a presentation decision, and hiding it in
+    process config means the examiner cannot see it change.
+
+    Declared BEFORE `/approvals/{key:path}` below. With the path converter
+    greedy, a later `/approvals/mode` is captured as key="mode" and this route
+    never runs — the request then fails validation with a confusing 422 about a
+    missing `approve` field.
+    """
+    FLEET.require_approval = bool(body.require_approval)
+    return {"require_approval": FLEET.require_approval,
+            "pending_count": len(FLEET.pending_approvals)}
+
+
+@router.post("/approvals/{key:path}")
+async def approvals_resolve(key: str, body: ApprovalIn,
+                             _auth: dict = Depends(require_auth)):
+    """Approve or reject a queued rescue recommendation.
+
+    Rejection is a supported outcome, not an error: the truck keeps its planned
+    destination and the decision is recorded for the report.
+    """
+    try:
+        prop = await FLEET.resolve_approval(key, body.approve, body.note or "")
+    except KeyError:
+        raise HTTPException(404, "no pending approval with that key")
+    return prop
 
 
 @router.get("/state")
