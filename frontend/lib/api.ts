@@ -25,5 +25,15 @@ export const API_BASE = API;
 // The WebSocket is deliberately NOT proxied — Next's rewrites do not carry an
 // Upgrade, so a ws:// origin URL connects but never receives frames (verified:
 // 57 messages direct, 0 through the proxy). Keep it on the backend origin.
+//
+// The origin must be derived from the page, not hardcoded to 127.0.0.1. When the
+// app is opened from another device on the LAN (phone, panel laptop), a
+// loopback WS URL resolves to THAT device's own localhost, so the socket never
+// connects and the UI silently falls back to 4-second polling with no live
+// telemetry. Deriving from window.location works unchanged on this machine
+// (http://127.0.0.1:3000 -> ws://127.0.0.1:8000/ws) and is correct remotely.
 export const WS_URL =
-  process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8000/ws";
+  process.env.NEXT_PUBLIC_WS_URL ||
+  (typeof window !== "undefined"
+    ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8000/ws`
+    : "ws://127.0.0.1:8000/ws");
