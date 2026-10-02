@@ -3,6 +3,7 @@ recovery action execution. Runner registry lives in simulation.runner.RUNNERS.""
 import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 from ...database.engine import get_db
+from ...core.authz import require_auth
 from ...models.entities import Simulation, Shipment, StorageZone
 from ...schemas.dto import SimulationCreateIn, SimulationOut, SpeedIn, ExecuteActionIn
 from ...simulation.runner import SimulationRunner, RUNNERS, mark_action_claimed
@@ -95,7 +96,7 @@ async def reset(sim_id: int, db=Depends(get_db)):
 
 
 @router.post("/{sim_id}/speed")
-async def speed(sim_id: int, body: SpeedIn):
+async def speed(sim_id: int, body: SpeedIn, _auth: dict = Depends(require_auth)):
     r = _runner_or_404(sim_id)
     r.set_speed(body.speed)
     return {"simulation_id": sim_id, "speed": r.speed}
@@ -110,12 +111,12 @@ def _inject(sim_id: int, cause: str):
 
 
 @router.post("/{sim_id}/failure/{cause}")
-async def failure(sim_id: int, cause: str):
+async def failure(sim_id: int, cause: str, _auth: dict = Depends(require_auth)):
     return _inject(sim_id, cause)
 
 
 @router.post("/{sim_id}/action")
-async def action(sim_id: int, body: ExecuteActionIn):
+async def action(sim_id: int, body: ExecuteActionIn, _auth: dict = Depends(require_auth)):
     r = _runner_or_404(sim_id)
     if not r.incident_state:
         # claim the action to execute right after the planner emits the plan

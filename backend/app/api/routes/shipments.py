@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from ...database.engine import get_db
+from ...core.authz import require_auth
 from ...models.entities import Shipment
 from ...schemas.dto import ShipmentIn, ShipmentOut
 

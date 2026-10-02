@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func
 from ...database.engine import get_db
+from ...core.authz import require_auth
 from ...models.entities import StorageFacility, StorageZone
 from ...schemas.dto import FacilityOut, ZoneIn, ZoneOut
 

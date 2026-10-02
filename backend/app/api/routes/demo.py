@@ -5,6 +5,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from ...database.engine import get_db, SessionLocal
+from ...core.authz import require_auth
 from ...models.entities import (StorageFacility, StorageZone, Shipment, Simulation, Incident)
 from ...simulation.runner import SimulationRunner, RUNNERS, mark_action_claimed
 from ...simulation.engine import Engine
@@ -89,7 +90,7 @@ async def demo_launch(autopilot: bool = True, failure: str = "compressor_failure
             "autopilot": {"failure": failure, "in_ticks": after_ticks}}
 
 
-async def _autopilot(sim_id: int, failure: str, after_ticks: int):
+async def _autopilot(sim_id: int, failure: str, after_ticks: int, _auth: dict = Depends(require_auth)):
     """Runs for one simulation: waits a few ticks for baseline, injects failure, waits for
     diagnosis + plan, executes the first non-monitor action, waits, executes next."""
     await asyncio.sleep(max(1, after_ticks // 2))
