@@ -247,7 +247,7 @@ export default function DashboardPage() {
           <span className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--warning)]" />
             <span className="font-bold text-[var(--warning-soft)]">WEATHER OVERRIDE</span>
-            <span className="text-[var(--text-muted)]">HEATWAVE ACTIVE (44.0°C Ambient) · Arrhenius Degradation 2.4x</span>
+            <span className="text-[var(--text-muted)]">HEATWAVE ACTIVE (44.0°C Ambient) · Warming Rate 2.4x</span>
           </span>
           <span className="text-[var(--text-dim)]">│</span>
           <span className="flex items-center gap-2">

@@ -96,7 +96,7 @@ export default function Home() {
           </h2>
           <p className="t-body md:t-title text-[var(--text-dim)] max-w-2xl mt-2 leading-relaxed">
             A single compressor mechanical failure causes rapid temperature creep inside insulated trailers. 
-            ColdChain Rescue integrates the Arrhenius reaction equation to model real biological spoilage curves.
+            ColdChain Rescue projects safe remaining time from measured telemetry: warming trend, current margin, and distance still to run.
           </p>
         </div>
 
@@ -115,10 +115,10 @@ export default function Home() {
             <div className="w-10 h-10 rounded-xl bg-[var(--surface-inset)] border border-[var(--border)] text-[var(--critical)] grid place-items-center">
               <ShieldAlert size={20} />
             </div>
-            <h3 className="t-title font-bold text-[var(--text)]">Arrhenius Degradation</h3>
+            <h3 className="t-title font-bold text-[var(--text)]">Predictive Safe Remaining Time</h3>
             <p className="t-body-sm text-[var(--text-dim)] leading-relaxed">
-              Biological breakdown accelerates exponentially: <code className="text-[var(--critical)] font-mono">k(T) = A·exp(-Ea/RT)</code>. 
-              Our Arrhenius engine calculates exact minutes until irreversible protein or active ingredient spoilage.
+              Margin over time comes from real readings: <code className="text-[var(--critical)] font-mono">time = margin / trend</code>, then compared against the ETA. 
+              A least-squares fit over recent readings gives the warming rate, and dividing the remaining temperature margin by that rate gives minutes until the load breaches its band.
             </p>
           </div>
 
@@ -133,7 +133,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Arrhenius Shelf-Life Rate Comparison Matrix */}
+        {/* Projection Basis — measured, not assumed */}
         <div className="bg-[var(--surface-raised)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
             <div>
@@ -149,12 +149,12 @@ export default function Home() {
             <div className="p-3 rounded-xl bg-[var(--surface-card)] border border-[var(--border)]">
               <div className="text-[var(--text-dim)] t-body-sm">4.0°C (NOMINAL)</div>
               <div className="t-metric font-bold text-[var(--nominal)] mt-1">1.0x</div>
-              <div className="t-body-sm text-[var(--text-dim)] mt-1">Baseline shelf-life: 24.0h</div>
+              <div className="t-body-sm text-[var(--text-dim)] mt-1">Baseline margin: 5.8°C</div>
             </div>
             <div className="p-3 rounded-xl bg-[var(--surface-card)] border border-[var(--border)]">
               <div className="text-[var(--text-dim)] t-body-sm">8.0°C (THRESHOLD)</div>
               <div className="t-metric font-bold text-[var(--warning)] mt-1">1.6x</div>
-              <div className="t-body-sm text-[var(--warning)] mt-1">Safe shelf-life: 14.8h</div>
+              <div className="t-body-sm text-[var(--warning)] mt-1">Slack vs ETA: 14.8m</div>
             </div>
             <div className="p-3 rounded-xl bg-[var(--surface-card)] border border-[var(--border)]">
               <div className="text-[var(--text-dim)] t-body-sm">12.0°C (BREACH)</div>
@@ -261,7 +261,7 @@ export default function Home() {
           {[
             { stage: "01", name: "MONITOR", desc: "Kalman gate", col: "text-[var(--nominal)]" },
             { stage: "02", name: "DIAGNOSE", desc: "Compressor wear", col: "text-[var(--warning)]" },
-            { stage: "03", name: "PREDICT", desc: "Arrhenius RSL", col: "text-[var(--critical)]" },
+            { stage: "03", name: "PREDICT", desc: "Safe-time projection", col: "text-[var(--critical)]" },
             { stage: "04", name: "SEVERITY", desc: "Critical Lane", col: "text-[var(--critical)]" },
             { stage: "05", name: "SEARCH", desc: "5 Cold Hubs", col: "text-[var(--accent)]" },
             { stage: "06", name: "RESERVE", desc: "Bay 3 pre-chill", col: "text-[var(--accent)]" },
@@ -289,7 +289,7 @@ export default function Home() {
               Real-Time Maneuver Physics & Recovery
             </h2>
             <p className="t-body text-[var(--text-dim)] max-w-2xl mt-1">
-              Autonomous multi-agent recovery scenarios: spatial camera tracking, Arrhenius degradation detection, dynamic vector rerouting, and cold-dock cargo offload.
+              Autonomous multi-agent recovery scenarios: spatial camera tracking, safe-time projection, dynamic vector rerouting, and cold-dock cargo offload.
             </p>
           </div>
           <Link
@@ -340,7 +340,7 @@ export default function Home() {
           </div>
           <h3 className="t-metric-lg font-bold text-[var(--text)]">Experience ColdChain Rescue Live</h3>
           <p className="t-body-sm text-[var(--text-dim)] max-w-xl leading-relaxed">
-            Launch the live twin with simulated compressor failure, watch the Arrhenius rate surge, and observe sub-second autonomous hub diversion.
+            Launch the live twin with simulated compressor failure, watch the warming-rate surge, and observe sub-second autonomous hub diversion.
           </p>
         </div>
 

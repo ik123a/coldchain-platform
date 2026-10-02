@@ -230,7 +230,7 @@ export default function SimulationPage() {
             <RiskGauge score={sim?.risk_score ?? 12} level={sim?.risk_level ?? "LOW"} />
             <div className="space-y-1">
               <div className="t-body-sm font-semibold text-[var(--text)]">Deterministic Multi-Agent Risk Engine</div>
-              <div className="t-body-sm text-[var(--text3)] leading-relaxed">Combines Arrhenius biological shelf-life degradation, compressor duty cycle, insulation thermal decay coefficient, and time-to-breach.</div>
+              <div className="t-body-sm text-[var(--text3)] leading-relaxed">Combines measured warming trend, compressor duty cycle, insulation thermal decay coefficient, and time-to-breach. The projection is a linear trend extrapolation, not a kinetics simulation.</div>
               <div className="t-body-sm font-mono text-[var(--accent)] pt-1">Breach Velocity: {sim && sim.true_temperature > 6 ? "+0.42°C/min (ACCELERATING)" : "0.00°C/min (STEADY)"}</div>
             </div>
           </div>

@@ -248,9 +248,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
                     AI AGENT EVALUATION: {isBreached ? "EMERGENCY DIVERSION RECOMMENDED" : "NORMAL REEFER OPERATION"}
                   </div>
                   <div className="t-label text-[var(--text-dim)] mt-0.5">
-                    {isBreached 
-                      ? "Arrhenius kinetic threshold will be crossed in 8m. Reroute to Hub Beta (WH-002) to prevent $120k spoilage."
-                      : "Refrigeration system stable. Kinetic degradation rate within nominal bounds."}
+                    {prediction?.remedy ?? "Monitor the warming trend against the remaining ETA."}
                   </div>
                 </div>
               </div>

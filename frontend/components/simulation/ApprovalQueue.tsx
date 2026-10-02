@@ -128,8 +128,19 @@ export default function ApprovalQueue({ compact = false }: { compact?: boolean }
           {pending.map((p) => (
             <li
               key={p.key}
-              className="rounded-[var(--r-md)] border border-[var(--warning)] bg-[var(--surface-inset)] p-3 space-y-2"
+              className={
+                p.escalated
+                  ? "rounded-[var(--r-md)] border-2 border-[var(--critical)] bg-[var(--surface-inset)] p-3 space-y-2"
+                  : "rounded-[var(--r-md)] border border-[var(--warning)] bg-[var(--surface-inset)] p-3 space-y-2"
+              }
             >
+              {p.escalated && (
+                <div className="flex items-center gap-2 text-[var(--critical)] t-body-sm font-semibold">
+                  <span aria-hidden>▲</span>
+                  ESCALATED BY AGENT — no operator response within the grace period
+                  at sim-min {p.escalated_at_sim_minute}. Still awaiting your decision.
+                </div>
+              )}
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="t-body-sm font-semibold">
@@ -148,9 +159,9 @@ export default function ApprovalQueue({ compact = false }: { compact?: boolean }
               <p className="t-body-sm text-[var(--text2)]">{p.reason}</p>
 
               {p.candidates?.length > 0 && (
-                <details className="t-body-sm">
+                <details className="t-body-sm" open>
                   <summary className="cursor-pointer text-[var(--text3)]">
-                    {p.candidates.length} alternative destination(s) considered
+                    {p.candidates.length} alternative destination(s) considered, ranked by score
                   </summary>
                   <ul className="mt-1 space-y-0.5">
                     {p.candidates.map((c: any, i: number) => (
