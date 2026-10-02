@@ -39,6 +39,13 @@
   --accent-ink: #8dccff;
   --accent-ink-hover: #a9dbff;
 
+  /* Map overlay glyphs — see the light-theme block for why these exist.
+       Over dark tiles the glyph outline is near-black and the label needs a
+       dark glow to lift off the basemap. */
+  --marker-outline: #05070c;
+  --marker-halo: #ffffff;
+  --marker-label-shadow: 0 1px 2px #000;
+
   /* Radii */
   --r-sm: 6px;
   --r-md: 8px;
@@ -551,3 +558,191 @@ input:focus, select:focus { border-color: var(--accent); }
   96%, 99% { opacity: 0.3; }
 }
 .animate-lightning-flash { animation: lightning-keyframes 7s infinite; }
+
+
+/* ============================================================
+   LIGHT THEME
+   ----------------------------------------------------------------
+   Everything above is the dark instrument panel. This block is the
+   same token contract re-pointed at a light surface, so the ~130
+   var() reads across 14 routes flip for free — no component change.
+
+   Three rules govern the palette:
+
+   1. SEMANTIC COLOURS GET DARKER, NOT LIGHTER. The dark theme's
+      nominal (#4b9d6f) sits at 3.4:1 on near-black; the same hex on
+      white is 2.6:1 and fails WCAG AA for text. Every status stop is
+      re-picked against the light canvas rather than reused.
+   2. THE HAZE INVERTS. Dark surfaces get their separation from
+      shadow-on-black; light surfaces get it from hairline-on-white.
+      --edge-light therefore becomes a hairline grey, not a white
+      inner glow, and every card shadow loses its black spread.
+   3. SURFACES ORDER BY DEPTH, NOT BRIGHTNESS. canvas is the darkest
+      in dark mode and stays the *lightest* grey here; elevated
+      surfaces get whiter. Reads as paper stacked on a desk.
+
+   Scoped to [data-theme="light"] on <html>, written by
+   StoreProvider. "system" resolves in lib/theme.ts before paint.
+   ============================================================ */
+[data-theme="light"] {
+  /* Surfaces — see rule 3: canvas is light grey, cards are white */
+  --canvas: #f4f6f8;
+  --surface-subtle: #eceff3;
+  --surface-raised: #f7f8fa;
+  --surface-card: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-inset: #f0f2f6;
+
+  /* Structure — rule 2 */
+  --border: #dee2e8;
+  --border-strong: #c2c9d3;
+  --border-accent: #9fbcd8;
+  --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  /* Type — inverted ramp, same four steps */
+  --text: #10151c;
+  --text-secondary: #47525f;
+  --text-muted: #6a7583;
+  --text-dim: #8e99a6;
+
+  /* Semantic — rule 1 */
+  --nominal: #1c8a52;
+  --nominal-soft: #12784a;
+  --warning: #96650a;
+  --warning-soft: #a35c07;
+  --critical: #bf2d20;
+  --critical-soft: #d02a1c;
+  --ai: #03689c;
+  --ai-soft: #0279b5;
+
+  /* Accent stays brass — it is the brand, not a status colour —
+       but darkens for contrast on white. accent-ink is the blue used
+       on primary buttons; it darkens with it. */
+  --accent: #a2761b;
+  --accent-ink: #0b4d78;
+  --accent-ink-hover: #093f63;
+
+  /* Map overlay glyph tokens. The map sits on raster tiles, so its
+   markers need a surface-independent outline + label glow rather than
+   a value that only works over dark tiles. */
+  --marker-outline: #0f172a;
+  --marker-halo: #ffffff;
+  --marker-label-shadow: 0 1px 2px rgba(255, 255, 255, 0.95), 0 0 3px rgba(255, 255, 255, 0.8);
+
+  color-scheme: light;
+}
+
+/* --- Light-mode overrides for composite classes that baked in a
+   literal dark gradient. The token flip above cannot reach these, so
+   each one is re-painted here; anything missed would render as a
+   black slab on a white page. ------------------------------------------- */
+[data-theme="light"] ::selection { background: #03689c2e; }
+
+[data-theme="light"] .base-card {
+  box-shadow: var(--edge-light), 0 1px 2px rgba(16, 24, 40, 0.05),
+    0 6px 20px -8px rgba(16, 24, 40, 0.12);
+}
+
+[data-theme="light"] .zone-glass {
+  background: linear-gradient(160deg, #ffffff 0%, #f2f5f9 70%);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+[data-theme="light"] .glass-panel {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.9) 0%, rgba(242, 245, 249, 0.95) 100%);
+  border-color: rgba(16, 24, 40, 0.1);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 8px 28px -6px rgba(16, 24, 40, 0.14);
+}
+
+/* Badges keep the 8%-alpha tint, but the alpha is now over white so
+   the border needs more presence to read as a border. */
+[data-theme="light"] .badge-green { border-color: #1c8a5240; background: #1c8a5210; }
+[data-theme="light"] .badge-amber { border-color: #96650a40; background: #96650a10; }
+[data-theme="light"] .badge-red   { border-color: #bf2d2040; background: #bf2d2010; }
+[data-theme="light"] .badge-cyan  { border-color: #03689c40; background: #03689c10; }
+
+/* Buttons: dark mode built them as raised navy slabs. In light mode a
+   button is a bordered white chip; "primary" becomes a solid ink fill
+   so the hierarchy survives without the glow. */
+[data-theme="light"] .btn {
+  background: linear-gradient(180deg, #ffffff, #f3f5f8);
+  box-shadow: 0 1px 1px rgba(16, 24, 40, 0.04);
+}
+[data-theme="light"] .btn:hover {
+  background: linear-gradient(180deg, #ffffff, #eaeef3);
+}
+[data-theme="light"] .btn-primary {
+  background: linear-gradient(180deg, #0e567f, #0b4a6e);
+  border-color: #0b4a6e;
+  color: #eaf4fb;
+  text-shadow: none;
+  box-shadow: 0 1px 2px rgba(11, 74, 110, 0.3);
+}
+[data-theme="light"] .btn-primary:hover { background: linear-gradient(180deg, #126493, #0e567f); color: #ffffff; }
+[data-theme="light"] .btn-red   { background: #fdf2f1; border-color: #bf2d2066; color: #a8261a; }
+[data-theme="light"] .btn-red:hover { background: #fbe8e6; }
+[data-theme="light"] .btn-green { background: #eefaf3; border-color: #1c8a5266; color: #146b45; }
+[data-theme="light"] .btn-green:hover { background: #e2f6ec; }
+[data-theme="light"] .btn-amber { background: #fdf6e8; border-color: #96650a66; color: #7a5008; }
+[data-theme="light"] .btn-amber:hover { background: #f9efd8; }
+
+[data-theme="light"] .tbl tbody tr:hover { background: #eaf0f6; }
+[data-theme="light"] .progress-bar::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.75), transparent); }
+[data-theme="light"] .shimmer { background: linear-gradient(90deg, var(--surface-inset) 25%, #ffffff 50%, var(--surface-inset) 75%); }
+[data-theme="light"] .scroll-thin::-webkit-scrollbar-thumb,
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: #c8cfd8; }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #b0b9c4; }
+
+/* The thermal spine sits on a 2px track — on white the track itself
+   must be visible or the fill reads as a bare gradient. */
+[data-theme="light"] .telemetry-rail::before { box-shadow: 0 0 4px -1px var(--rail, var(--nominal)); }
+
+/* --- Theme picker preview -------------------------------------------
+   A miniature of the app's surface stack: sidebar (--surface-subtle),
+   heading bar (--text) and two cards (--surface-card) on --canvas.
+   Its own variable scope means the preview always depicts the theme it
+   represents — the dark preview stays dark even while light is active. */
+.theme-preview {
+  display: flex;
+  gap: 0.25rem;
+  width: 100%;
+  height: 3.5rem;
+  padding: 0.375rem;
+  border-radius: 6px;
+  border: 1px solid var(--preview-border);
+  background: var(--preview-canvas);
+}
+.theme-preview__nav { width: 25%; border-radius: 3px; background: var(--preview-subtle); }
+.theme-preview__body { display: flex; flex: 1; flex-direction: column; gap: 0.25rem; }
+.theme-preview__title { height: 0.5rem; width: 66%; border-radius: 3px; background: var(--preview-text); }
+.theme-preview__cards { display: flex; flex: 1; gap: 0.25rem; }
+.theme-preview__cards > span { flex: 1; border-radius: 3px; background: var(--preview-card); }
+
+[data-preview="dark"] {
+  --preview-canvas: #0a0a0b;
+  --preview-subtle: #0e0e10;
+  --preview-card: #17171a;
+  --preview-border: #2c2c31;
+  --preview-text: #c9c9d0;
+}
+[data-preview="light"] {
+  --preview-canvas: #f4f6f8;
+  --preview-subtle: #eceff3;
+  --preview-card: #ffffff;
+  --preview-border: #c2c9d3;
+  --preview-text: #b9c1cc;
+}
+
+/* --- Light mode tuning of the ops.css thermal spectrum ---------------
+   ops.css defines --thermal-0..6 on :root for dark tiles. Two stops are
+   unusable on white: --thermal-3 (#84cc16 lime) and --thermal-0 (navy,
+   which reads as "disabled" rather than "frozen"). Re-picked darker. */
+[data-theme="light"] {
+  --thermal-0: #16406b;
+  --thermal-1: #0369a1;
+  --thermal-2: #1c8a52;
+  --thermal-3: #4d7c0f;
+  --thermal-4: #b45309;
+  --thermal-5: #c2410c;
+  --thermal-6: #be123c;
+}

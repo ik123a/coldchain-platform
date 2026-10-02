@@ -352,7 +352,7 @@ export default function Home() {
           </button>
           <Link
             href="/simulation"
-            className="px-5 py-3 rounded-xl t-body-sm font-semibold bg-[var(--surface-elevated)] hover:bg-[#253043] text-[var(--border)] border border-[var(--border)] transition-colors">
+            className="px-5 py-3 rounded-xl t-body-sm font-semibold bg-[var(--surface-elevated)] hover:bg-[var(--surface-card)] text-[var(--border)] border border-[var(--border)] transition-colors">
             Simulation Controls
           </Link>
         </div>

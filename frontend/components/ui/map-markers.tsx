@@ -20,16 +20,21 @@ const TONE: Record<MapPoint["tone"], { dot: string; ring: string }> = {
   selected: { dot: "var(--accent)", ring: "rgba(56,189,248,0.32)" },
 };
 
-/** Top-down reefer truck pointing north, so CSS rotation equals compass heading. */
+/** Top-down reefer truck pointing north, so CSS rotation equals compass heading.
+ *
+ *  `outline` is the glyph's stroke colour. It was hardcoded to the dark theme's
+ *  near-black (#05070c), which on a light basemap turns every truck into an
+ *  unreadable dark blob — so it resolves from the live theme token instead. */
 function TruckGlyph({ fill, dim }: { fill: string; dim: boolean }) {
+  const outline = "var(--marker-outline)";
   return (
     <svg width="100%" height="100%" viewBox="0 0 24 24" style={{ display: "block" }}>
-      <rect x="4.6" y="10.4" width="2.2" height="4.4" rx="1" fill="#05070c" />
-      <rect x="17.2" y="10.4" width="2.2" height="4.4" rx="1" fill="#05070c" />
-      <rect x="6.4" y="9.2" width="11.2" height="12.4" rx="1.6" fill={fill} stroke="#05070c" strokeWidth="1.1" />
-      <path d="M7.6 2.6 h8.8 a1.4 1.4 0 0 1 1.4 1.4 v5.2 h-11.6 v-5.2 a1.4 1.4 0 0 1 1.4 -1.4 z" fill={fill} stroke="#05070c" strokeWidth="1.1" />
-      <rect x="9.2" y="4.4" width="5.6" height="2" rx="0.7" fill="#05070c" opacity={dim ? 0.35 : 0.62} />
-      {dim && <rect x="8.6" y="12.4" width="6.8" height="5.4" rx="0.8" fill="#05070c" opacity="0.25" />}
+      <rect x="4.6" y="10.4" width="2.2" height="4.4" rx="1" fill={outline} />
+      <rect x="17.2" y="10.4" width="2.2" height="4.4" rx="1" fill={outline} />
+      <rect x="6.4" y="9.2" width="11.2" height="12.4" rx="1.6" fill={fill} stroke={outline} strokeWidth="1.1" />
+      <path d="M7.6 2.6 h8.8 a1.4 1.4 0 0 1 1.4 1.4 v5.2 h-11.6 v-5.2 a1.4 1.4 0 0 1 1.4 -1.4 z" fill={fill} stroke={outline} strokeWidth="1.1" />
+      <rect x="9.2" y="4.4" width="5.6" height="2" rx="0.7" fill={outline} opacity={dim ? 0.35 : 0.62} />
+      {dim && <rect x="8.6" y="12.4" width="6.8" height="5.4" rx="0.8" fill={outline} opacity="0.25" />}
     </svg>
   );
 }
@@ -142,18 +147,27 @@ export function MapMarkers({
               </>
             ) : (
               <span
-                className="absolute top-1/2 left-1/2 block -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white"
+                className="absolute top-1/2 left-1/2 block -translate-x-1/2 -translate-y-1/2 rounded-full border-2"
                 style={{
                   width: p.tone === "selected" ? 11 : 9,
                   height: p.tone === "selected" ? 11 : 9,
                   background: tone.dot,
+                  // border-white was invisible on a light basemap dot of the
+                  // same value; the token tracks the map's own halo colour.
+                  borderColor: "var(--marker-halo)",
                 }}
               />
             )}
             {p.label && (
               <span
                 className="absolute left-1/2 mt-4 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--canvas)]/85 px-1.5 py-0.5 font-mono t-micro font-bold tracking-tight"
-                style={{ color: tone.dot, textShadow: "0 1px 2px #000" }}
+                // The hardcoded black text-shadow existed to lift a label off
+                // dark tiles; in light mode it haloed the text in black and
+                // made it look broken. Light mode gets a white glow instead.
+                style={{
+                  color: tone.dot,
+                  textShadow: "var(--marker-label-shadow)",
+                }}
               >
                 {p.label}
               </span>

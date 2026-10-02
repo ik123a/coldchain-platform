@@ -91,7 +91,7 @@ export function FleetTable({ vehicles = [], events = [], filter, setFilter, onSe
 
               return (
                 <tr key={v.vehicle_id} onClick={() => onSelect(v.vehicle_id)}
-                    className={`cursor-pointer ${selected === v.vehicle_id ? "bg-[#142131]" : ""}`}>
+                    className={`cursor-pointer ${selected === v.vehicle_id ? "bg-[var(--surface-raised)]" : ""}`}>
                   <td className="whitespace-nowrap">
                     <div className="flex items-center gap-1.5">
                       <span className={`status-dot ${v.status === "ARRIVED" ? "" :

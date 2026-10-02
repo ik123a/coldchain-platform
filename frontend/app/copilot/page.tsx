@@ -61,7 +61,7 @@ export default function Copilot() {
         <div className="p-4 space-y-3 h-[52vh] overflow-y-auto scroll-thin">
           {msgs.map((m, i) => (
             <div key={i} className={`flex ${m.role === "u" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[78%] rounded-xl px-3.5 py-2.5 t-body-sm leading-relaxed ${m.role === "u" ? "bg-[#1e3a5f] text-[#cfe8ff]" : "base-card text-[var(--text2)]"}`}>
+              <div className={`max-w-[78%] rounded-xl px-3.5 py-2.5 t-body-sm leading-relaxed ${m.role === "u" ? "bg-[var(--accent-ink)] text-[var(--text)]" : "base-card text-[var(--text2)]"}`}>
                 {m.text}
               </div>
             </div>

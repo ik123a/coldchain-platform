@@ -22,6 +22,157 @@ const RISK_COLORS: Record<string, string> = {
   LOW: "var(--nominal-soft)", MEDIUM: "var(--warning-soft)", HIGH: "#f97316", CRITICAL: "var(--critical-soft)",
 };
 
+// MapLibre paints in a canvas worker, where CSS custom properties are NOT
+// resolved. So the map cannot read var(--nominal) for its layers and needs a
+// literal-hex mirror of the palette. Kept at module scope (not inside the
+// init effect) so the theme-change effect below can repaint with the same
+// object. Values match globals.css; a divergence shows up as an unreadable
+// marker, not an error, so keep them in sync.
+const MAP_PALETTE = {
+  dark: {
+    bg: "#080a0f", wh: "#38bdf8", whRing: "#7dd3fc", whText: "#7dd3fc",
+    halo: "#0b1018", dest: "#a78bfa", destRing: "#c4b5fd", trail: "#38bdf8",
+    vehText: "#c9d5e4", truckBody: "#e6edf5", truckCab: "#9db4d0", truckCold: "#7ec8ff",
+  },
+  light: {
+    bg: "#e8ecf1", wh: "#0369a1", whRing: "#7dd3fc", whText: "#0b4d78",
+    halo: "#ffffff", dest: "#7c3aed", destRing: "#a78bfa", trail: "#0369a1",
+    vehText: "#10151c", truckBody: "#2c3a4b", truckCab: "#5b6b80", truckCold: "#03689c",
+  },
+} as const;
+
+const ESRI = {
+  darkBase: "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+  darkLabels: "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+  lightBase: "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+  // Path verified against the live service: the "Reference/" infix returns
+  // HTTP 400 for the light set. Only "Canvas/" resolves for both themes.
+  lightLabels: "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+};
+
+const TRUCK_SVG = (p: { truckBody: string; truckCab: string; truckCold: string; halo: string }) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46">
+      <path d="M6 16 L26 16 L26 27 L6 27 Z" fill="${p.truckBody}" stroke="${p.halo}" stroke-width="2"/>
+      <path d="M26 20 L36 20 L40 25 L40 27 L26 27 Z" fill="${p.truckCab}" stroke="${p.halo}" stroke-width="2"/>
+      <circle cx="13" cy="30" r="4" fill="${p.halo}" stroke="${p.truckBody}" stroke-width="2"/>
+      <circle cx="34" cy="30" r="4" fill="${p.halo}" stroke="${p.truckBody}" stroke-width="2"/>
+      <path d="M14 14 L20 14 L20 9 L14 9 Z" fill="${p.truckCold}"/>
+    </svg>`;
+
+/**
+ * Decode the truck SVG into an image MapLibre can register.
+ * addImage() needs a *decoded* bitmap — assigning a data: URL to an <img>
+ * resolves asynchronously, so registering without awaiting decode() races
+ * the load and the icon silently never appears.
+ */
+async function loadTruckImage(p: { truckBody: string; truckCab: string; truckCold: string; halo: string }) {
+  const img = new Image(46, 46);
+  img.src = "data:image/svg+xml;base64," +
+    (typeof window !== "undefined" ? window.btoa(unescape(encodeURIComponent(TRUCK_SVG(p)))) : "");
+  try { await img.decode(); } catch { /* already decoded */ }
+  return img;
+}
+
+/**
+ * Build the full MapLibre style object for a theme.
+ *
+ * Module-level and pure so the theme-change effect can hand the exact same
+ * structure to map.setStyle(). Keeping this in sync with the layer wiring
+ * below matters: setStyle() wipes and rebuilds every layer, so anything the
+ * style omits re-appears only if addSources/addLayers is re-run on 'load'.
+ */
+function mapStyle(theme: "dark" | "light") {
+  const p = MAP_PALETTE[theme];
+  return {
+    version: 8,
+    sources: {
+      esriBase: {
+        type: "raster",
+        tiles: [theme === "light" ? ESRI.lightBase : ESRI.darkBase],
+        tileSize: 256,
+        attribution: "© Esri, HERE, Garmin, © OpenStreetMap contributors",
+      },
+      esriLabels: {
+        type: "raster",
+        tiles: [theme === "light" ? ESRI.lightLabels : ESRI.darkLabels],
+        tileSize: 256,
+      },
+    },
+    layers: [
+      // MapLibre parses paint values in a canvas context, where var() is not
+      // resolved by the browser. Keep this a literal hex; it mirrors --canvas.
+      { id: "bg", type: "background", paint: { "background-color": p.bg } },
+      { id: "esri-base", type: "raster", source: "esriBase" },
+      { id: "esri-labels", type: "raster", source: "esriLabels" },
+    ],
+  };
+}
+
+/** GeoJSON sources + overlay layers, re-created after every setStyle(). */
+function addOverlayLayers(map: MLMap, theme: "dark" | "light") {
+  const p = MAP_PALETTE[theme];
+  const empty = { type: "FeatureCollection", features: [] } as any;
+  for (const id of ["wh", "dest", "veh", "trail", "route", "inc"]) {
+    if (!map.getSource(id)) map.addSource(id, { type: "geojson", data: empty });
+  }
+  map.addLayer({
+    id: "wh-c", type: "circle", source: "wh",
+    paint: { "circle-radius": 9, "circle-color": p.wh,
+             "circle-stroke-color": p.whRing, "circle-stroke-width": 1.5 },
+  });
+  map.addLayer({
+    id: "wh-l", type: "symbol", source: "wh",
+    layout: { "text-field": ["get", "label"], "text-size": 9.5, "text-offset": [0, 1.2], "text-anchor": "top" },
+    paint: { "text-color": p.whText, "text-halo-color": p.halo, "text-halo-width": 1.2 },
+  });
+  map.addLayer({
+    id: "dest-c", type: "circle", source: "dest",
+    paint: { "circle-radius": 5.5, "circle-color": p.dest,
+             "circle-stroke-color": p.destRing, "circle-stroke-width": 1 },
+  });
+  map.addLayer({
+    id: "trail-line", type: "line", source: "trail",
+    paint: { "line-color": p.trail, "line-width": 1.6, "line-opacity": 0.4 },
+    layout: { "line-cap": "round" },
+  });
+  map.addLayer({
+    id: "route-line", type: "line", source: "route",
+    paint: { "line-color": ["get", "color"], "line-width": 3,
+             "line-opacity": 0.85, "line-dasharray": ["get", "dash"] },
+    layout: { "line-cap": "round" },
+  });
+  map.addLayer({
+    id: "inc-pulse", type: "circle", source: "inc",
+    paint: { "circle-radius": 18, "circle-color": "#f8717122",
+             "circle-stroke-color": "#f87171", "circle-stroke-width": 1.2 },
+  });
+  map.addLayer({
+    id: "inc-core", type: "circle", source: "inc",
+    paint: { "circle-radius": 6, "circle-color": "#f87171" },
+  });
+  map.addLayer({
+    id: "veh-halo", type: "circle", source: "veh",
+    paint: { "circle-radius": 13, "circle-color": ["get", "riskColor"], "circle-opacity": 0.18 },
+  });
+  map.addLayer({
+    id: "veh-icon", type: "symbol", source: "veh",
+    layout: {
+      "icon-image": "truck-icon", "icon-size": 0.65,
+      "icon-rotate": ["get", "heading"],
+      "icon-allow-overlap": true, "icon-rotation-alignment": "map",
+    },
+  });
+  map.addLayer({
+    id: "veh-label", type: "symbol", source: "veh",
+    layout: { "text-field": ["get", "label"], "text-size": 9.5, "text-offset": [0, -1.7] },
+    paint: { "text-color": p.vehText, "text-halo-color": p.halo, "text-halo-width": 1.4 },
+  });
+}
+
+const currentTheme = (): "dark" | "light" =>
+  (typeof document !== "undefined" &&
+    document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark");
+
 interface VSnap {
   vehicle_id: string; lat: number; lng: number; heading: number; speed_kmh: number;
   status: string; energy_type: string; type: string;
@@ -356,120 +507,31 @@ export default function LiveMapPage() {
   }, [vehicles, routeGeom]);
 
   // ---------- map init ----------
-  useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-    const TRUCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46">
-      <path d="M6 16 L26 16 L26 27 L6 27 Z" fill="#e6edf5" stroke="#0b1018" stroke-width="2"/>
-      <path d="M26 20 L36 20 L40 25 L40 27 L26 27 Z" fill="#9db4d0" stroke="#0b1018" stroke-width="2"/>
-      <circle cx="13" cy="30" r="4" fill="#0b1018" stroke="#e6edf5" stroke-width="2"/>
-      <circle cx="34" cy="30" r="4" fill="#0b1018" stroke="#e6edf5" stroke-width="2"/>
-      <path d="M14 14 L20 14 L20 9 L14 9 Z" fill="#7ec8ff"/>
-    </svg>`;
-    const img = new Image(46, 46);
-    img.src = "data:image/svg+xml;base64," + (typeof window !== "undefined"
-      ? window.btoa(unescape(encodeURIComponent(TRUCK_SVG))) : "");
-
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      center: [77.10, 28.58],
-      zoom: 9.3,
-      style: {
-        version: 8,
-        sources: {
-          esriBase: {
-            type: "raster",
-            tiles: ["https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"],
-            tileSize: 256,
-            attribution: "© Esri, HERE, Garmin, © OpenStreetMap contributors",
-          },
-          esriLabels: {
-            type: "raster",
-            tiles: ["https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"],
-            tileSize: 256,
-          },
-        },
-        layers: [
-          // MapLibre parses paint values in a canvas context, where var() is not
-          // resolved by the browser. Keep this a literal hex; it mirrors --canvas.
-          { id: "bg", type: "background", paint: { "background-color": "#080a0f" } },
-          { id: "esri-base", type: "raster", source: "esriBase" },
-          { id: "esri-labels", type: "raster", source: "esriLabels" },
-        ],
-      } as any,
-      attributionControl: false,
-    });
-    mapRef.current = map;
-    setMapReady(false);
-    const ro = new ResizeObserver(() => map.resize());
-    ro.observe(containerRef.current);
-    map.on("load", () => {
-      setMapReady(true);
-      map.addImage("truck-icon", img);
-      map.addSource("wh", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      map.addSource("dest", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      map.addSource("veh", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      map.addSource("trail", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      map.addSource("route", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      map.addSource("inc", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      map.addLayer({
-        id: "wh-c", type: "circle", source: "wh",
-        paint: { "circle-radius": 9, "circle-color": "#38bdf8",
-                 "circle-stroke-color": "#7dd3fc", "circle-stroke-width": 1.5 },
+    useEffect(() => {
+      if (!containerRef.current || mapRef.current) return;
+      const theme = currentTheme();
+      const map = new maplibregl.Map({
+        container: containerRef.current,
+        center: [77.10, 28.58],
+        zoom: 9.3,
+        style: mapStyle(theme) as any,
+        attributionControl: false,
       });
-      map.addLayer({
-        id: "wh-l", type: "symbol", source: "wh",
-        layout: { "text-field": ["get", "label"], "text-size": 9.5, "text-offset": [0, 1.2], "text-anchor": "top" },
-        paint: { "text-color": "#7dd3fc", "text-halo-color": "#0b1018", "text-halo-width": 1.2 },
-      });
-      map.addLayer({
-        id: "dest-c", type: "circle", source: "dest",
-        paint: { "circle-radius": 5.5, "circle-color": "#a78bfa",
-                 "circle-stroke-color": "#c4b5fd", "circle-stroke-width": 1 },
-      });
-      map.addLayer({
-        id: "trail-line", type: "line", source: "trail",
-        paint: { "line-color": "#38bdf8", "line-width": 1.6, "line-opacity": 0.4 },
-        layout: { "line-cap": "round" },
-      });
-      map.addLayer({
-        id: "route-line", type: "line", source: "route",
-        paint: { "line-color": ["get", "color"], "line-width": 3,
-                 "line-opacity": 0.85, "line-dasharray": ["get", "dash"] },
-        layout: { "line-cap": "round" },
-      });
-      map.addLayer({
-        id: "inc-pulse", type: "circle", source: "inc",
-        paint: { "circle-radius": 18, "circle-color": "#f8717122",
-                 "circle-stroke-color": "#f87171", "circle-stroke-width": 1.2 },
-      });
-      map.addLayer({
-        id: "inc-core", type: "circle", source: "inc",
-        paint: { "circle-radius": 6, "circle-color": "#f87171" },
-      });
-      map.addLayer({
-        id: "veh-halo", type: "circle", source: "veh",
-        paint: { "circle-radius": 13, "circle-color": ["get", "riskColor"], "circle-opacity": 0.18 },
-      });
-      map.addLayer({
-        id: "veh-icon", type: "symbol", source: "veh",
-        layout: {
-          "icon-image": "truck-icon", "icon-size": 0.65,
-          "icon-rotate": ["get", "heading"],
-          "icon-allow-overlap": true, "icon-rotation-alignment": "map",
-        },
-      });
-      map.addLayer({
-        id: "veh-label", type: "symbol", source: "veh",
-        layout: { "text-field": ["get", "label"], "text-size": 9.5, "text-offset": [0, -1.7] },
-        paint: { "text-color": "#c9d5e4", "text-halo-color": "#0b1018", "text-halo-width": 1.4 },
-      });
-      map.on("click", "veh-icon", (e: any) => {
-        const vid = e.features?.[0]?.properties?.vehicle_id;
-        if (vid) setSelected(vid);
-      });
-      map.on("click", "wh-c", (e: any) => {
-        const id = e.features?.[0]?.properties?.id;
-        if (id) setSelected(id);
+      mapRef.current = map;
+      setMapReady(false);
+      const ro = new ResizeObserver(() => map.resize());
+      ro.observe(containerRef.current);
+      map.on("load", async () => {
+        setMapReady(true);
+        map.addImage("truck-icon", (await loadTruckImage(MAP_PALETTE[theme])) as any);
+        addOverlayLayers(map, theme);
+        map.on("click", "veh-icon", (e: any) => {
+          const vid = e.features?.[0]?.properties?.vehicle_id;
+          if (vid) setSelected(vid);
+        });
+        map.on("click", "wh-c", (e: any) => {
+          const id = e.features?.[0]?.properties?.id;
+          if (id) setSelected(id);
       });
       map.on("click", "inc-core", (e: any) => {
         const vid = e.features?.[0]?.properties?.vehicle_id;
@@ -483,7 +545,56 @@ export default function LiveMapPage() {
       }
     });
     return () => { ro.disconnect(); setMapReady(false); map.remove(); mapRef.current = null; };
-  }, []);
+      }, []);
+
+      // ---------- theme repaint ----------
+            //
+            // MapLibre paints in a canvas worker that cannot read CSS variables, so
+            // flipping data-theme on <html> does nothing for the map: tiles and
+            // every marker keep their dark colours until reload.
+            //
+            // setStyle() is used rather than mutating source._options.tiles. _options
+            // is private, and changing a raster tile URL under it does NOT invalidate
+            // the source's tile cache — measured: the repaint fired, but the browser
+            // still requested World_Dark_Gray_Base under data-theme="light". A full
+            // setStyle() swaps the sources wholesale, which is the only documented
+            // path that re-requests the tiles.
+            //
+            // Cost: layers and sources are re-added, so all the 'load' wiring must be
+            // factored into a reusable function rather than living inside the init
+            // effect's callback — otherwise the map comes back empty.
+            useEffect(() => {
+              const map = mapRef.current;
+              if (!map || !mapReady) return;
+              let cancelled = false;
+              const theme = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+              const p = MAP_PALETTE[theme];
+
+              // Re-register the truck icon with the new palette. The icon is a
+              // rasterised SVG with the theme's body/cab colours baked in, so it
+              // must be rebuilt and swapped, not just recoloured.
+              (async () => {
+                try {
+                  const truck = await loadTruckImage(p);
+                  if (cancelled) return;
+                  if (map.hasImage("truck-icon")) map.removeImage("truck-icon");
+                  map.addImage("truck-icon", truck as any);
+                } catch { /* keep the previous icon if decode fails */ }
+              })();
+
+              map.setStyle(mapStyle(theme) as any);
+                            // setStyle() wipes every layer and source. Re-add the overlay
+                            // stack once the new style reports loaded, otherwise the map
+                            // comes back as bare basemap with no trucks or warehouses.
+                            map.once("styledata", () => {
+                              if (cancelled || !map.isStyleLoaded()) return;
+                              try {
+                                if (map.hasImage("truck-icon")) map.removeImage("truck-icon");
+                                addOverlayLayers(map, theme);
+                              } catch { /* style swapped again mid-flight */ }
+                            });
+                            return () => { cancelled = true; };
+                          }, [st.theme, mapReady]);
 
   // static geo
   useEffect(() => {
@@ -761,7 +872,7 @@ export default function LiveMapPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <div className="absolute bottom-2 left-2 t-micro text-[var(--text3)] bg-[#0b1018cc] px-2 py-1 rounded flex gap-3">
+            <div className="absolute bottom-2 left-2 t-micro text-[var(--text3)] bg-[var(--surface-card)]/85 px-2 py-1 rounded flex gap-3">
               <span>━ completed</span><span className="text-[var(--cyan)]">┅ upcoming</span>
               <span>🚚 vehicle</span><span>⚠ incident</span>
               <span className="text-[var(--cyan)]">SIMULATION ONLY</span>

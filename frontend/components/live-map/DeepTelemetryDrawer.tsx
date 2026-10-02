@@ -122,7 +122,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
         </div>
 
         {/* 8 Progressive Disclosure Tabs (Section 16) */}
-        <div className="flex items-center gap-1 bg-[#101622] p-1 rounded-lg border border-[var(--border)] t-body-sm font-medium overflow-x-auto scroll-thin">
+        <div className="flex items-center gap-1 bg-[var(--surface-inset)] p-1 rounded-lg border border-[var(--border)] t-body-sm font-medium overflow-x-auto scroll-thin">
           {[
             { id: "overview", label: "Overview" },
             { id: "movement", label: "Movement" },
@@ -138,7 +138,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
               onClick={() => setActiveTab(tab.id as DrawerTab)}
               className={`px-2.5 py-1 rounded transition-colors whitespace-nowrap ${
                 activeTab === tab.id 
-                  ? "bg-[#1A2333] text-[var(--text)] shadow-sm border border-[var(--accent)]" 
+                  ? "bg-[var(--surface-card)] text-[var(--text)] shadow-sm border border-[var(--accent)]" 
                   : "text-[var(--text-dim)] hover:text-[var(--border)]"
               }`}>
               {tab.label}
@@ -213,7 +213,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
             </div>
 
             {/* Quick Actions & AI Recommendation Banner with BorderBeam */}
-            <div className="bg-[#101622] p-4 rounded-xl border border-[var(--border)] flex flex-col md:flex-row items-start md:items-center justify-between gap-3 relative overflow-hidden">
+            <div className="bg-[var(--surface-inset)] p-4 rounded-xl border border-[var(--border)] flex flex-col md:flex-row items-start md:items-center justify-between gap-3 relative overflow-hidden">
               {isBreached && (
                 <BorderBeam 
                   size={120} 
@@ -545,7 +545,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
-                    <tr className="hover:bg-[#1A2333]/50">
+                    <tr className="hover:bg-[var(--surface-card)]/50">
                       <td className="py-2.5 font-bold text-[var(--text)]">Hub Alpha (WH-001)</td>
                       <td className="py-2.5 text-[var(--border-strong)]">4.2 km</td>
                       <td className="py-2.5 text-[var(--border-strong)]">15 min</td>
@@ -553,7 +553,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
                       <td className="py-2.5 text-[var(--border-strong)]">120 pallets</td>
                       <td className="py-2.5 text-[var(--text-dim)]">Rank #2</td>
                       <td className="py-2.5 text-right">
-                        <button onClick={() => handleDiversion("WH-001")} className="px-2 py-1 rounded bg-[#101622] hover:bg-[var(--border)] t-micro text-[var(--border-strong)]">Select</button>
+                        <button onClick={() => handleDiversion("WH-001")} className="px-2 py-1 rounded bg-[var(--surface-inset)] hover:bg-[var(--border)] t-micro text-[var(--border-strong)]">Select</button>
                       </td>
                     </tr>
                     <tr className="bg-[var(--surface-inset)] border border-[var(--border)]">
@@ -569,7 +569,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
                         <button onClick={() => handleDiversion("WH-002")} className="px-3 py-1 rounded bg-[var(--accent)] hover:bg-[var(--accent)] t-micro font-bold text-[var(--text)]">Divert Now</button>
                       </td>
                     </tr>
-                    <tr className="hover:bg-[#1A2333]/50 opacity-60">
+                    <tr className="hover:bg-[var(--surface-card)]/50 opacity-60">
                       <td className="py-2.5 font-bold text-[var(--text-dim)]">Hub Gamma (WH-003)</td>
                       <td className="py-2.5 text-[var(--text-dim)]">3.9 km</td>
                       <td className="py-2.5 text-[var(--text-dim)]">12 min</td>

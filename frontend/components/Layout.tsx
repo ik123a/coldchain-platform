@@ -5,10 +5,11 @@ import { usePathname } from "next/navigation";
 import {
   Activity, BarChart3, Bot, ChevronLeft, ChevronRight,
   ClipboardList, Container, Droplets, FastForward, FlaskConical,
-  List, Map, Settings, Siren, Warehouse, Search
+  List, Map, Moon, Settings, Siren, Sun, Warehouse, Search
 } from "lucide-react";
 import { StatusBeacon } from "./ui/status-beacon";
 import { useStore } from "@/lib/store";
+import { resolveTheme } from "@/lib/theme";
 import Toasts from "./Toasts";
 import { CommandPalette } from "./CommandPalette";
 
@@ -54,9 +55,16 @@ const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const { st } = useStore();
+  const { st, dispatch } = useStore();
   const [openCmd, setOpenCmd] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+
+  // One-click flip for demos and projectors. Under "system" the toggle
+  // pins the OPPOSITE of what is currently showing, which is the least
+  // surprising behaviour: the button always means "show me the other one".
+  const isLight = resolveTheme(st.theme) === "light";
+  const toggleTheme = () =>
+    dispatch({ type: "theme", payload: isLight ? "dark" : "light" });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -201,7 +209,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </Link>
 
           <div className="ops-label flex shrink-0 items-center gap-5">
-            <StatusIndicator label="AI" value={st.status?.ai_mode === "DETERMINISTIC-AGENTS" ? "Deterministic agents" : (st.status?.ai_mode || "Agents")} ok={st.status?.ai_mode === "DETERMINISTIC-AGENTS"} />
+                      <button
+                        onClick={toggleTheme}
+                        title={isLight ? "Switch to dark theme" : "Switch to light theme"}
+                        aria-label={isLight ? "Switch to dark theme" : "Switch to light theme"}
+                        className="flex h-6 min-h-6 min-w-6 items-center justify-center rounded-[var(--r-md)] border border-[var(--border)] bg-[var(--surface-inset)] text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text)]"
+                      >
+                        {isLight ? <Moon size={12} aria-hidden /> : <Sun size={12} aria-hidden />}
+                      </button>
+
+                      <StatusIndicator label="AI" value={st.status?.ai_mode === "DETERMINISTIC-AGENTS" ? "Deterministic agents" : (st.status?.ai_mode || "Agents")} ok={st.status?.ai_mode === "DETERMINISTIC-AGENTS"} />
             <StatusIndicator label="DB" value={dbOk ? "Connected" : "Offline"} ok={dbOk} />
             <StatusIndicator label="WS" value={wsOk ? "Streaming" : "Polling"} ok={wsOk} />
 

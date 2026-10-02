@@ -217,7 +217,9 @@ export default function DashboardPage() {
       <h1 className="sr-only">Operations dashboard — live fleet overview</h1>
 
       {/* TACTICAL LIVE TELEMETRY MARQUEE (Awwwards Style) */}
-      <div className="h-7 shrink-0 bg-[#06080C] border-b border-[var(--border)] flex items-center overflow-hidden z-20">
+            {/* The strip was bg-[#06080C] — a hardcoded near-black that read as a
+                black slab on a light page. --surface-inset now resolves per theme. */}
+            <div className="h-7 shrink-0 bg-[var(--surface-inset)] border-b border-[var(--border)] flex items-center overflow-hidden z-20">
         <div className="shrink-0 px-3 h-full bg-[var(--surface-raised)] border-r border-[var(--border)] flex items-center gap-1.5 t-micro font-mono text-[var(--accent)] font-bold uppercase tracking-wider">
           <Activity size={11} className="text-[var(--accent)] animate-pulse" />
           <span>TELEMETRY STREAM</span>

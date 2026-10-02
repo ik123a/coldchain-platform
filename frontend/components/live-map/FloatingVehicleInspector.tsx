@@ -106,7 +106,7 @@ export function FloatingVehicleInspector({
       </div>
 
       {/* 3. Refrigeration Telemetry (Inside vs Outside) */}
-      <div className="bg-[#101622] p-2.5 rounded-lg border border-[var(--border)] space-y-1.5 relative z-10">
+      <div className="bg-[var(--surface-inset)] p-2.5 rounded-lg border border-[var(--border)] space-y-1.5 relative z-10">
         <div className="flex items-center justify-between t-label font-mono">
           <span className="text-[var(--text-dim)]">INSIDE CORE:</span>
           <span className={`font-bold flex items-center gap-1.5 ${isBreached ? "text-[var(--critical)]" : "text-[var(--text)]"}`}>

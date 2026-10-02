@@ -2,6 +2,7 @@
 import { createContext, useContext, useMemo, useReducer, useEffect, ReactNode } from "react";
 import { api } from "./api";
 import { WS_URL } from "./api";
+import { resolveTheme, THEME_KEY, type Theme } from "./theme";
 
 export interface Reading {
   tick: number; temperature: number; true_temperature: number; humidity: number;
@@ -34,7 +35,7 @@ interface State {
   incidents: IncidentSummary[];
   agentsStatus: Record<string, { status: string; note?: string }>;
   connected: boolean;
-  theme: "dark" | "light" | "system";
+  theme: Theme;
   selectedIncident?: number | null;
   toasts: { id: number; text: string; sev: string }[];
   fleetVehicles?: any[];
@@ -59,7 +60,18 @@ const defaultAgents = {
 
 const initial: State = {
   status: null, dashboard: null, sim: null, history: [], events: [], incidents: [],
-  agentsStatus: defaultAgents, connected: false, theme: "dark", selectedIncident: null, toasts: [],
+  // Read the stored preference during initialisation rather than defaulting to
+  // "dark" and correcting in an effect. On the server there is no
+  // localStorage, so this returns "system" — which is also the correct
+  // server-side answer, and matches what the boot script resolves to.
+  // The point is that "system" and an unreadable store are the same case:
+  // defer to the OS. The previous hardcoded "dark" meant the settings chips
+  // showed dark as selected on every load until someone clicked Light.
+  theme: (typeof window !== "undefined"
+    ? ((localStorage.getItem(THEME_KEY) as Theme | null) ?? "system")
+    : "system"),
+  connected: false, selectedIncident: null, toasts: [],
+  agentsStatus: defaultAgents,
   fleetVehicles: [], fleetEvents: [], fleetMeta: {},
 };
 
@@ -198,7 +210,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", st.theme);
+    const apply = () => {
+      document.documentElement.setAttribute("data-theme", resolveTheme(st.theme));
+      try { localStorage.setItem(THEME_KEY, st.theme); } catch {}
+    };
+    apply();
+    if (st.theme !== "system") return;
+    // Only listen while the preference actually defers to the OS —
+    // a leaked listener under a fixed choice would flip the page
+    // mid-session whenever the machine crossed dusk.
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
   }, [st.theme]);
 
   const value = useMemo(() => ({ st, dispatch }), [st]);

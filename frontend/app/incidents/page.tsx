@@ -163,7 +163,7 @@ function IncidentsInner() {
                      dispatch({ type: "select_incident", payload: i.id });
                    }
                  }}
-                 className={`w-full cursor-pointer text-left p-2.5 rounded-lg border transition ${selected?.id === i.id ? "border-[var(--accent)]/60 bg-[#142131]" : "border-[var(--border)] hover:border-[var(--border-hi)]"} ${i.severity === "CRITICAL" && i.status !== "RESOLVED" ? "pulse-red" : ""}`}>
+                 className={`w-full cursor-pointer text-left p-2.5 rounded-lg border transition ${selected?.id === i.id ? "border-[var(--accent)]/60 bg-[var(--surface-raised)]" : "border-[var(--border)] hover:border-[var(--border-hi)]"} ${i.severity === "CRITICAL" && i.status !== "RESOLVED" ? "pulse-red" : ""}`}>
               <div className="flex items-center justify-between t-body-sm">
                 <b>#{i.id} {(i.root_cause || "?").replace(/_/g, " ")}</b>
                 <span className={`badge ${sevBadge(i.severity)}`}>{i.severity}</span>
@@ -255,7 +255,7 @@ function IncidentsInner() {
                           >
                             {String(c.component).replace(/_/g, " ")}
                           </div>
-                          <div className="h-1.5 flex-1 rounded bg-[#142131]">
+                          <div className="h-1.5 flex-1 rounded bg-[var(--surface-raised)]">
                             <div className="h-1.5 rounded" style={{ width: `${Math.min(100, c.points * 3)}%`, background: "var(--amber)" }} />
                           </div>
                           <span className="kpi-num w-9 shrink-0 text-right">+{c.points}</span>
@@ -278,7 +278,7 @@ function IncidentsInner() {
                 <AnimatePresence>
                   {selected.actions?.map((a: any) => (
                     <motion.div key={a.action} layout initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
-                                className={`p-3 rounded-lg border ${a.status === "EXECUTED" ? "border-[var(--green)]/60 bg-[#0d1f16]" : "border-[var(--border)]"}`}>
+                                className={`p-3 rounded-lg border ${a.status === "EXECUTED" ? "border-[var(--green)]/60 bg-[var(--nominal-soft)]/10" : "border-[var(--border)]"}`}>
                       <div className="flex items-center justify-between">
                         <b className="t-body">{a.label}</b>
                         <span className={`badge ${a.priority === "CRITICAL" ? "badge-red" : a.priority === "HIGH" ? "badge-amber" : "badge-cyan"}`}>{a.priority}</span>
@@ -349,7 +349,7 @@ function AskAI({ id }: { id: number }) {
         <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === "Enter" && ask()} className="flex-1" placeholder="ask about this incident…" />
         <button onClick={ask} disabled={busy} className="btn btn-primary t-body-sm">{busy ? "…" : "Ask"}</button>
       </div>
-      {ans && <div className="mt-2 t-label text-[var(--text2)] bg-[#0d1623] rounded-lg p-3 leading-relaxed fade-in">{ans}</div>}
+      {ans && <div className="mt-2 t-label text-[var(--text2)] bg-[var(--surface-inset)] rounded-lg p-3 leading-relaxed fade-in">{ans}</div>}
     </div>
   );
 }

@@ -62,7 +62,7 @@ export default function Shipments() {
           <div className="flex gap-0">
             {["preparing", "loading", "storage", "transport", "incident", "recovery", "arrival"].map((s, i) => (
               <div key={s} className="flex-1 text-center">
-                <div className={`h-1.5 ${i === 0 ? "rounded-l-full" : ""} ${i === 6 ? "rounded-r-full" : ""} ${open.status === "IN TRANSIT" && i <= 3 ? "bg-[var(--accent)]" : "bg-[#1d2a3a]"}`} />
+                <div className={`h-1.5 ${i === 0 ? "rounded-l-full" : ""} ${i === 6 ? "rounded-r-full" : ""} ${open.status === "IN TRANSIT" && i <= 3 ? "bg-[var(--accent)]" : "bg-[var(--border)]"}`} />
                 <div className="t-micro text-[var(--text3)] mt-1.5">{s}</div>
               </div>
             ))}

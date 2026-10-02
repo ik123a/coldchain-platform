@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "./ops.css";
 import { StoreProvider } from "@/lib/store";
+import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import Layout from "@/components/Layout";
 
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
@@ -14,15 +15,23 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#080A0F",
-  colorScheme: "dark",
+  // The browser's own chrome (address bar, notch area) follows color-scheme.
+  // A fixed dark value here paints a black bar above a white page on mobile.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f6f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#080A0F" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <StoreProvider>
+              {/* Must be the first thing in <body>: it writes data-theme before the
+                  body paints, so a light-mode user never sees a dark flash. React
+                  renders inline <script> in place (only src= scripts get hoisted). */}
+              <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+              <StoreProvider>
           <Layout>{children}</Layout>
         </StoreProvider>
       </body>
