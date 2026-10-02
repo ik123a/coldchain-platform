@@ -225,7 +225,17 @@ class ReporterAgent:
         score -= min(30, max(0, num("peak_over_by", 0) * 3))               # severity penalty
         score -= min(25, max(0, (num("risk_at_peak", 0) - 55) / 2))        # risk stayed high
         score -= min(20, max(0, recovery_t - 8))                            # slow recovery
-        score -= min(15, max(0, 12 - num("time_to_plan_ticks", 4)))     # slow driving? handled below
+        # Planning FASTER must score HIGHER. The penalty was written as
+        # `min(15, max(0, 12 - time_to_plan_ticks))`, which is largest when
+        # time_to_plan_ticks is SMALL — so the quicker the planning, the more
+        # was subtracted. Measured before the fix: 0 ticks scored 77 while 12
+        # ticks scored 89, reporting an urgent response as worse than a lazy
+        # one. The accompanying comment said "handled below" for logic that
+        # was never written.
+        #
+        # Correct form: slowness is (ticks - target), floored at zero, so a
+        # response at or under target costs nothing and delay costs up to 15.
+        score -= min(15, max(0, (num("time_to_plan_ticks", 4) - 6) / 2))
         score += min(10, num("early_confidence_bonus", 0))
         score = int(max(35, min(98, score)))
 

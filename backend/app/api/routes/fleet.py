@@ -11,6 +11,7 @@ from ...simulation.routing import RoutingService, nearest_node
 from ...simulation.geo_data import CARGO_TYPES, DESTINATIONS
 from ...simulation import incidents_catalogue as IC
 from ...simulation import prediction as PRED
+from ...simulation import scenarios as SCENARIOS
 
 router = APIRouter(prefix="/api/fleet", tags=["fleet"])
 
@@ -118,6 +119,30 @@ async def dispatch_start(_auth: dict = Depends(require_auth)):
 @router.post("/dispatch/clear")
 async def dispatch_clear(_auth: dict = Depends(require_auth)):
     return FLEET.clear_dispatch()
+
+
+@router.get("/scenarios")
+async def fleet_scenarios(_auth: dict = Depends(require_auth_read)):
+    """Run the deterministic scenario suite A-F and report each outcome.
+
+    Requirement 28 asks for repeatable demonstrations. Each scenario builds a
+    fresh orchestrator, injects a known fault, pins ambient temperature, and
+    asserts a specific outcome — so re-running this in front of an examiner
+    produces the same story rather than whatever the weather did today.
+
+    A scenario that cannot produce its outcome asserts the honest result (see
+    scenario A's docstring) instead of a hoped-for one, and reports why.
+    """
+    results = SCENARIOS.run_all()
+    return {
+        "total": len(results),
+        "passed": sum(1 for r in results if r.passed),
+        "all_passed": all(r.passed for r in results),
+        "scenarios": [{"name": r.name, "title": r.title,
+                       "expectation": r.expectation, "passed": r.passed,
+                       "observed": r.observed, "failures": r.failures}
+                      for r in results],
+    }
 
 
 @router.get("/predictions")
