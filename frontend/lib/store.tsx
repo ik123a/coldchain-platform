@@ -4,6 +4,20 @@ import { api } from "./api";
 import { WS_URL } from "./api";
 import { resolveTheme, THEME_KEY, type Theme } from "./theme";
 
+export interface Notice {
+  id: number;
+  text: string;
+  sev: "CRITICAL" | "INFO" | "OK";
+  source: string;
+  at: string;
+  read: boolean;
+}
+
+// The activity centre keeps a full history rather than the 5-item window the
+// old toast stack used. These notices no longer expire on a timer, so a bounded
+// buffer would silently discard the record an examiner might scroll back to.
+const NOTICE_MAX = 100;
+
 export interface Reading {
   tick: number; temperature: number; true_temperature: number; humidity: number;
   ambient_temperature: number; door_open: boolean; compressor_on: boolean;
@@ -37,7 +51,7 @@ interface State {
   connected: boolean;
   theme: Theme;
   selectedIncident?: number | null;
-  toasts: { id: number; text: string; sev: string }[];
+  notices: Notice[];
   fleetVehicles?: any[];
   fleetEvents?: any[];
   fleetWarehouses?: any[];
@@ -70,7 +84,7 @@ const initial: State = {
   theme: (typeof window !== "undefined"
     ? ((localStorage.getItem(THEME_KEY) as Theme | null) ?? "system")
     : "system"),
-  connected: false, selectedIncident: null, toasts: [],
+  connected: false, selectedIncident: null, notices: [],
   agentsStatus: defaultAgents,
   fleetVehicles: [], fleetEvents: [], fleetMeta: {},
 };
@@ -98,8 +112,21 @@ function reducer(st: State, a: Action): State {
         if (ev.kind === "report_ready") agentsStatus["reporter"] = { status: "COMPLETE", note: `score ${ev.score}` };
         if (ev.kind === "incident_detected") { Object.keys(agentsStatus).forEach(k => { if (k !== "monitoring") agentsStatus[k] = { status: "STANDBY", note: "" } }); }
       }
-      const toasts = [...st.toasts, { id: Date.now() + Math.random(), text: ev.detail || ev.kind, sev: ev.kind.includes("detected") ? "CRITICAL" : ev.kind.includes("resolved") || ev.kind.includes("verified") ? "OK" : "INFO" }].slice(-5);
-      return { ...st, events: [ev, ...st.events].slice(0, 90), agentsStatus, selectedIncident: ev.simulation_id ? st.selectedIncident ?? st.incidents[0]?.id : st.selectedIncident, toasts };
+      const notice: Notice = {
+        id: Date.now() + Math.random(),
+        text: ev.detail || ev.kind,
+        sev: ev.kind.includes("detected") ? "CRITICAL" : ev.kind.includes("resolved") || ev.kind.includes("verified") ? "OK" : "INFO",
+        source: ev.agent || "agent",
+        at: new Date().toISOString(),
+        read: false,
+      };
+      return {
+        ...st,
+        events: [ev, ...st.events].slice(0, 90),
+        agentsStatus,
+        selectedIncident: ev.simulation_id ? st.selectedIncident ?? st.incidents[0]?.id : st.selectedIncident,
+        notices: [notice, ...st.notices].slice(0, NOTICE_MAX),
+      };
     }
     case "fleet": {
       const p = a.payload as any;
@@ -120,27 +147,38 @@ function reducer(st: State, a: Action): State {
     case "fleet_event": {
       const ev = a.payload as any;
       const t = ev.type as string;
-      const toasts = [...st.toasts];
-      if (["fleet.incident.created", "ai.route.decision", "vehicle.route.changed", "cargo.transferred"].includes(t)) {
-        toasts.push({ id: Date.now() + Math.random(),
-                      text: t === "ai.route.decision"
-                        ? `AI: ${ev.decision} -> ${ev.target} (${ev.vehicle_id})`
-                        : t === "fleet.incident.created"
-                        ? `INCIDENT ${ev.vehicle_id}: ${ev.root_cause}`
-                        : t === "vehicle.route.changed"
-                        ? `${ev.vehicle_id} rerouted -> ${ev.new_target}`
-                        : `${ev.vehicle_id} transferred ${ev.units}u`,
-                      sev: t === "fleet.incident.created" ? "CRITICAL" : t === "ai.route.decision" ? "INFO" : "OK" });
+      let notices = st.notices;
+      const LABELS: Record<string, [string, "CRITICAL" | "INFO" | "OK"]> = {
+        "fleet.incident.created": [`INCIDENT ${ev.vehicle_id}: ${ev.root_cause}`, "CRITICAL"],
+        "ai.route.decision": [`AI recommends ${ev.decision} to ${ev.target} (${ev.vehicle_id})`, "INFO"],
+        "ai.approval.requested": [`Approval needed: ${ev.vehicle_name ?? ev.vehicle_id} to ${ev.target}`, "CRITICAL"],
+        "ai.approval.resolved": [
+          `Operator ${ev.approved ? "APPROVED" : "REJECTED"} ${ev.vehicle_id} to ${ev.target}`, "OK"],
+        "vehicle.route.changed": [`${ev.vehicle_id} rerouted to ${ev.new_target}`, "OK"],
+        "cargo.transferred": [`${ev.vehicle_id} transferred ${ev.units}u`, "OK"],
+        "weather.changed": [`Weather: ${ev.weather}`, "INFO"],
+        "vehicle.failure.injected": [`Failure injected on ${ev.vehicle_id}: ${ev.failure}`, "CRITICAL"],
+      };
+      const hit = LABELS[t];
+      if (hit) {
+        notices = [{ id: Date.now() + Math.random(), text: hit[0], sev: hit[1], source: t, at: new Date().toISOString(), read: false }, ...notices].slice(0, NOTICE_MAX);
       }
       return { ...st, fleetEvents: [ev, ...st.fleetEvents].slice(0, 90),
                fleetMeta: { simMinute: ev.sim_minute ?? st.fleetMeta?.simMinute, weather: ev.weather ?? st.fleetMeta?.weather },
-               toasts: toasts.slice(-5) };
+               notices };
     }
     case "incidents": return { ...st, incidents: a.payload };
     case "select_incident": return { ...st, selectedIncident: a.payload };
     case "connected": return { ...st, connected: a.payload };
     case "theme": return { ...st, theme: a.payload };
-    case "dismiss_toast": return { ...st, toasts: st.toasts.filter(t => t.id !== a.payload) };
+    case "ack_notice":
+      return {
+        ...st,
+        notices: st.notices.map((n) =>
+          a.payload === "all" ? { ...n, read: true }
+          : n.id === a.payload ? { ...n, read: true } : n),
+      };
+    case "clear_notices": return { ...st, notices: st.notices.filter((n) => !n.read) };
     case "sim_status": return { ...st, sim: st.sim ? { ...st.sim, status: a.payload } : st.sim };
     default: return st;
   }

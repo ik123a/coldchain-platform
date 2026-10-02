@@ -10,7 +10,7 @@ import {
 import { StatusBeacon } from "./ui/status-beacon";
 import { useStore } from "@/lib/store";
 import { resolveTheme } from "@/lib/theme";
-import Toasts from "./Toasts";
+import NotificationCentre from "./NotificationCentre";
 import { CommandPalette } from "./CommandPalette";
 
 const NAV_GROUPS = [
@@ -248,7 +248,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      <Toasts />
+      <NotificationCentre />
       {openCmd && <CommandPalette onClose={() => setOpenCmd(false)} />}
     </div>
   );
