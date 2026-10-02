@@ -60,6 +60,9 @@ class FleetOrchestrator:
         # long run and every later divert failed with "insufficient capacity".
         self._pending_release: dict[str, int] = {}   # facility_id -> units to credit back
         self._dock_free_at: dict[str, float] = {}    # facility_id -> sim_minute dock frees
+        # Operator-configured trucks (see the dispatch section below). Separate
+        # from self.vehicles so a demo-fleet rebuild cannot delete them.
+        self.dispatch: list[dict] = []
         self.event_ring: list[dict] = []
         self._task = None
         self.alert_counts: dict[str, int] = {}     # vehicle_id -> non-info alert count
@@ -248,6 +251,151 @@ class FleetOrchestrator:
         self.service_tasks: dict[str, str] = {}   # service vid -> target vid
         self.service_pending: dict[str, str] = {}  # target vid -> task type
         self.transfers: dict[str, dict] = {}       # donor vid -> transfer state
+
+    # ---------------- manual dispatch fleet (user-defined trucks) ----------------
+    #
+    # The auto-spawned fleet above is round-robin over POLYLINES/CARGO_TYPES and
+    # is what the capstone demo runs on. It is left completely untouched.
+    #
+    # Alongside it, a user may configure 2-3 trucks by hand — explicit product
+    # and explicit destination — for the human-in-the-loop demonstration. Those
+    # live in `self.dispatch` rather than in `self.vehicles` so that:
+    #   * resetting the demo fleet cannot silently delete a configured truck,
+    #   * the two populations stay distinguishable in /api/fleet/state,
+    #   * each configured truck carries its own product/destination spec that a
+    #     panel can read back.
+    #
+    # A configured truck is spawned into `self.vehicles` when the operator
+    # starts the run, so it moves, emits telemetry, raises incidents and can be
+    # rescued through exactly the same code path as any other vehicle. There is
+    # no second movement or thermal implementation.
+
+    DISPATCH_MAX = 3
+
+    def _dispatch_specs(self) -> list[dict]:
+        return [dict(s) for s in self.dispatch]
+
+    def configure_dispatch(self, specs: list[dict]) -> dict:
+        """Validate and store the operator's truck definitions.
+
+        Raises ValueError with a human-readable reason on anything the
+        simulation cannot honour, so the API can return 400 instead of
+        silently substituting a random product or destination — which is the
+        exact failure mode this feature exists to remove.
+        """
+        if not specs:
+            raise ValueError("at least one truck is required")
+        if len(specs) > self.DISPATCH_MAX:
+            raise ValueError(f"at most {self.DISPATCH_MAX} trucks can be dispatched "
+                             f"at once (got {len(specs)})")
+
+        known_cargo = set(CARGO_TYPES) | {"pharmaceutical"}
+        known_nodes = {w["id"] for w in self.warehouses} | {d["id"] for d in DESTINATIONS}
+
+        seen: set[str] = set()
+        cleaned: list[dict] = []
+        for i, s in enumerate(specs):
+            name = (s.get("name") or f"Truck {i + 1}").strip()[:40]
+            cargo = (s.get("cargo_type") or "").strip()
+            dest = (s.get("destination_id") or "").strip()
+            origin = (s.get("origin_id") or "").strip() or None
+
+            if not cargo:
+                raise ValueError(f"{name}: product is required")
+            if cargo not in known_cargo:
+                raise ValueError(f"{name}: unknown product '{cargo}'. "
+                                 f"Choose one of {sorted(known_cargo)}")
+            if not dest:
+                raise ValueError(f"{name}: destination warehouse is required")
+            if dest not in known_nodes:
+                raise ValueError(f"{name}: unknown destination '{dest}'. "
+                                 f"Choose one of {sorted(known_nodes)}")
+            if dest in seen:
+                raise ValueError(f"{name}: destination {dest} is already used by "
+                                 f"another truck in this run")
+            seen.add(dest)
+
+            # Destination compatibility is CHECKED, not silently rewritten. The
+            # auto-spawn path overwrites an incompatible cargo (line ~228); doing
+            # that here would defeat the point of a user-defined product.
+            if dest.startswith("D"):
+                dnode = next((x for x in DESTINATIONS if x["id"] == dest), None)
+                if dnode and cargo not in dnode["required_cargo"]:
+                    raise ValueError(
+                        f"{name}: {dest} only accepts "
+                        f"{sorted(dnode['required_cargo'])}, not '{cargo}'")
+
+            try:
+                load = int(s.get("load_units") or 400)
+            except (TypeError, ValueError):
+                raise ValueError(f"{name}: load_units must be a whole number")
+            if not 1 <= load <= 1000:
+                raise ValueError(f"{name}: load_units must be between 1 and 1000")
+
+            cleaned.append({
+                "name": name,
+                "cargo_type": cargo,
+                "destination_id": dest,
+                "origin_id": origin,
+                "load_units": load,
+            })
+
+        self.dispatch = cleaned
+        return {"trucks": self._dispatch_specs(), "count": len(cleaned)}
+
+    def clear_dispatch(self) -> dict:
+        self.dispatch = []
+        return {"trucks": [], "count": 0}
+
+    def start_dispatch(self) -> dict:
+        """Spawn the configured trucks into the live world.
+
+        Idempotent per spec: a truck already running with the same name is
+        replaced, so pressing Start twice does not double the fleet.
+        """
+        if not self.dispatch:
+            raise ValueError("no trucks configured — define them first")
+
+        started: list[str] = []
+        for i, s in enumerate(self.dispatch):
+            dest = s["destination_id"]
+            origin = s.get("origin_id") or self._origin_for(dest)
+            route = self.routing.calculate_route(origin, dest, 1.0)
+            vid = s.get("vehicle_id") or f"USER-{dest}-{i}"
+            # replace any previous twin with this id (re-start is idempotent)
+            self.vehicles.pop(vid, None)
+            twin = VehicleTwin(
+                vid, "REFRIGERATED_TRUCK", "DIESEL", s["name"],
+                s["cargo_type"],
+                load_units=int(s["load_units"]), capacity_units=1000,
+                origin_id=origin, dest_id=dest, route=route,
+                seed=self._world_rng.randrange(10 ** 9))
+            # Mark it so the UI and the state payload can tell configured trucks
+            # from the round-robin demo fleet.
+            twin.user_defined = True
+            twin.display_name = s["name"]
+            self.vehicles[vid] = twin
+            started.append(vid)
+        return {"started": started, "count": len(started),
+                "trucks": self._dispatch_specs()}
+
+    def _origin_for(self, dest: str) -> str:
+        """Pick a sensible origin node for a hand-configured truck.
+
+        Prefers a warehouse that stocks the product, so the load is coherent
+        with the simulation rather than starting from an unrelated node.
+        Falls back to any other warehouse.
+        """
+        wanted = {s.get("cargo_type") for s in self.dispatch}
+        for w in self.warehouses:
+            if w["id"] == dest:
+                continue
+            if wanted & set(w.get("cargo_types") or []):
+                return w["id"]
+        for w in self.warehouses:
+            if w["id"] != dest:
+                return w["id"]
+        return "WH-001"
 
     # ---------------- main loop ----------------
     async def _run(self):
@@ -508,6 +656,32 @@ class FleetOrchestrator:
         self._respawn(v)
 
     def _respawn(self, v: VehicleTwin):
+        # A user-configured truck keeps the product and destination the operator
+        # chose. _respawn otherwise picks a random POLYLINE and may even rewrite
+        # the cargo to match that destination's required_cargo, which would
+        # silently undo the explicit configuration the moment a delivery
+        # completed — the truck would come back carrying something else, or
+        # heading somewhere the user never selected. A configured truck
+        # therefore completes its run and stops, and the operator starts the next
+        # leg explicitly.
+        if getattr(v, "user_defined", False):
+            spec = next((s for s in self.dispatch
+                         if getattr(v, "display_name", None) == s.get("name")), None)
+            dest = (spec or {}).get("destination_id") or v.dest_id
+            cargo = (spec or {}).get("cargo_type") or v.cargo_type
+            origin = v.origin_id
+            load = int((spec or {}).get("load_units") or 0)
+            if load <= 0:
+                return  # single-load truck: finished, do not recycle it
+            route = self.routing.calculate_route(origin, dest, 1.0)
+            fresh = VehicleTwin(v.id, v.kind, v.energy, v.driver, cargo,
+                                load, v.capacity_units, origin, dest, route,
+                                seed=v.seed + 1)
+            fresh.user_defined = True
+            fresh.display_name = getattr(v, "display_name", v.id)
+            self.vehicles[v.id] = fresh
+            return
+
         import random as _r
         rng = _r.Random(v.seed + int(self.sim_minute))
         pairs = list(POLYLINES.keys())

@@ -7,6 +7,7 @@ from ...core.authz import require_auth, require_auth_read
 from ...simulation.fleet_orchestrator import FLEET
 from ...simulation.analytics import fleet_kpis
 from ...simulation.routing import RoutingService, nearest_node
+from ...simulation.geo_data import CARGO_TYPES, DESTINATIONS
 
 router = APIRouter(prefix="/api/fleet", tags=["fleet"])
 
@@ -34,6 +35,77 @@ class RebuildIn(BaseModel):
     traffic_intensity: float = Field(default=1.0, ge=0.5, le=2.0)
     failure_probability: float = Field(default=0.0, ge=0.0, le=1.0)
     speed: float = Field(default=2.0, ge=0.25, le=100)
+
+
+class DispatchTruckIn(BaseModel):
+    """One operator-defined truck.
+
+    `cargo_type` and `destination_id` are REQUIRED and are never defaulted:
+    auto-assigning either one is the behaviour this endpoint replaces. The
+    simulation validates compatibility and returns 400 rather than quietly
+    substituting a different product or warehouse.
+    """
+    name: str = Field(min_length=1, max_length=40)
+    cargo_type: str = Field(min_length=1, max_length=30)
+    destination_id: str = Field(min_length=1, max_length=12)
+    origin_id: str | None = Field(default=None, max_length=12)
+    load_units: int = Field(default=400, ge=1, le=1000)
+
+
+class DispatchIn(BaseModel):
+    trucks: list[DispatchTruckIn] = Field(min_length=1, max_length=3)
+
+
+@router.get("/dispatch")
+async def dispatch_get(_auth: dict = Depends(require_auth_read)):
+    """Current operator-defined trucks plus the catalogue needed to configure them.
+
+    The catalogue (products and candidate destinations, each with the products
+    it accepts) ships in the same payload so the UI never has to hardcode the
+    available options.
+    """
+    return {
+        "trucks": FLEET._dispatch_specs(),
+        "count": len(FLEET.dispatch),
+        "max": FLEET.DISPATCH_MAX,
+        "catalog": {
+            "products": list(CARGO_TYPES),
+            "destinations": [
+                {"id": w["id"], "name": w["name"], "kind": "warehouse",
+                 "cargo_types": w.get("cargo_types", []),
+                 "available_capacity": w.get("available_capacity", 0)}
+                for w in FLEET.warehouses
+            ] + [
+                {"id": d["id"], "name": d["name"], "kind": "delivery_point",
+                 "cargo_types": d.get("required_cargo", []),
+                 "available_capacity": d.get("capacity", 0)}
+                for d in DESTINATIONS
+            ],
+        },
+    }
+
+
+@router.post("/dispatch")
+async def dispatch_set(body: DispatchIn, _auth: dict = Depends(require_auth)):
+    """Validate and store 2-3 truck definitions. Does not start them."""
+    try:
+        return FLEET.configure_dispatch([t.model_dump() for t in body.trucks])
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/dispatch/start")
+async def dispatch_start(_auth: dict = Depends(require_auth)):
+    """Spawn the configured trucks into the live world."""
+    try:
+        return FLEET.start_dispatch()
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/dispatch/clear")
+async def dispatch_clear(_auth: dict = Depends(require_auth)):
+    return FLEET.clear_dispatch()
 
 
 @router.get("/state")
