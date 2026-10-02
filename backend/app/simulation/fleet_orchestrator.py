@@ -25,6 +25,7 @@ from ..models.fleet import Vehicle, FleetRoute, VehicleEvent, RouteDecision, Car
 from ..models.entities import Incident, AIAnalysis, RecommendedAction
 from .runner import BROADCAST
 from . import agents_d as A
+from . import incidents_catalogue as IC
 
 log = logging.getLogger("fleet")
 SUSTAIN_TICKS = 6            # consecutive over-band world-ticks → incident
@@ -512,6 +513,20 @@ class FleetOrchestrator:
                                      {"vehicle_id": v.id, "fence": prev["id"], "fence_type": prev["type"]})
 
     # ---------------- incidents ----------------
+    def _incident_ctx(self, v: VehicleTwin) -> dict:
+        """Run-level signals a single snapshot cannot see.
+
+        Traffic severity and ambient temperature are world state, not vehicle
+        state — which is exactly why ambient heat can be told apart from a
+        compressor fault only when both are considered together.
+        """
+        node = nearest_node(v.lng, v.lat)
+        return {
+            "traffic_level": self.traffic.level_for(node, v.dest_id),
+            "ambient_c": self.traffic.ambient_c,
+            "weather": self.traffic.weather,
+        }
+
     async def _check_incident(self, v: VehicleTwin, snap: dict):
         over = snap["refrigeration"]["temperature"] > v.box.mx or \
                snap["refrigeration"]["temperature"] < v.box.mn
@@ -523,14 +538,25 @@ class FleetOrchestrator:
             await self._create_incident(v, snap, sev)
 
     async def _create_incident(self, v: VehicleTwin, snap: dict, sev: str):
-        cause = ("compressor_failure" if v.compressor == "FAILED"
-                 else "cooling_degradation" if v.compressor == "DEGRADED"
-                 else "door_open" if v.door_open else "power_failure" if not v.box.power_ok
-                 else "environmental_deviation")
+        # Classify against the catalogue rather than a five-way ternary, so the
+        # incident records which kind of failure it was instead of collapsing
+        # every cause into "vehicle_thermal_excursion". See
+        # incidents_catalogue.py for why each detector reads only real signals.
+        hit = IC.detect(snap, self._incident_ctx(v))
+        if hit:
+            inc_type = hit["type"]
+            cause = hit["cause"]
+            evidence = hit["evidence"]
+        else:
+            # Should not happen — _check_incident only calls this once the box is
+            # out of band — but never drop an incident silently.
+            inc_type = "temperature_excursion"
+            cause = "unclassified thermal excursion"
+            evidence = [f"cargo {snap['refrigeration']['temperature']}C"]
         async with SessionLocal() as s:
-            inc = Incident(simulation_id=0, type="vehicle_thermal_excursion", severity=sev,
+            inc = Incident(simulation_id=0, type=inc_type, severity=sev,
                            status="DETECTED", detected_tick=int(self.sim_minute),
-                           root_cause=cause,
+                           root_cause=cause[:60],
                            description=f"{v.id}: cargo temp {snap['refrigeration']['temperature']}C "
                                        f"outside band [{v.box.mn},{v.box.mx}]C in transit",
                            peak_temperature=snap["refrigeration"]["temperature"])
@@ -538,11 +564,22 @@ class FleetOrchestrator:
             await s.commit()
             iid = inc.id
         self.incident_db[v.id] = iid
+        # Persist the evidence trail so the report and the incident panel can
+        # show WHY this classification was chosen, not just its label.
+        async with SessionLocal() as s:
+            s.add(AIAnalysis(incident_id=iid, agent_name="incident_classifier",
+                            analysis=json.dumps({"type": inc_type, "cause": cause,
+                                                 "evidence": evidence,
+                                                 "catalogue_category": (hit or {}).get("category")})[:4000],
+                            confidence=1.0))
+            await s.commit()
         await self._evt(v, f"Incident detected on {v.id}: {cause} — temp "
                           f"{snap['refrigeration']['temperature']}C", "critical")
         await BROADCAST.emit(0, "fleet.incident.created",
                              {"vehicle_id": v.id, "incident_id": iid, "severity": sev,
-                              "root_cause": cause, "snapshot": snap,
+                              "root_cause": cause, "incident_type": inc_type,
+                              "evidence": evidence,
+                              "snapshot": snap,
                               "sim_minute": round(self.sim_minute, 1)})
         task = asyncio.create_task(self._decide(v))
 

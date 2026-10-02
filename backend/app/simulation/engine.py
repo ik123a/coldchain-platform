@@ -157,6 +157,11 @@ class Engine:
     def snapshot(self, reported_temp=None):
         return {
             "temperature": round(reported_temp if reported_temp is not None else self.temperature, 2),
+            # A frozen sensor reports a plausible, unchanging value, so nothing
+            # downstream could tell a healthy box from a faulty probe. Exposing
+            # the freeze lets the incident catalogue classify sensor_fault
+            # instead of leaving it silently undetectable.
+            "sensor_frozen": self._frozen_reported is not None,
             "true_temperature": round(self.temperature, 2),
             "humidity": round(self.humidity, 1),
             "ambient_temperature": round(self.ambient, 1),

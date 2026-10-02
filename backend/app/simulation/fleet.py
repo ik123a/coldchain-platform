@@ -365,6 +365,7 @@ class VehicleTwin:
                 "engine_temperature": round(self.engine_temp_c, 1),
             },
             "refrigeration": {
+            "sensor_frozen": bool(self.box.snapshot().get("sensor_frozen")),
                 "compressor_status": self.compressor,
                 "cooling_efficiency": round(self.box.cooling_efficiency * 100, 1),
                 "temperature": snap["temperature"],

@@ -8,6 +8,7 @@ from ...simulation.fleet_orchestrator import FLEET
 from ...simulation.analytics import fleet_kpis
 from ...simulation.routing import RoutingService, nearest_node
 from ...simulation.geo_data import CARGO_TYPES, DESTINATIONS
+from ...simulation import incidents_catalogue as IC
 
 router = APIRouter(prefix="/api/fleet", tags=["fleet"])
 
@@ -115,6 +116,24 @@ async def dispatch_start(_auth: dict = Depends(require_auth)):
 @router.post("/dispatch/clear")
 async def dispatch_clear(_auth: dict = Depends(require_auth)):
     return FLEET.clear_dispatch()
+
+
+@router.get("/incidents/catalogue")
+async def incident_catalogue(_auth: dict = Depends(require_auth_read)):
+    """Every incident type the simulation can classify, plus the honest gaps.
+
+    `unavailable` entries are the failure modes from the brief that this model
+    cannot actually observe. They are listed with the reason rather than
+    omitted, so an examiner asking "why no seal-degradation incident?" gets a
+    real answer instead of silence.
+    """
+    return {
+        "types": IC.catalogue_for_ui(),
+        "detectable": list(IC.INCIDENT_CATALOGUE.keys()),
+        "count": len(IC.INCIDENT_CATALOGUE),
+        "note": "Each detector reads only signals present in the vehicle twin; "
+                "nothing here is inferred from a sensor the simulation lacks.",
+    }
 
 
 @router.get("/approvals")
