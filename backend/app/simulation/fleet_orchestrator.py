@@ -52,6 +52,14 @@ class FleetOrchestrator:
         self._incident_tel: dict[int, list[dict]] = {}  # incident_id -> deep-copied tel frames
         self._over_run: dict[str, int] = {}
         self._autonomous = True                    # AI decisions auto-apply (SIMULATION ONLY)
+        # Dock/capacity accounting. A delivery occupies a dock for `proc_min`
+        # (its unloading/processing time), then the dock frees and the consumed
+        # capacity returns to `available_capacity`. Previously the incident
+        # branch decremented available_capacity and incremented busy_docks with
+        # no matching release anywhere, so warehouses drained to zero over a
+        # long run and every later divert failed with "insufficient capacity".
+        self._pending_release: dict[str, int] = {}   # facility_id -> units to credit back
+        self._dock_free_at: dict[str, float] = {}    # facility_id -> sim_minute dock frees
         self.event_ring: list[dict] = []
         self._task = None
         self.alert_counts: dict[str, int] = {}     # vehicle_id -> non-info alert count
@@ -61,6 +69,46 @@ class FleetOrchestrator:
         self._driver_state: dict[str, str] = {}
         import random as _r
         self._world_rng = _r.Random(42)
+
+    # ---------------- dock / capacity accounting ----------------
+    def _release_dock(self, facility_id: str, units: int, *, consumed: bool = False) -> None:
+        """Free one dock and credit back the capacity a delivery consumed.
+
+        `consumed=False` is the normal-delivery case: the load is handed over
+        here, so the dock was never marked busy and only the capacity that this
+        project deliberately reserved has to come back.
+
+        `consumed=True` is the incident-rescue case: _check_arrival already
+        decremented available_capacity and took a dock, so both are reversed.
+
+        The dock is not freed instantly — it is held for `proc_min` (the
+        facility's own unloading time), which is also what makes `queue_min`
+        meaningful for a second arrival.
+        """
+        wh = next((w for w in self.warehouses if w["id"] == facility_id), None)
+        if not wh:
+            return
+        if consumed:
+            # Capacity comes back immediately: the load has been handed over.
+            # The dock, though, stays occupied for proc_min — so ONLY the
+            # capacity is credited here and the dock is released by
+            # _expire_docks when the processing window closes. Doing both here
+            # decremented busy_docks twice and drove it to zero, so the facility
+            # looked idle while every truck was still unloading.
+            wh["available_capacity"] = min(wh["capacity"], wh["available_capacity"] + units)
+        self._dock_free_at[facility_id] = self.sim_minute + float(wh.get("proc_min", 10))
+
+    def _expire_docks(self) -> None:
+        """Called every tick: free any dock whose processing window has passed."""
+        if not self._dock_free_at:
+            return
+        for fid, free_at in list(self._dock_free_at.items()):
+            if self.sim_minute < free_at:
+                continue
+            self._dock_free_at.pop(fid, None)
+            wh = next((w for w in self.warehouses if w["id"] == fid), None)
+            if wh:
+                wh["busy_docks"] = max(0, wh["busy_docks"] - 1)
 
     # ---------------- scenario configure / rebuild ----------------
     def configure(self, *, scenario_seed: int | None = None, weather: str | None = None,
@@ -217,6 +265,7 @@ class FleetOrchestrator:
                     await self._prune_events()
                 self.traffic.maybe_weather()
                 await self._fail_world_tick()
+                self._expire_docks()          # free docks whose processing window closed
                 snaps = []
                 for vid, v in list(self.vehicles.items()):
                     factor = self.traffic.factor_for(v.origin_id, v.dest_id)
@@ -407,14 +456,23 @@ class FleetOrchestrator:
             # then respawn on a new mission (keeps the fleet alive)
             await self._evt(v, f"{v.id} arrived at {v.dest_id} — delivered {units}u", "info")
             await BROADCAST.emit(0, "cargo.transferred",
-                                  {"vehicle_id": v.id, "facility_id": v.dest_id, "units": units,
-                                   "resolved": True, "incident_id": None, "normal_delivery": True})
+                              {"vehicle_id": v.id, "facility_id": v.dest_id, "units": units,
+                               "resolved": True, "incident_id": None, "normal_delivery": True})
+            # Release the dock. Previously only the incident branch below ever touched
+            # busy_docks, and NOTHING incremented it on the normal path — so normal
+            # deliveries consumed capacity that was never recorded as in use.
+            self._release_dock(v.dest_id, units)
             self._respawn(v)
             return
         wh = next((w for w in self.warehouses if w["id"] == v.dest_id), None)
         if wh:
             wh["available_capacity"] = max(0, wh["available_capacity"] - units)
             wh["busy_docks"] = min(wh["docks"], wh["busy_docks"] + 1)
+            # The rescued load is unloaded here, so the capacity this incident consumed
+            # is free again. Without this every rescue drained a warehouse monotonically
+            # and the fleet eventually had nowhere to divert to — which presents as "no
+            # cold storage available" rather than the bug it is.
+            self._release_dock(v.dest_id, units, consumed=True)
         async with SessionLocal() as s:
             s.add(CargoTransfer(vehicle_id=v.id, facility_id=v.dest_id, units=units,
                                 health_pct=v.box.cargo_health, sim_minute=self.sim_minute))
