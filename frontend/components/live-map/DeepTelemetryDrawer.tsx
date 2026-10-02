@@ -9,6 +9,8 @@ import {
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, ReferenceArea, BarChart, Bar } from "recharts";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { NumberTicker } from "@/components/ui/number-ticker";
+import { PredictiveSafeTime } from "./PredictiveSafeTime";
+import type { Prediction } from "./PredictiveSafeTime";
 
 interface DeepTelemetryProps {
   vehicle: any;
@@ -29,7 +31,12 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
 
   const temp = vehicle.refrigeration?.temperature ?? 4.8;
   const outside = vehicle.outside_temperature ?? 41.8;
-  const isBreached = temp > 8.0;
+  // Band comes from the vehicle, not a constant. A hardcoded 8.0C ceiling is
+  // wrong for every cargo type except produce: a -18C frozen load and a 9C
+  // pharma load both read as "fine" or "breached" on the wrong scale.
+  const safeCeiling = vehicle.cargo?.mx ?? 8.0;
+  const safeFloor = vehicle.cargo?.mn ?? 2.0;
+  const isBreached = temp > safeCeiling || temp < safeFloor;
   const riskLevel = vehicle.cargo?.risk_level || (isBreached ? "CRITICAL" : "LOW");
   const speed = Math.round(vehicle.speed_kmh ?? 42);
   const maxSpeed = Math.round(vehicle.max_speed_kmh ?? 58);
@@ -160,6 +167,13 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
         {/* TAB 1: OVERVIEW */}
         {activeTab === "overview" && (
           <div className="space-y-5">
+            {/* P7 projection + P12 lessons. First in the tab because the whole
+                point of a predictive warning is that it arrives before the
+                gauges show a problem. */}
+            <PredictiveSafeTime
+              prediction={(vehicle as unknown as { prediction?: Prediction }).prediction}
+              lessons={(vehicle as unknown as { lessons?: string[] }).lessons}
+            />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-[var(--surface-card)] p-3.5 rounded-xl border border-[var(--border)] relative overflow-hidden">
                 <div className="t-micro font-mono text-[var(--text-dim)]">INSIDE CORE TEMP</div>
@@ -171,7 +185,7 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
                     className={isBreached ? "text-[var(--critical)] font-bold t-metric-lg" : "text-[var(--text)] font-bold t-metric-lg"} 
                   />
                 </div>
-                <div className="t-body-sm font-mono text-[var(--nominal)] mt-0.5">Safe Zone: 2.0–8.0°C</div>
+                <div className="t-body-sm font-mono text-[var(--nominal)] mt-0.5">Safe Zone: {safeFloor.toFixed(1)}–{safeCeiling.toFixed(1)}°C</div>
               </div>
 
               <div className="bg-[var(--surface-card)] p-3.5 rounded-xl border border-[var(--border)] relative overflow-hidden">
@@ -500,7 +514,15 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
         {/* TAB 8: AI OPERATIONS & WHAT-IF (SECTIONS 23-26, 32, 75) */}
         {activeTab === "ai_ops" && (
           <div className="space-y-5 font-mono t-body-sm">
-            
+
+            {/* P12: derived lessons for this vehicle. Kept in the AI tab rather
+                than the overview because these are the agent's own conclusions
+                about what happened, not live telemetry. */}
+            <PredictiveSafeTime
+              prediction={(vehicle as unknown as { prediction?: Prediction }).prediction}
+              lessons={(vehicle as unknown as { lessons?: string[] }).lessons}
+            />
+
             {/* 8-Stage Operations Stream */}
             <div className="bg-[var(--surface-card)] p-4 rounded-xl border border-[var(--border)] space-y-3">
               <div className="t-body-sm font-bold text-[var(--border-strong)] flex items-center gap-2">

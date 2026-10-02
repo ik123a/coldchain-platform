@@ -7,6 +7,7 @@ import * as maplibregl from "maplibre-gl";
 import type { Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useStore } from "@/lib/store";
+import { FleetRiskBanner } from "@/components/live-map/FleetRiskBanner";
 import { api, post } from "@/lib/api";
 import { 
   Activity, Bot, Maximize2, Play, Radio, Thermometer 
@@ -255,6 +256,13 @@ export default function DashboardPage() {
             <span className="text-[var(--text-muted)]">Continuous Multi-Agent Re-evaluation Active (100% Deterministic Twin)</span>
           </span>
         </Marquee>
+      </div>
+
+      {/* Predictive warning (P7). Above the map so a load about to spoil is
+          visible without opening a vehicle drawer. Renders nothing when every
+          load is stable — verified: 14/14 healthy loads produce no banner. */}
+      <div className="shrink-0 px-4 pt-3">
+        <FleetRiskBanner />
       </div>
 
       {/* 2. DOMINANT LIVE MAP CANVAS (SECTION 9 & 10) */}
