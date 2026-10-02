@@ -1,10 +1,13 @@
 """Redact credential shapes from every blob in git history.
 
---blob-callback is invoked once per blob with `blob` bound to the bytes; the
-snippet MUST assign the substitution back to `blob`. Defining a helper function
-is NOT enough: filter-repo executes the snippet and reads the `blob` variable
-back, so an uncalled function leaves every key in place while the rewrite still
-reports success and preserves all commits.
+Three API details, each learned by a failed rewrite:
+
+1. --blob-callback receives a filter_repo.Blob OBJECT, not bytes. The payload
+   is `blob.data`.
+2. The snippet must assign back to `blob.data`. Defining a helper function is
+   not enough - filter-repo reads the mutated attribute afterwards.
+3. The callback must not write to stdout. Any print corrupts fast-import's
+   stream and the rewrite dies with "could not write blob ... Broken pipe".
 
 Patterns are shapes, never literal secrets, so this file is safe to commit.
 """
@@ -18,6 +21,8 @@ _PATTERNS = [
     (rb"gh[pousr]_[0-9A-Za-z]{36,}", b"***REDACTED-GITHUB-TOKEN***"),
     (rb"***REDACTED-JWT-PLACEHOLDER***", b"***REDACTED-JWT-PLACEHOLDER***"),
 ]
-_RX = [(_re.compile(a), b) for a, b in _PATTERNS]
-for _rx, _rep in _RX:
-    blob = _rx.sub(_rep, blob)
+
+_data = blob.data
+for _rx, _rep in _PATTERNS:
+    _data = _re.sub(_rx, _rep, _data)
+blob.data = _data
