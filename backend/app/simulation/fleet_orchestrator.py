@@ -75,6 +75,9 @@ class FleetOrchestrator:
         # which is the honest behaviour for a demo with an operator present).
         self.AUTO_APPROVE_TIMEOUT_S = float(
             __import__("os").getenv("AUTO_APPROVE_TIMEOUT_SIM_MIN", "0") or 0)
+        # incident_id -> multi-cause diagnosis, so the UI and the report can
+        # show ranked alternatives without re-deriving them.
+        self._diagnosis: dict[int, dict] = {}
         self.pending_approvals: dict[str, dict] = {}
         self.resolved_approvals: dict[str, dict] = {}
         self.event_ring: list[dict] = []
@@ -573,12 +576,26 @@ class FleetOrchestrator:
                                                  "catalogue_category": (hit or {}).get("category")})[:4000],
                             confidence=1.0))
             await s.commit()
+
+        # Multi-cause analysis. The catalogue classifies WHAT happened; this
+        # answers WHY, and returns ranked alternatives with reasoning rather
+        # than a single cause. Reuses agents_d.DiagnosisAgent via an adapter,
+        # so the fleet and the classic path share one diagnosis implementation.
+        diagnosis = IC.diagnose(snap, list(getattr(v, "_snaps", []))[-8:],
+                                self._incident_ctx(v))
+        async with SessionLocal() as s:
+            s.add(AIAnalysis(incident_id=iid, agent_name="diagnosis",
+                            analysis=json.dumps(diagnosis)[:4000],
+                            confidence=diagnosis.get("confidence", 0.5)))
+            await s.commit()
+        self._diagnosis[iid] = diagnosis
         await self._evt(v, f"Incident detected on {v.id}: {cause} — temp "
                           f"{snap['refrigeration']['temperature']}C", "critical")
         await BROADCAST.emit(0, "fleet.incident.created",
                              {"vehicle_id": v.id, "incident_id": iid, "severity": sev,
                               "root_cause": cause, "incident_type": inc_type,
                               "evidence": evidence,
+                              "diagnosis": diagnosis,
                               "snapshot": snap,
                               "sim_minute": round(self.sim_minute, 1)})
         task = asyncio.create_task(self._decide(v))

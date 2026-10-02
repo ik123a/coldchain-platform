@@ -104,6 +104,16 @@ class Engine:
         if self.scenario == "cooling_degradation":
             self.cooling_efficiency = max(0.12, self.cooling_efficiency - K_DEGRADE)
 
+        # A dead compressor delivers no cooling, whatever its last recorded
+        # efficiency was. Without this the reported efficiency stayed at 100%
+        # after a compressor failure, and incident evidence read
+        # "compressor=FAILED, cooling_efficiency=100%" — self-contradictory on
+        # the exact line an examiner would read. Efficiency tracks the hardware
+        # that is actually running: the compressor, or backup cooling if the
+        # compressor is gone but the battery is holding.
+        if not self.compressor_on and not (self.backup_cooling and self.power_ok):
+            self.cooling_efficiency = 0.0
+
         # cooling works if power and compressor healthy, or backup cooling on power
         healthy = self.power_ok and self.compressor_on and self.cooling_efficiency > 0.2
         recovery = self.backup_cooling and self.power_ok

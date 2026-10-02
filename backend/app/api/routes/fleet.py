@@ -1,6 +1,7 @@
 """Fleet REST endpoints."""
 from __future__ import annotations
 import asyncio
+import json
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from ...core.authz import require_auth, require_auth_read
@@ -116,6 +117,41 @@ async def dispatch_start(_auth: dict = Depends(require_auth)):
 @router.post("/dispatch/clear")
 async def dispatch_clear(_auth: dict = Depends(require_auth)):
     return FLEET.clear_dispatch()
+
+
+@router.get("/incidents/{iid}/diagnosis")
+async def incident_diagnosis(iid: int, _auth: dict = Depends(require_auth_read)):
+    """Multi-cause analysis for one incident.
+
+    Requirement 9/10: an incident must not imply a single cause. This returns
+    the ranked causes with their reasoning, the evidence each rests on, and an
+    explicit statement that the scores are heuristic — not measured
+    probabilities.
+    """
+    from ...models.entities import AIAnalysis
+    from ...database.engine import SessionLocal
+    from sqlalchemy import select as _sel
+
+    async with SessionLocal() as s:
+        rows = (await s.execute(
+            _sel(AIAnalysis).where(AIAnalysis.incident_id == iid,
+                                   AIAnalysis.agent_name.in_(("diagnosis", "incident_classifier")))
+        )).scalars().all()
+    out: dict = {"incident_id": iid, "causes": [], "evidence": [], "scoring_basis": None}
+    for r in rows:
+        try:
+            d = json.loads(r.analysis)
+        except Exception:
+            continue
+        if r.agent_name == "diagnosis":
+            out.update({k: d.get(k) for k in
+                        ("root_cause", "confidence", "causes", "trend_c_per_min",
+                         "reasoning", "scoring_basis", "evidence_window")})
+        else:
+            out["evidence"] = d.get("evidence", [])
+            out["incident_type"] = d.get("type")
+            out["catalogue_category"] = d.get("catalogue_category")
+    return out
 
 
 @router.get("/incidents/catalogue")
