@@ -5,6 +5,7 @@ from sqlalchemy import select
 from ...database.engine import get_db
 from ...models.entities import Incident, AIAnalysis, RecommendedAction, SensorReading
 from ...simulation.agents_d import ReporterAgent
+from ...simulation import lessons as LNS
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -36,6 +37,21 @@ async def _build_report(inc: Incident, db) -> dict:
         "root_cause_label": inc.root_cause.replace("_", " ") if inc.root_cause else "thermal excursion",
         "score_bonus": 6.0 if inc.type != "sensor_fault" else 0.0,
         "time_to_plan_ticks": 4,
+        # Requirement 12: the reporter renders a Lesson line per entry, but the
+        # fleet path never supplied this key, so fleet incident reports had no
+        # lessons section at all — not even the empty one. Prefer the derived
+        # lessons persisted at transfer time; fall back to deriving them now for
+        # incidents that predate this, so no report silently loses the section.
+        "lessons": (analyses.get("lessons") or {}).get("lessons") or
+                   LNS.derive(
+                       {"refrigeration": {"temperature": inc.peak_temperature},
+                        "cargo": {"mx": 8.0, "trend_c_per_min": 0.0}},
+                       analyses.get("diagnosis"),
+                       {"observed": inc.status in ("RESOLVED", "ESCALATED")
+                                     or "recovery_verifier" in analyses,
+                        "resolved": inc.status == "RESOLVED",
+                        "verified": "recovery_verifier" in analyses,
+                        "peak_temperature": inc.peak_temperature}),
     }
     if reporter:
         report_text = reporter.get("report", "")

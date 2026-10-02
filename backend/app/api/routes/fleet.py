@@ -231,11 +231,16 @@ async def approvals(_auth: dict = Depends(require_auth_read)):
     active — with it off, an operator would sit waiting for a queue that can
     never fill, which reads as a broken button rather than a disabled feature.
     """
+    pending = list(FLEET.pending_approvals.values())
     return {
         "require_approval": FLEET.require_approval,
         "auto_approve_timeout_sim_min": FLEET.AUTO_APPROVE_TIMEOUT_S,
-        "pending": list(FLEET.pending_approvals.values()),
-        "pending_count": len(FLEET.pending_approvals),
+        # Escalation is separate from auto-approve and reported separately so
+        # the UI can say which mechanism is in play. 0 disables it.
+        "escalate_after_sim_min": FLEET.ESCALATE_AFTER_SIM_MIN,
+        "escalated_count": sum(1 for p in pending if p.get("escalated")),
+        "pending": pending,
+        "pending_count": len(pending),
         "resolved": list(FLEET.resolved_approvals.values())[-10:],
     }
 

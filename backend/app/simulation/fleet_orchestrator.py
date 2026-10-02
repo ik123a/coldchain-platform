@@ -27,6 +27,7 @@ from .runner import BROADCAST
 from . import agents_d as A
 from . import incidents_catalogue as IC
 from . import prediction as PRED
+from . import lessons as LNS
 
 log = logging.getLogger("fleet")
 SUSTAIN_TICKS = 6            # consecutive over-band world-ticks → incident
@@ -76,9 +77,23 @@ class FleetOrchestrator:
         # which is the honest behaviour for a demo with an operator present).
         self.AUTO_APPROVE_TIMEOUT_S = float(
             __import__("os").getenv("AUTO_APPROVE_TIMEOUT_SIM_MIN", "0") or 0)
+        # Sim-minutes an operator may take to respond to a CRITICAL
+        # recommendation before the agent escalates it on its own.
+        #
+        # This is deliberately NOT the same as AUTO_APPROVE_TIMEOUT_S. That one
+        # silently EXECUTES the divert, which is the opposite of what an
+        # unattended critical incident needs: nobody asked for a truck to be
+        # rerouted with no human in the loop. This one raises the alarm —
+        # incident status ESCALATED, an activity-centre entry, a broadcast —
+        # while still leaving the decision to a person. The load keeps
+        # spoiling either way, but at least the system stops quietly waiting.
+        self.ESCALATE_AFTER_SIM_MIN = float(
+            __import__("os").getenv("ESCALATE_AFTER_SIM_MIN", "6") or 6)
         # incident_id -> multi-cause diagnosis, so the UI and the report can
         # show ranked alternatives without re-deriving them.
         self._diagnosis: dict[int, dict] = {}
+        # incident_id -> derived lessons (requirement 12)
+        self._lessons: dict[int, list[str]] = {}
         self.pending_approvals: dict[str, dict] = {}
         self.resolved_approvals: dict[str, dict] = {}
         self.event_ring: list[dict] = []
@@ -433,6 +448,7 @@ class FleetOrchestrator:
                 await self._fail_world_tick()
                 self._expire_docks()          # free docks whose processing window closed
                 await self._expire_approvals()   # auto-approve stale recommendations
+                await self._escalate_unanswered()  # agent flags critical items nobody actioned
                 snaps = []
                 for vid, v in list(self.vehicles.items()):
                     factor = self.traffic.factor_for(v.origin_id, v.dest_id)
@@ -687,6 +703,13 @@ class FleetOrchestrator:
             "cargo_health": round(v.box.cargo_health, 1),
             "raised_at_sim_minute": round(self.sim_minute, 1),
             "status": "PENDING",
+            # Carried here because _escalate_unanswered() decides on the cargo
+            # verdict and the incident severity. Without them the escalation
+            # gate had nothing to read and would never fire.
+            "severity": ("CRITICAL" if v.snapshot()["cargo"]["risk_level"] == "CRITICAL"
+                         else "HIGH" if incident_id else "MEDIUM"),
+            "prediction": PRED.project(v.snapshot(), self._incident_ctx(v)),
+            "escalated": False,
         }
         self.pending_approvals[key] = proposal
         async with SessionLocal() as s:
@@ -784,6 +807,89 @@ class FleetOrchestrator:
             except KeyError:
                 continue
 
+    async def _escalate_unanswered(self):
+        """Escalate CRITICAL recommendations nobody acted on (requirement 15).
+
+        The brief is explicit: warn first, and if no reply comes, let the agent
+        flag it itself. Before this, a critical recommendation with no operator
+        response simply sat in the queue indefinitely — the agent asked for help
+        and then gave up quietly, which is the worst of both worlds.
+
+        Escalation deliberately does NOT execute the divert. AUTO_APPROVE_
+        TIMEOUT_S already covers "run unattended" and it applies the action;
+        escalating is for the case where a human is present but has not
+        responded. So this raises the alarm and leaves the decision alone:
+
+          * incident status  DETECTED -> ESCALATED
+          * an activity-centre entry saying the agent is flagging it itself
+          * fleet.incident.escalated broadcast so the UI can highlight it
+          * the approval stays pending and still actionable
+
+        Only CRITICAL/ESCALATED-severity items escalate. A LOW-severity
+        suggestion left unanswered is not an emergency, and nagging about it
+        would train an operator to ignore the queue.
+        """
+        if not self.pending_approvals or self.ESCALATE_AFTER_SIM_MIN <= 0:
+            return
+        for key, prop in list(self.pending_approvals.items()):
+            if prop.get("escalated"):
+                continue
+            waited = self.sim_minute - prop["raised_at_sim_minute"]
+            if waited < self.ESCALATE_AFTER_SIM_MIN:
+                continue
+
+            incident_id = prop.get("incident_id")
+            severity = (prop.get("severity") or "MEDIUM").upper()
+            # Critical cargo risk, or an incident already at ESCALATED.
+            pred = prop.get("prediction") or {}
+            spoiling = pred.get("verdict") in (
+                "ALREADY PAST CRITICAL CEILING", "ALREADY BELOW SAFE FLOOR",
+                "WILL SPOIL BEFORE ARRIVAL")
+            if severity not in ("CRITICAL", "ESCALATED") and not spoiling:
+                continue
+
+            prop["escalated"] = True
+            prop["escalated_at_sim_minute"] = round(self.sim_minute, 2)
+            vehicle_id = prop.get("vehicle_id")
+
+            if incident_id:
+                try:
+                    async with SessionLocal() as s:
+                        inc = await s.get(Incident, incident_id)
+                        if inc and inc.status in ("DETECTED", "PENDING"):
+                            inc.status = "ESCALATED"
+                        if inc:
+                            inc.description = (inc.description or "")[:1800] + (
+                                f" | AGENT ESCALATED at sim-min "
+                                f"{round(self.sim_minute, 1)}: no operator "
+                                f"response within {self.ESCALATE_AFTER_SIM_MIN} "
+                                f"sim-min. Awaiting human decision.")
+                        await s.commit()
+                except Exception:
+                    # Never let a bookkeeping failure break the tick; the
+                    # broadcast below is what the UI actually reacts to.
+                    pass
+
+            self.event_ring.append({
+                "sim_minute": round(self.sim_minute, 1),
+                "vehicle_id": vehicle_id,
+                "text": (f"AGENT ESCALATED — no operator response in "
+                         f"{self.ESCALATE_AFTER_SIM_MIN} sim-min. Incident "
+                         f"flagged by the agent; the decision still requires "
+                         f"a human."),
+                "severity": "critical",
+                "source": "ai.escalation",
+            })
+            del self.event_ring[:-200]
+            await BROADCAST.emit(0, "fleet.incident.escalated",
+                                 {"vehicle_id": vehicle_id,
+                                  "incident_id": incident_id,
+                                  "approval_key": key,
+                                  "severity": severity,
+                                  "verdict": pred.get("verdict"),
+                                  "waited_sim_min": round(waited, 2),
+                                  "requires_human": True})
+
     async def _apply_divert(self, v: VehicleTwin, bundle: dict):
         target = bundle["target"]
         factor = self.traffic.factor_for(nearest_node(v.lng, v.lat), target)
@@ -857,6 +963,29 @@ class FleetOrchestrator:
             v.box, getattr(v, "_snaps", [])[-8:], {"mn": v.box.mn, "mx": v.box.mx},
             ["activate_backup_cooling"] if v.box.backup_cooling else [])
         resolved = verdict.get("verified", False) or ok
+
+        # Requirement 12: the report must say what the agent learned, including
+        # when it failed. The reporter already renders a `lessons` list but the
+        # fleet path never populated it — only the classic runner did, with four
+        # hardcoded strings. These are derived from the actual outcome instead,
+        # so the report cannot claim a lesson the evidence does not support.
+        snap_now = v.snapshot()
+        approval = next((p for p in list(self.pending_approvals.values())
+                         + list(self.resolved_approvals.values())
+                         if p.get("vehicle_id") == v.id), None)
+        lessons = LNS.derive(
+            snap_now,
+            self._diagnosis.get(inc_id),
+            {"observed": True,
+             "resolved": resolved,
+             "verified": bool(verdict.get("verified")),
+             "evidence": verdict.get("evidence", []),
+             "peak_temperature": round(snap_now["refrigeration"]["temperature"], 2),
+             "recovered_to": round(v.box.temperature, 2),
+             "backup_cooling": v.box.backup_cooling,
+             "transferred_units": units},
+            approval)
+
         async with SessionLocal() as s:
             inc = await s.get(Incident, inc_id)
             if inc:
@@ -866,7 +995,15 @@ class FleetOrchestrator:
             s.add(AIAnalysis(incident_id=inc_id, agent_name="recovery_verifier",
                              analysis=json.dumps(verdict)[:4000],
                              confidence=verdict.get("confidence", 0.5)))
+            s.add(AIAnalysis(incident_id=inc_id, agent_name="lessons",
+                             analysis=json.dumps({"lessons": lessons,
+                                                  "resolved": resolved,
+                                                  "verified": bool(verdict.get("verified")),
+                                                  "basis": "derived from outcome evidence, not canned text"},
+                                                 )[:4000],
+                             confidence=1.0))
             await s.commit()
+        self._lessons[inc_id] = lessons
         await BROADCAST.emit(0, "cargo.transferred",
                              {"vehicle_id": v.id, "facility_id": v.dest_id, "units": units,
                               "resolved": resolved, "incident_id": inc_id,
