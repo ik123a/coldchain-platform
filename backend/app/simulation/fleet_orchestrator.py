@@ -26,6 +26,7 @@ from ..models.entities import Incident, AIAnalysis, RecommendedAction
 from .runner import BROADCAST
 from . import agents_d as A
 from . import incidents_catalogue as IC
+from . import prediction as PRED
 
 log = logging.getLogger("fleet")
 SUSTAIN_TICKS = 6            # consecutive over-band world-ticks → incident
@@ -1082,6 +1083,13 @@ class FleetOrchestrator:
         for vid, v in self.vehicles.items():
             s = v.snapshot()
             s["alerts"] = self.alert_counts.get(vid, 0)
+            # Predictive safe-remaining-time. Attached here so every poll and
+            # every WebSocket frame carries it — the warning has to be visible
+            # BEFORE an incident exists, which is the entire point of it.
+            # Uses true temperature on purpose: a frozen probe reports a
+            # healthy-looking load, and projecting from that fiction is how a
+            # spoiling load slips through with no warning.
+            s["prediction"] = PRED.project(s, self._incident_ctx(v))
             snaps.append(s)
         return {"vehicles": snaps,
                 "warehouses": self.warehouses,

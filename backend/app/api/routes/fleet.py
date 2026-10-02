@@ -10,6 +10,7 @@ from ...simulation.analytics import fleet_kpis
 from ...simulation.routing import RoutingService, nearest_node
 from ...simulation.geo_data import CARGO_TYPES, DESTINATIONS
 from ...simulation import incidents_catalogue as IC
+from ...simulation import prediction as PRED
 
 router = APIRouter(prefix="/api/fleet", tags=["fleet"])
 
@@ -117,6 +118,31 @@ async def dispatch_start(_auth: dict = Depends(require_auth)):
 @router.post("/dispatch/clear")
 async def dispatch_clear(_auth: dict = Depends(require_auth)):
     return FLEET.clear_dispatch()
+
+
+@router.get("/predictions")
+async def fleet_predictions(_auth: dict = Depends(require_auth_read)):
+    """Safe-remaining-time projection for every vehicle, worst first.
+
+    Sorted by risk so a deteriorating load is visible without the caller
+    having to scan 14 trucks. This is a telemetry projection, not an
+    Arrhenius/RSL calculation — no kinetics model exists in this codebase, and
+    each payload says so via `model` and `kinetics_modelled`.
+    """
+    order = {"ALREADY PAST CRITICAL CEILING": 0, "ALREADY BELOW SAFE FLOOR": 0,
+             "WILL SPOIL BEFORE ARRIVAL": 1, "CRITICAL — margin under 10 minutes": 2,
+             "AT RISK — little slack for traffic": 3, "WATCH": 4,
+             "RECOVERING": 5, "STABLE": 6}
+    rows = []
+    for vid, v in FLEET.vehicles.items():
+        snap = v.snapshot()
+        p = PRED.project(snap, FLEET._incident_ctx(v))
+        rows.append({"vehicle_id": vid, "cargo_type": snap["cargo"]["cargo_type"],
+                     **p})
+    rows.sort(key=lambda r: (order.get(r["verdict"], 9),
+                             r.get("margin_vs_eta_min") if r.get("margin_vs_eta_min") is not None else 1e9))
+    return {"model": "linear_trend_projection", "kinetics_modelled": False,
+            "count": len(rows), "predictions": rows}
 
 
 @router.get("/incidents/{iid}/diagnosis")
