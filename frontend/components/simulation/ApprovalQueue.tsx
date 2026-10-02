@@ -169,6 +169,10 @@ export default function ApprovalQueue({ compact = false }: { compact?: boolean }
                         {c.id ?? c.facility_id ?? "?"} —{" "}
                         {c.reason ?? c.eta_total_min != null ? `${c.eta_total_min} min` : ""}
                         {c.score != null ? ` · score ${Math.round(c.score)}` : ""}
+                        {/* Requirement 16 asks the agent to weigh cost as well as
+                            time and proximity. Cost was computed server-side but
+                            never shown, so the trade-off was invisible. */}
+                        {c.cost_inr != null ? ` · Rs ${Number(c.cost_inr).toLocaleString("en-IN")}` : ""}
                       </li>
                     ))}
                   </ul>
