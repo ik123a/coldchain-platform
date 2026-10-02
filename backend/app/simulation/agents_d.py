@@ -221,10 +221,22 @@ class ReporterAgent:
             return default if v is None else v
 
         recovery_t = num("resolved_tick", num("tick", 0)) - num("detected_tick", 0)
+        # An unresolved incident has no resolution tick, so resolved_tick falls
+        # back to `tick` (0) while detected_tick is large — producing a negative
+        # recovery time such as "-1672 ticks", which reads as nonsense in the
+        # report and feeds a bogus score (the slow-recovery penalty floors at 0,
+        # so an unresolved incident was silently scored as if recovery were
+        # instant). Report it as undetermined instead, and do not let it move
+        # the score at all: an incident that has not ended has no response
+        # quality to judge yet.
+        unresolved = ctx.get("resolved_tick") is None
+        recovery_t = None if unresolved else recovery_t
+        recovery_penalty = 0 if unresolved else min(20, max(0, recovery_t - 8))
+
         score = 100
         score -= min(30, max(0, num("peak_over_by", 0) * 3))               # severity penalty
         score -= min(25, max(0, (num("risk_at_peak", 0) - 55) / 2))        # risk stayed high
-        score -= min(20, max(0, recovery_t - 8))                            # slow recovery
+        score -= recovery_penalty                                           # slow recovery
         # Planning FASTER must score HIGHER. The penalty was written as
         # `min(15, max(0, 12 - time_to_plan_ticks))`, which is largest when
         # time_to_plan_ticks is SMALL — so the quicker the planning, the more
@@ -247,7 +259,8 @@ class ReporterAgent:
             f"Peak temperature: {ctx.get('peak_temperature')}°C over band by {ctx.get('peak_over_by', 0)}°C",
             f"Risk at peak: {ctx.get('risk_at_peak')}    Cargo health remaining: {ctx.get('cargo_health')}%",
             f"Root cause: {ctx.get('root_cause')} (confidence {ctx.get('root_cause_confidence')})",
-            f"Recovery time: {recovery_t} ticks — actions: {', '.join(ctx.get('actions_executed', [])) or 'manual'}",
+            f"Recovery time: {recovery_t if recovery_t is not None else 'not resolved yet'} ticks"
+            f" — actions: {', '.join(ctx.get('actions_executed', [])) or 'manual'}",
             f"",
             f"RESPONSE QUALITY SCORE: {score}/100",
             f"",

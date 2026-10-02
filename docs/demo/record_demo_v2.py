@@ -35,7 +35,13 @@ W, H = 1600, 950
 manifest = []
 
 
-def api(path, data=None):
+def api(path, data=None, timeout=120):
+    """Call the backend.
+
+    Default timeout is 120s, not the usual 30s: /api/fleet/scenarios builds
+    six full simulations on a fresh orchestrator each and takes ~37s, which
+    silently returned None and made a healthy endpoint look broken.
+    """
     req = urllib.request.Request(
         API + path,
         method="POST" if data else "GET",
@@ -43,9 +49,10 @@ def api(path, data=None):
         headers={"Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read())
-    except Exception:
+    except Exception as e:
+        print(f"  [api] {path} failed: {str(e)[:70]}")
         return {}
 
 
