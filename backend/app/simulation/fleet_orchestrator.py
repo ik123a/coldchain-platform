@@ -467,6 +467,20 @@ class FleetOrchestrator:
                     if delta:
                         self.alert_counts[v.id] = self.alert_counts.get(v.id, 0) + delta
                         s["alerts_new"] = delta
+                    # Attach the safe-remaining-time projection HERE, at the point
+                    # the tick builds its snapshot — not only in state().
+                    #
+                    # This was the reason the predictive panel never appeared in
+                    # the telemetry drawer: state() attached the projection, but
+                    # the per-tick `vehicle.position.updated` frame did not. The
+                    # frontend store maps that frame to the same `fleet` action as
+                    # the REST poll, so every WebSocket tick overwrote the polled
+                    # state and stripped the prediction back off. Whichever
+                    # arrived last won, and the socket won — roughly twice a
+                    # second. The dashboard banner was unaffected only because it
+                    # fetches /api/fleet/predictions directly instead of reading
+                    # the store.
+                    s["prediction"] = PRED.project(s, self._incident_ctx(v))
                     snaps.append(s)
                     await self._check_incident(v, s)
                     await self._check_arrival(v)
@@ -1220,9 +1234,10 @@ class FleetOrchestrator:
         for vid, v in self.vehicles.items():
             s = v.snapshot()
             s["alerts"] = self.alert_counts.get(vid, 0)
-            # Predictive safe-remaining-time. Attached here so every poll and
-            # every WebSocket frame carries it — the warning has to be visible
-            # BEFORE an incident exists, which is the entire point of it.
+            # Predictive safe-remaining-time. state() builds fresh snapshots, so it
+            # needs its own projection — the one attached in the tick lives on
+            # that tick's snapshot objects, not on these.
+            #
             # Uses true temperature on purpose: a frozen probe reports a
             # healthy-looking load, and projecting from that fiction is how a
             # spoiling load slips through with no warning.

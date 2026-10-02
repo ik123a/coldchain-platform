@@ -95,10 +95,28 @@ function toneFor(verdict?: string) {
 function Stat({ label, value, tone }: { label: string; value: React.ReactNode; tone?: string }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: 10, letterSpacing: "0.06em", opacity: 0.55, textTransform: "uppercase" }}>
+      <div
+        style={{
+          fontSize: 10,
+          letterSpacing: "0.06em",
+          color: "var(--text3)",
+          textTransform: "uppercase",
+        }}
+      >
         {label}
       </div>
-      <div style={{ fontSize: 15, fontWeight: 600, marginTop: 2, fontVariantNumeric: "tabular-nums", color: tone }}>
+      {/* Explicit colour, not an inherited default: on the drawer's white card
+          an inherited/light colour left these values near-invisible. The label
+          alone is not enough — the number is the thing being read. */}
+      <div
+        style={{
+          fontSize: 15,
+          fontWeight: 600,
+          marginTop: 2,
+          fontVariantNumeric: "tabular-nums",
+          color: tone ?? "var(--text)",
+        }}
+      >
         {value}
       </div>
     </div>
@@ -134,7 +152,7 @@ export function PredictiveSafeTime({
           padding: "10px 12px",
         }}
       >
-        <div style={{ fontSize: 10, letterSpacing: "0.06em", opacity: 0.6, textTransform: "uppercase" }}>
+        <div style={{ fontSize: 10, letterSpacing: "0.06em", color: "var(--text3)", textTransform: "uppercase" }}>
           Prediction
         </div>
         <div style={{ fontSize: 16, fontWeight: 700, color: tone.fg, marginTop: 3 }}>
@@ -174,7 +192,7 @@ export function PredictiveSafeTime({
 
       {prediction.remedy && (
         <div style={{ fontSize: 12.5, lineHeight: 1.5, opacity: 0.9 }}>
-          <span style={{ opacity: 0.55 }}>Recommended: </span>
+          <span style={{ color: "var(--text3)" }}>Recommended: </span>
           {prediction.remedy}
         </div>
       )}
@@ -194,7 +212,7 @@ export function PredictiveSafeTime({
         </div>
       )}
 
-      <div style={{ fontSize: 11, opacity: 0.55, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 11, color: "var(--text-dim)", lineHeight: 1.5 }}>
         Model: <code style={{ fontSize: 11 }}>{prediction.model ?? "linear_trend_projection"}</code>
         {" · "}kinetics modelled: <strong>{prediction.kinetics_modelled ? "yes" : "no"}</strong>
         {" · "}confidence: {prediction.projection_confidence ?? "—"}
@@ -203,7 +221,7 @@ export function PredictiveSafeTime({
 
       {lessons && lessons.length > 0 && (
         <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-          <div style={{ fontSize: 10, letterSpacing: "0.06em", opacity: 0.55, textTransform: "uppercase", marginBottom: 6 }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.06em", color: "var(--text3)", textTransform: "uppercase", marginBottom: 6 }}>
             What the agent learned
           </div>
           <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>

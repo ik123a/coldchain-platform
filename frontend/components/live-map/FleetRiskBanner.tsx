@@ -98,7 +98,7 @@ export function FleetRiskBanner() {
             fontSize: 10,
             letterSpacing: "0.07em",
             textTransform: "uppercase",
-            opacity: 0.6,
+            color: "var(--text3)",
           }}
         >
           Predictive warning
@@ -116,25 +116,25 @@ export function FleetRiskBanner() {
 
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontVariantNumeric: "tabular-nums" }}>
         <div>
-          <div style={{ fontSize: 10, opacity: 0.55, textTransform: "uppercase" }}>Vehicle</div>
+          <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase" }}>Vehicle</div>
           <div style={{ fontSize: 13, fontWeight: 600 }}>{row.vehicle_id}</div>
         </div>
         <div>
-          <div style={{ fontSize: 10, opacity: 0.55, textTransform: "uppercase" }}>Cargo</div>
+          <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase" }}>Cargo</div>
           <div style={{ fontSize: 13, fontWeight: 600 }}>{String(row.cargo_type).replace(/_/g, " ")}</div>
         </div>
         <div>
-          <div style={{ fontSize: 10, opacity: 0.55, textTransform: "uppercase" }}>Temp</div>
+          <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase" }}>Temp</div>
           <div style={{ fontSize: 13, fontWeight: 600 }}>
             {row.cargo_temp_c ?? "—"}°C
-            <span style={{ opacity: 0.5, fontWeight: 400 }}>
+            <span style={{ color: "var(--text3)", fontWeight: 400 }}>
               {" "}
               ({row.safe_floor_c}–{row.safe_ceiling_c})
             </span>
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 10, opacity: 0.55, textTransform: "uppercase" }}>Safe for</div>
+          <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase" }}>Safe for</div>
           <div style={{ fontSize: 13, fontWeight: 600 }}>
             {row.time_to_critical_min == null
               ? "—"
@@ -144,7 +144,7 @@ export function FleetRiskBanner() {
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 10, opacity: 0.55, textTransform: "uppercase" }}>Slack</div>
+          <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase" }}>Slack</div>
           <div style={{ fontSize: 13, fontWeight: 600, color: slack != null && slack < 0 ? "var(--critical, #ef4444)" : undefined }}>
             {slack == null ? "—" : `${slack > 0 ? "+" : ""}${slack} min`}
           </div>
@@ -152,13 +152,13 @@ export function FleetRiskBanner() {
       </div>
 
       {row.remedy && (
-        <div style={{ flex: "1 1 260px", fontSize: 12.5, lineHeight: 1.5, opacity: 0.9 }}>
+        <div style={{ flex: "1 1 260px", fontSize: 12.5, lineHeight: 1.5, color: "var(--text3)" }}>
           {row.remedy}
         </div>
       )}
 
       {total != null && (
-        <div style={{ fontSize: 11, opacity: 0.5, marginLeft: "auto" }}>
+        <div style={{ fontSize: 11, color: "var(--text3)", marginLeft: "auto" }}>
           worst of {total} loads
         </div>
       )}

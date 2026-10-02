@@ -248,7 +248,8 @@ export function DeepTelemetryDrawer({ vehicle, onClose, onApproveDiversion, onIn
                     AI AGENT EVALUATION: {isBreached ? "EMERGENCY DIVERSION RECOMMENDED" : "NORMAL REEFER OPERATION"}
                   </div>
                   <div className="t-label text-[var(--text-dim)] mt-0.5">
-                    {prediction?.remedy ?? "Monitor the warming trend against the remaining ETA."}
+                    {(vehicle as unknown as { prediction?: Prediction })?.prediction?.remedy
+                      ?? "Monitor the warming trend against the remaining ETA."}
                   </div>
                 </div>
               </div>
