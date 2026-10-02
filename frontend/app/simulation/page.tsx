@@ -8,6 +8,7 @@ import { TempChart } from "@/components/TempChart";
 import { RiskGauge } from "@/components/RiskGauge";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { StatusBeacon } from "@/components/ui/status-beacon";
+import DispatchBuilder from "@/components/simulation/DispatchBuilder";
 
 const FAILURES = [
   { key: "compressor_failure", label: "Compressor failure", cls: "btn-red" },
@@ -74,10 +75,11 @@ export default function SimulationPage() {
         </p>
       </header>
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
-      {/* control column */}
-      <div className="space-y-4">
-        <div className="base-card p-4 space-y-3">
-          <div className="t-body font-semibold">Simulation control</div>
+            {/* control column */}
+            <div className="space-y-4">
+              <DispatchBuilder />
+              <div className="base-card p-4 space-y-3">
+                <div className="t-body font-semibold">Single-truck simulation control</div>
           <label className="block t-label text-[var(--text3)]">Shipment
             <select className="mt-1 w-full" value={shipmentId ?? ""} onChange={e => setShipmentId(e.target.value ? +e.target.value : null)}>
               <option value="">demo fresh produce</option>
