@@ -106,18 +106,3 @@ def require_auth_read(
     if not REQUIRE_AUTH_READS:
         return {"sub": "anonymous", "mode": "reads-open"}
     return require_auth(authorization)
-
-
-def protection_summary() -> dict:
-    """Machine-readable description of the current posture, for /api/status."""
-    return {
-        "write_auth_required": REQUIRE_AUTH,
-        "read_auth_required": REQUIRE_AUTH_READS,
-        "environment": APP_ENV or "(unset)",
-        "note": (
-            "development mode leaves operational writes open so the demo runs "
-            "without a login screen; production fails closed"
-            if IS_DEV
-            else "operational writes require a bearer token"
-        ),
-    }
