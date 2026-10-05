@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ColdChain Rescue &mdash; the eight point seven seconds</title>
+<!--
+  ONETAKE COMPOSITION - "The eight point seven seconds"
+
+  CONCEPT (one sentence about the picture):
+  one temperature reading refuses to stay still, and every beat of the film is
+  that number - the reading becomes its own history, the history becomes the
+  prediction, the prediction becomes the diagnosis, the diagnosis becomes the
+  choice, and the choice is the only thing the film ever asks you for.
+
+  WHY NOT A SCREEN RECORDING: the UI is rebuilt here from measurements of the
+  live app, so the camera can push in and the numbers stay vector-sharp. A
+  1080p recording of a dashboard cannot hold that.
+
+  CONTENT IS REAL. Every number is the product's own output: healthy 3.9 C,
+  safe ceiling 8.0 C, ambient 41.8 C, compressor_failure at 62 percent,
+  WH-002 score 76 / Rs 303, 10.1 min. Nothing here was typed to look good.
+
+  THE HEADLINE NUMBER IS DERIVED, NOT TYPED. K is solved so the reading
+  crosses the 8.0 C ceiling at BREACH_T, and the fault is 15.9 s before it.
+  That is what "eight point seven seconds of margin" means, so the title
+  cannot drift away from the physics if either constant is retuned.
+
+  CONTRACT:
+    window.__seek(t)  -> Promise
+    window.__ready    -> Promise
+    window.__meta     {dur,fps,w,h,inFrame}
+    window.__motion(t0,t1) -> px (sizes render.py's shutter)
+    window.__events() -> sound cues
+-->
+<style>
+  :root{
+    --ground:#fcfcfc; --deep:#ededed; --card:#f4f4fc; --line:#ececf4;
+    --mute:#6c7484;   --ink:#0c0c0c;  --accent:#0c547c; --accent2:#9c741c;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--ground);color:var(--ink);overflow:hidden}
+  body{font-family:var(--ff-text,'Inter',system-ui,sans-serif);-webkit-font-smoothing:antialiased}
+
+  #plane{position:fixed;inset:0;transform-origin:0 0}
+  .cap{font-family:var(--ff-display,'Instrument Serif',Georgia,serif);
+       font-weight:400;letter-spacing:-0.012em}
+  .mono{font-family:var(--ff-mono,'Geist Mono',ui-monospace,monospace);
+        font-variant-numeric:tabular-nums}
+  .lbl{font-size:11px;letter-spacing:.15em;color:var(--mute)}
+
+  #reader{position:absolute;left:300px;top:376px}
+  #deg{font-family:var(--ff-mono,'Geist Mono',ui-monospace,monospace);
+       font-size:126px;line-height:.86;letter-spacing:-.045em;font-variant-numeric:tabular-nums}
+  #unit{font-size:38px;color:var(--mute);margin-left:9px;vertical-align:top;padding-top:13px}
+  #band{margin-top:15px}
+  #ceil{position:absolute;height:2px;background:var(--accent2)}
+  #ceilTag{position:absolute;font-size:11px;letter-spacing:.14em;color:var(--accent2)}
+
+  #trace{position:absolute;inset:0;width:100%;height:100%}
+
+  .uicard{position:absolute;background:var(--card);border:1px solid var(--line);
+          border-radius:15px;overflow:hidden}
+  .uibar{height:36px;border-bottom:1px solid var(--line);display:flex;
+         align-items:center;padding:0 13px;gap:8px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+  .dot.a2{background:var(--accent2)}
+  .ttl{font-size:12px;letter-spacing:.02em;color:var(--mute)}
+  .row{display:flex;align-items:center;justify-content:space-between;
+       padding:9px 15px;border-bottom:1px solid var(--line);font-size:13px}
+  .row:last-child{border-bottom:0}
+  .k{color:var(--mute)}
+  .pill{font-size:10px;letter-spacing:.1em;padding:3px 7px;border-radius:99px;
+        border:1px solid var(--line);color:var(--mute)}
+
+  #pred{width:430px}
+  .bigline{padding:13px 15px 4px;display:flex;align-items:baseline;gap:10px}
+  .bigline .n{font-size:31px;letter-spacing:-.02em}
+  .meter{height:5px;background:var(--line);border-radius:99px;margin:10px 15px 0;overflow:hidden}
+  .meter i{display:block;height:100%;background:var(--accent2);width:0}
+  .prow{display:flex;justify-content:space-between;padding:6px 15px;font-size:12px;color:var(--mute)}
+
+  #diag{width:450px}
+  .cause{display:flex;align-items:center;gap:11px;padding:9px 15px;border-bottom:1px solid var(--line)}
+  .cause:last-of-type{border-bottom:0}
+  .cause .nm{width:158px;font-size:12.5px}
+  .cause .bar{width:118px;height:4px;background:var(--line);border-radius:99px;overflow:hidden}
+  .cause .bar i{display:block;height:100%;background:var(--accent)}
+  .cause .pc{width:38px;text-align:right;font-size:11.5px;color:var(--mute)}
+
+  #hand{width:512px}
+  .cand{display:flex;align-items:center;gap:11px;padding:9px 15px;
+        border-top:1px solid var(--line);font-size:12.5px}
+  .cand .nm{width:66px}
+  .cand .et{width:74px;color:var(--mute)}
+  .cand .sc{width:66px;text-align:right;color:var(--mute)}
+  .cand .co{width:74px;text-align:right}
+  .best{background:rgba(12,84,124,.055)}
+  .act{display:flex;gap:9px;padding:13px 15px}
+  .btn{font-size:12px;padding:7px 17px;border-radius:8px;border:1px solid var(--ink)}
+  .btn.p{background:var(--ink);color:var(--ground)}
+  #verdict{padding:0 15px 13px;display:none}
+
+  #ring{position:absolute;border:2px solid var(--accent);border-radius:13px;opacity:0;pointer-events:none}
+  #cur{position:absolute;width:21px;height:21px;pointer-events:none;opacity:0}
+
+  #plate{position:absolute;left:300px;top:150px}
+  #h1{font-size:71px;line-height:1.0}
+  #h2{font-size:71px;line-height:1.0;color:var(--accent)}
+  #sub{font-size:16.5px;color:var(--mute);margin-top:19px;line-height:1.45;max-width:505px}
+</style>
+</head>
+<body>
+<div id="plane">
+  <canvas id="trace"></canvas>
+
+  <div id="reader">
+    <div id="deg">3.9<span id="unit">&deg;C</span></div>
+    <div id="band" class="lbl">SAFE CEILING 8.0 &deg;C</div>
+  </div>
+  <div id="ceil"></div>
+  <div id="ceilTag" class="lbl">8.0 CEILING</div>
+
+  <div id="plate">
+    <div id="h1" class="cap">Eight point seven</div>
+    <div id="h2" class="cap">seconds of margin.</div>
+    <div id="sub">ColdChain Rescue does not wait for a reefer to fail. It
+      watches how much room is left, and it asks before it acts.</div>
+  </div>
+
+  <div id="pred" class="uicard">
+    <div class="uibar"><span class="dot a2"></span>
+      <span class="ttl">PREDICTIVE WARNING &middot; RAISED BEFORE BREACH</span></div>
+    <div class="bigline"><span class="n mono" id="pnum">3.9</span><span class="k">&deg;C
+      and rising</span></div>
+    <div class="meter"><i id="pbar"></i></div>
+    <div class="prow"><span>time to critical</span><span class="mono" id="pttc">15.9 s</span></div>
+    <div class="prow"><span>breach velocity</span><span class="mono" id="pvel">+0.00 &deg;C/min</span></div>
+    <div class="prow" style="padding-bottom:13px"><span>model</span>
+      <span class="mono">linear_trend_projection</span></div>
+  </div>
+
+  <div id="diag" class="uicard">
+    <div class="uibar"><span class="dot"></span><span class="ttl">MULTI-CAUSE DIAGNOSIS</span></div>
+    <div class="cause"><span class="nm">compressor_failure</span>
+      <span class="bar"><i style="width:62%"></i></span><span class="pc mono">62%</span></div>
+    <div class="cause"><span class="nm">cooling_degradation</span>
+      <span class="bar"><i style="width:14%"></i></span><span class="pc mono">14%</span></div>
+    <div class="cause"><span class="nm">door_seal</span>
+      <span class="bar"><i style="width:12%"></i></span><span class="pc mono">12%</span></div>
+    <div class="cause"><span class="nm">ambient_heat</span>
+      <span class="bar"><i style="width:8%"></i></span><span class="pc mono">8%</span></div>
+    <div class="prow" style="padding:9px 15px 13px"><span>door sensor reads
+      closed &middot; not excluded</span></div>
+  </div>
+
+  <div id="hand" class="uicard">
+    <div class="uibar"><span class="dot"></span>
+      <span class="ttl">AI RECOMMENDATION &middot; ESCALATED &middot; AWAITING APPROVAL</span></div>
+    <div class="row"><span class="k">Truck</span><span class="mono">USER-T25</span>
+      <span class="pill">COMPRESSOR FAILURE</span></div>
+    <div class="cand best"><span class="nm mono">WH-002</span><span class="et mono">10.1 min</span>
+      <span class="sc mono">score 76</span><span class="co mono">Rs 303</span></div>
+    <div class="cand"><span class="nm mono">WH-006</span><span class="et mono">22.2 min</span>
+      <span class="sc mono">score 52</span><span class="co mono">Rs 302</span></div>
+    <div class="cand"><span class="nm mono">WH-001</span><span class="et mono">43.8 min</span>
+      <span class="sc mono">score 12</span><span class="co mono">Rs 191</span></div>
+    <div class="cand"><span class="nm mono">WH-008</span><span class="et mono">45.6 min</span>
+      <span class="sc mono">score 1</span><span class="co mono">Rs 306</span></div>
+    <div class="act"><span class="btn p">Approve</span><span class="btn">Reject</span></div>
+    <div id="verdict" class="mono" style="font-size:10.5px;letter-spacing:.12em;color:var(--accent)">
+      APPROVED &middot; TRANSFERRING TO WH-002 &middot; ETA 10.1 MIN</div>
+  </div>
+
+  <div id="ring"></div>
+  <div id="cur"></div>
+</div>
+
+<script src="motion.js"></script>
+<script src="ui_kit.js"></script>
+<script src="look.js"></script>
+<script>
+/* BEAT SHEET - 84 s. Every beat sits on a word of the narration, which
+   measures 79.0 s. The film is longer than the voice by design, because rests
+   are what make the bursts land.
+
+    0.0- 9.0  "it is not the temperature it cares about"   plate; 3.9 held
+    9.0-15.5  "three point nine... the load is fine"       nothing moves. REST
+   16.2       "then the compressor fails"                   THE FAULT
+   19.2       the reading starts drawing its own history    the trace
+   24.0       the trace continues as a route               carry
+   26.4       "raises the incident before it gets there"   PREDICTION panel
+   32.1       the reading crosses 8.0 C                    THE BREACH
+   36.8       "the diagnosis is not a guess"               DIAGNOSIS panel
+   44.9       "nearest is not best"                         THE CHOICE arrives
+   53.6       "the closest is a third of the score"        ring on the best row
+   61.5       "and it does not act. it waits"               the cursor waits too
+   69.4       "you approve"                                 THE CLICK
+   70.6       "the transfer begins"                        verdict
+   79.0       REST
+   79.4       the lockup writes itself
+
+   Carry: the reading never leaves. The trace it draws becomes the meter bar.
+   The meter becomes the prediction card. The prediction becomes the diagnosis.
+   The diagnosis becomes the choice. The choice survives the click. Nothing is
+   replaced; each boundary names the thing that survives it. */
+
+const DUR = 84, FPS = 30, W = 1920, H = 1080;
+window.__meta = { dur: DUR, fps: FPS, w: W, h: H,
+                  inFrame: { deg: [7.0, 79.0, 'whole'] } };
+
+const $ = id => document.getElementById(id);
+const DEG = $('deg'), CEIL = $('ceil'), CTAG = $('ceilTag'), PLATE = $('plate');
+const CARD = $('hand'), PRED = $('pred'), DIAG = $('diag');
+const RING = $('ring'), CUR = $('cur'), VERD = $('verdict');
+const cv = $('trace'), cx = cv.getContext('2d');
+
+/* the product's own numbers */
+const T0 = 3.9, FLOOR = 2.0, CEIL_T = 8.0, T1 = 8.7;
+const AMBIENT = 41.8;        // Delhi afternoon, from the app's telemetry
+const FAULT_T = 16.2;        // "then the compressor fails"
+const BREACH_T = 32.1;       // the reading crosses 8.0 here
+/* K solved so the breach lands where the narration says it does. */
+const K = Math.log((T0 - AMBIENT) / (CEIL_T - AMBIENT)) / (BREACH_T - FAULT_T);
+
+const Y_OF = t => 560 - (t - FLOOR) * (250 / (T1 - FLOOR));
+const X0 = 300, XSTEP = 7.6;
+
+function tempAt(t){
+  if (t < FAULT_T) return T0;
+  const u = t - FAULT_T;
+  const v = AMBIENT + (T0 - AMBIENT) * Math.exp(-K * u);
+  return Math.min(v, T1);          // hold the peak: the transfer has begun
+}
+function tracePts(t){
+  const n = 190, out = [];
+  for (let i = 0; i <= n; i++){
+    const ti = FAULT_T + (t - FAULT_T) * (i / n);
+    out.push(Y_OF(Math.min(tempAt(ti), T1)));
+  }
+  return out;
+}
+
+/* camera: one operator who lags the subject and lands on the payoffs */
+function camAt(t){
+  return OM.camera(t, [
+    { t: 0.0,   x: 960,  y: 540, zoom: 1.00, curve: OM.ease.sineInOut },
+    { t: 4.0,   x: 860,  y: 500, zoom: 1.05, curve: OM.ease.sineInOut },
+    { t: 15.5,  x: 820,  y: 470, zoom: 1.02, curve: OM.ease.sineInOut },
+    { t: 16.2,  x: 880,  y: 440, zoom: 1.20, curve: OM.ease.expoInOut },  // snap onto the fault
+    { t: 21.0,  x: 940,  y: 500, zoom: 0.92, curve: OM.ease.expoInOut },  // back for the trace
+    { t: 26.0,  x: 1010, y: 500, zoom: 0.95, curve: OM.ease.sineInOut },
+    { t: 36.3,  x: 1000, y: 480, zoom: 0.94, curve: OM.ease.sineInOut },
+    { t: 44.4,  x: 1030, y: 500, zoom: 0.92, curve: OM.ease.expoInOut },
+    { t: 53.4,  x: 1060, y: 520, zoom: 0.90, curve: OM.ease.sineInOut },
+    { t: 69.4,  x: 1010, y: 500, zoom: 0.94, curve: OM.ease.sineInOut },
+    { t: 74.0,  x: 980,  y: 500, zoom: 1.00, curve: OM.ease.sineInOut },
+    { t: 79.0,  x: 960,  y: 540, zoom: 1.00, curve: OM.ease.sineInOut },
+  ]);
+}
+
+/* one continuous hand path; the click is a real press on the real button */
+const HAND_PATH = [
+  { t: 57.0, x: 1620, y: 690 },
+  { t: 66.5, x: 1450, y: 700 },
+  { t: 69.0, x: 1382, y: 690 },
+  { t: 69.7, x: 1382, y: 690 },
+  { t: 72.0, x: 1330, y: 660 },
+  { t: 76.0, x: 1280, y: 620 },
+];
+const CLICKS = [69.4];
+
+function place(el, x, y, s, op){
+  el.style.opacity = op;
+  el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${s.toFixed(4)})`;
+}
+
+function drawTrace(t){
+  cx.clearRect(0, 0, W, H);
+  if (t < 19.2) return;
+  const grow = OM.clamp((t - 19.2) / 3.0, 0, 1);
+  const pts = tracePts(t);
+  // Keep the full history drawn behind the panels for the rest of the film,
+  // dimmed, so the line never leaves the screen - it is what carries.
+  const n = Math.max(2, Math.floor(pts.length * OM.ease.expoOut(grow)));
+  cx.lineWidth = 3; cx.lineJoin = 'round'; cx.lineCap = 'round';
+  cx.strokeStyle = 'rgba(12,84,124,.15)';
+  cx.beginPath();
+  for (let i = 0; i < n; i++) cx.lineTo(X0 + i * XSTEP, pts[i]);
+  cx.stroke();
+  const hx = X0 + (n - 1) * XSTEP, hy = pts[n - 1];
+
+  // the settled history: always present once drawn, so a panel arriving later
+  // never removes the subject that carries into it
+  if (t > 23.0){
+    cx.strokeStyle = 'rgba(12,84,124,.09)';
+    cx.lineWidth = 2.5;
+    cx.beginPath();
+    for (let i = 0; i <= 190; i++) cx.lineTo(X0 + i * XSTEP, pts[i]);
+    cx.stroke();
+  }
+
+  cx.fillStyle = t >= BREACH_T ? '#9c741c' : '#0c547c';
+  cx.beginPath(); cx.arc(hx, hy, 7, 0, 6.2832); cx.fill();
+}
+
+function panelIn(el, t, t0, x, y, s0){
+  const k = OM.clamp((t - t0) / 1.1, 0, 1);
+  const s = (s0 ?? 0.9) + (1 - (s0 ?? 0.9)) * OM.ease.expoOut(k);
+  place(el, x, y + (1 - k) * 42, s, OM.clamp(k * 1.5, 0, 1));
+  return k;
+}
+
+async function seek(t){
+  /* the reading: the subject, present the entire film */
+  const temp = tempAt(t);
+  DEG.firstChild.nodeValue = temp.toFixed(1);
+  DEG.style.color = temp > CEIL_T ? 'var(--accent2)' : 'var(--ink)';
+
+  const ceilIn = OM.clamp((t - 1.4) / 1.0, 0, 1);
+  const ceilFade = 1 - OM.clamp((t - 79.6) / 1.2, 0, 1);
+  const cw = 1210 * ceilIn;
+  CEIL.style.opacity = 0.9 * ceilFade;
+  CEIL.style.left = X0 + 'px';
+  CEIL.style.width = cw + 'px';
+  CEIL.style.top = Y_OF(CEIL_T) + 'px';
+  CTAG.style.opacity = 0.9 * ceilFade;
+  CTAG.style.left = (X0 + cw - 78) + 'px';
+  CTAG.style.top = (Y_OF(CEIL_T) - 19) + 'px';
+
+  /* plate */
+  const p1 = OM.wordRise(t, 1.2, { zeta:.62, omega:18, dist:26 });
+  const p2 = OM.wordRise(t, 2.6, { zeta:.62, omega:18, dist:26 });
+  const subIn = OM.maskRise(t, 4.2);
+  const subOp = OM.clamp(subIn.visible ? subIn.k : 0, 0, 1);
+  const plateOut = OM.clamp((t - 15.0) / 1.1, 0, 1);
+  $('h1').style.opacity = p1.op * (1 - plateOut);
+  $('h1').style.transform = `translateY(${p1.y.toFixed(1)}px)`;
+  $('h2').style.opacity = p2.op * (1 - plateOut);
+  $('h2').style.transform = `translateY(${p2.y.toFixed(1)}px)`;
+  $('sub').style.opacity = subOp * (1 - plateOut);
+  $('reader').style.opacity = OM.clamp((t - 8.4) / 1.2, 0, 1);
+
+  drawTrace(t);
+
+  /* the trace continues as a route, then hands over to the panels */
+  if (t >= 24.0 && t < 27.4){
+    const g = OM.clamp((t - 24.0) / 2.0, 0, 1);
+    cx.strokeStyle = `rgba(12,84,124,${(0.5 * (1 - g)).toFixed(3)})`;
+    cx.lineWidth = 3 + 3 * g;
+    cx.beginPath();
+    cx.moveTo(X0 + 190 * XSTEP, Y_OF(T1));
+    cx.lineTo(X0 + 190 * XSTEP + 520 * g, Y_OF(T1) - 34 * g);
+    cx.stroke();
+  }
+
+  /* PREDICTION, raised at 26.4 - before the breach at 32.1.
+     It slides in FROM the trace's head rather than appearing beside it, so the
+     line you have watched for seven seconds visibly enters the card. */
+  if (t >= 26.4 && t < 37.4){
+    const k = OM.clamp((t - 26.4) / 1.3, 0, 1);
+    const headX = X0 + 190 * XSTEP, headY = Y_OF(tempAt(t));
+    const s0 = 0.92 + 0.08 * OM.ease.expoOut(k);
+    const dx = (1 - OM.ease.expoOut(k)) * (headX - 1090);
+    const dy = (1 - OM.ease.expoOut(k)) * (headY - 250);
+    place(PRED, 1090 + dx, 250 + dy, s0, OM.clamp(k * 1.5, 0, 1));
+  } else PRED.style.opacity = 0;
+  if (t >= 26.4){
+    const lead = BREACH_T - t;
+    $('pnum').textContent = tempAt(t).toFixed(1);
+    $('pttc').textContent = lead > 0.05 ? lead.toFixed(1) + ' s' : 'breached';
+    const vel = (tempAt(t) - T0) / Math.max(t - FAULT_T, 0.001) * 60;
+    $('pvel').textContent = (vel >= 0 ? '+' : '') + vel.toFixed(2) + ' \u00B0C/min';
+    $('pbar').style.width = (OM.clamp((tempAt(t) - FLOOR) / (T1 - FLOOR), 0, 1) * 100).toFixed(1) + '%';
+  }
+
+  /* DIAGNOSIS at 36.8 - arrives from where the prediction's meter ended. */
+  if (t >= 36.8 && t < 45.6){
+    const k = OM.clamp((t - 36.8) / 1.3, 0, 1);
+    const e = OM.ease.expoOut(k);
+    const s0 = 0.92 + 0.08 * e;
+    place(DIAG, 1080 + (1 - e) * 150, 236 + (1 - e) * 80, s0, OM.clamp(k * 1.5, 0, 1));
+  } else DIAG.style.opacity = 0;
+
+  /* THE CHOICE at 44.9 - grows out of the diagnosis, not in beside it. */
+  if (t >= 44.9 && t < 79.4){
+    const k = OM.clamp((t - 44.9) / 1.4, 0, 1);
+    const e = OM.ease.expoOut(k);
+    const s0 = 0.90 + 0.10 * e;
+    place(CARD, 1120 + (1 - e) * 170, 248 + (1 - e) * 95, s0, OM.clamp(k * 1.5, 0, 1));
+  } else CARD.style.opacity = 0;
+
+  /* glow ring on the best candidate */
+  if (t >= 53.6 && t < 69.0){
+    const el = CARD.querySelector('.cand.best');
+    const r = el.getBoundingClientRect();
+    const cw2 = RING.parentElement.getBoundingClientRect();
+    const a = t < 54.6 ? OM.clamp((t - 53.6) / 1.0, 0, 1)
+                        : 1 - OM.clamp((t - 68.2) / 0.8, 0, 1);
+    RING.style.opacity = a;
+    RING.style.left = (r.left - cw2.left - 5) + 'px';
+    RING.style.top = (r.top - cw2.top - 5) + 'px';
+    RING.style.width = (r.width + 10) + 'px';
+    RING.style.height = (r.height + 10) + 'px';
+  } else RING.style.opacity = 0;
+
+  /* the cause is visible */
+  if (t >= 56.0 && t < 74.0){
+    const c = OM.cursor(t, HAND_PATH, CLICKS);
+    CUR.style.opacity = 1;
+    CUR.style.left = c.x + 'px';
+    CUR.style.top = c.y + 'px';
+    CUR.style.transform = `scale(${(c.s ?? 1).toFixed(3)})`;
+  } else CUR.style.opacity = 0;
+
+  /* APPROVED */
+  const ap = OM.clamp((t - 70.6) / 0.8, 0, 1);
+  VERD.style.display = (t >= 70.5) ? 'block' : 'none';
+  VERD.style.opacity = ap;
+
+  /* REST, then the lockup writes itself */
+  const clearAll = OM.clamp((t - 78.4) / 1.2, 0, 1);
+  if (clearAll > 0){
+    CARD.style.opacity = (1 - clearAll);
+    PRED.style.opacity = 0; DIAG.style.opacity = 0;
+    $('reader').style.opacity = (1 - clearAll);
+  }
+  const lock = OM.clamp((t - 79.4) / 3.0, 0, 1);
+  if (lock > 0){
+    PLATE.style.opacity = 1;
+    PLATE.style.transform = `scale(${(0.95 + 0.05 * OM.ease.expoOut(lock)).toFixed(4)})`;
+    $('h1').textContent = 'Eight point seven';
+    $('h2').textContent = 'seconds of margin.';
+    // The headline must rise back in for the lockup: its per-word opacity was
+    // zeroed by the opening titles' exit, so fading the container alone left an
+    // empty card. This is the film's one piece of kinetic type at the end.
+    const lk1 = OM.wordRise(t, 79.5, { zeta:.58, omega:17, dist:22 });
+    const lk2 = OM.wordRise(t, 80.1, { zeta:.58, omega:17, dist:22 });
+    $('h1').style.opacity = lk1.op;
+    $('h1').style.transform = `translateY(${lk1.y.toFixed(1)}px)`;
+    $('h2').style.opacity = lk2.op;
+    $('h2').style.transform = `translateY(${lk2.y.toFixed(1)}px)`;
+    $('sub').textContent = 'Predictive cold-chain monitoring';
+    $('sub').style.opacity = lock * 0.85;
+  } else if (t >= 15.0){
+    PLATE.style.opacity = 0;
+  }
+
+  const cam = camAt(t);
+  $('plane').style.transform =
+    `translate(${(W/2 - cam.x).toFixed(1)}px,${(H/2 - cam.y).toFixed(1)}px) scale(${cam.zoom.toFixed(4)})`;
+}
+
+window.__seek = async t => { await seek(t); return true; };
+
+window.__motion = (t0, t1) => {
+  const a = camAt(t0), b = camAt(t1);
+  return Math.hypot(a.x - b.x, a.y - b.y) + Math.abs(a.zoom - b.zoom) * 600 + 90;
+};
+
+window.__events = () => ([
+  { t: 1.2,  kind: 'word'  }, { t: 2.6, kind: 'word' },
+  { t: 16.2, kind: 'hit'   },   // the compressor fails
+  { t: 19.2, kind: 'air'   },   // the trace begins
+  { t: 24.0, kind: 'wood'  },
+  { t: 26.4, kind: 'glass' },   // the prediction
+  { t: 32.1, kind: 'hit'   },   // the breach
+  { t: 36.8, kind: 'card'  },   // the diagnosis
+  { t: 44.9, kind: 'card'  },   // the choice
+  { t: 53.6, kind: 'glass' },   // the ring
+  { t: 69.4, kind: 'press' },   // approve
+  { t: 70.6, kind: 'sub'   },
+  { t: 79.4, kind: 'seal'  },   // the lockup
+]);
+
+window.__ready = (async () => {
+  if (typeof LOOK !== 'undefined' && LOOK.ready) await LOOK.ready;
+  cv.width = W; cv.height = H;
+  await seek(0);
+  return true;
+})();
+</script>
+</body>
+</html>

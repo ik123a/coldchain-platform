@@ -45,3 +45,7 @@ local.properties
 docs/demo/video/_shots/
 docs/demo/video/_work/
 docs/demo/video/_audio/
+
+# onetake film scratch: rendered film + comp sources are tracked; these are not
+docs/demo/film/stills/
+docs/demo/film/_*/
