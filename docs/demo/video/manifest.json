@@ -1,0 +1,76 @@
+[
+  {
+    "name": "01-dashboard",
+    "route": "/dashboard",
+    "settle": 10,
+    "vo": "ColdChain Rescue. A cold chain monitoring platform for pharmaceutical and food logistics across the Delhi North Corridor.",
+    "ok": true,
+    "duration": 13.6,
+    "notes": []
+  },
+  {
+    "name": "02-live-map",
+    "route": "/live-map",
+    "settle": 11,
+    "vo": "Every truck on the map is moving, with its route, its current temperature, speed and load. Fourteen units, one live fleet view.",
+    "ok": true,
+    "duration": 13.4,
+    "notes": []
+  },
+  {
+    "name": "03-simulation",
+    "route": "/simulation",
+    "settle": 7,
+    "vo": "On simulation, you build the fleet yourself. Add a truck, choose the product and the destination warehouse. Nothing is assigned automatically.",
+    "open_panel": true,
+    "ok": true,
+    "duration": 11.92,
+    "notes": []
+  },
+  {
+    "name": "04-approvals",
+    "route": "/simulation",
+    "settle": 15,
+    "vo": "When the agent finds a critical fault, it does not act alone. It proposes the best cold store, scored on time, traffic, capacity and cost, and waits for you to approve.",
+    "need": [
+      "Approve",
+      "Reject"
+    ],
+    "scroll_to": "Approve",
+    "ok": true,
+    "duration": 24.0,
+    "notes": []
+  },
+  {
+    "name": "05-incident",
+    "route": "/incidents",
+    "settle": 12,
+    "vo": "Thirteen incident types are detected from real telemetry. Four more are declared as gaps, because the sensors to detect them honestly do not exist.",
+    "ok": true,
+    "duration": 14.2,
+    "notes": []
+  },
+  {
+    "name": "06-reports",
+    "route": "/reports",
+    "settle": 8,
+    "vo": "Every incident ends in a report: the truck, the problem, what the agent did, and what it learned when it could not resolve the fault.",
+    "click": "View report",
+    "need": [
+      "What the agent learned",
+      "Response score"
+    ],
+    "ok": true,
+    "duration": 13.32,
+    "notes": []
+  },
+  {
+    "name": "07-settings",
+    "route": "/settings",
+    "settle": 5,
+    "vo": "Light and dark themes, operator settings, and the system status panel.",
+    "ok": true,
+    "duration": 7.08,
+    "notes": []
+  }
+]

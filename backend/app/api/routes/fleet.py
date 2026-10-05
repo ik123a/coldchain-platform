@@ -57,7 +57,30 @@ class DispatchTruckIn(BaseModel):
 
 
 class DispatchIn(BaseModel):
-    trucks: list[DispatchTruckIn] = Field(min_length=1, max_length=3)
+    trucks: list[DispatchTruckIn] = Field(min_length=1, max_length=12)
+
+
+class DispatchTruckAddIn(BaseModel):
+    """Body for POST /dispatch/trucks (add one truck).
+
+    Everything is optional: a bare `{}` creates a DRAFT truck with an
+    auto-assigned unique id and name that the operator then configures. The
+    server never fills in a product or destination by itself.
+    """
+    name: str | None = Field(default=None, max_length=40)
+    cargo_type: str | None = Field(default=None, max_length=30)
+    destination_id: str | None = Field(default=None, max_length=12)
+    origin_id: str | None = Field(default=None, max_length=12)
+    load_units: int | None = Field(default=None, ge=1, le=1000)
+
+
+class DispatchTruckPatchIn(BaseModel):
+    """Configure one truck (PATCH /dispatch/trucks/{tid}). Only sent fields change."""
+    name: str | None = Field(default=None, max_length=40)
+    cargo_type: str | None = Field(default=None, max_length=30)
+    destination_id: str | None = Field(default=None, max_length=12)
+    origin_id: str | None = Field(default=None, max_length=12)
+    load_units: int | None = Field(default=None, ge=1, le=1000)
 
 
 class ApprovalIn(BaseModel):
@@ -100,11 +123,59 @@ async def dispatch_get(_auth: dict = Depends(require_auth_read)):
 
 @router.post("/dispatch")
 async def dispatch_set(body: DispatchIn, _auth: dict = Depends(require_auth)):
-    """Validate and store 2-3 truck definitions. Does not start them."""
+    """Validate and store the operator's truck definitions (bulk replace).
+
+    Kept for compatibility; the per-truck endpoints below are the primary
+    dynamic-fleet interface.
+    """
     try:
         return FLEET.configure_dispatch([t.model_dump() for t in body.trucks])
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
+@router.post("/dispatch/trucks")
+async def dispatch_truck_add(body: DispatchTruckAddIn,
+                             _auth: dict = Depends(require_auth)):
+    """Add ONE truck. A bare {} creates a draft with a unique id and name.
+
+    Nothing is started, no product or destination is assigned, no rescue or
+    AI decision is triggered — the operator configures and starts it.
+    """
+    try:
+        return {"truck": FLEET.add_dispatch_truck(body.model_dump(exclude_none=False))}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.patch("/dispatch/trucks/{tid}")
+async def dispatch_truck_patch(tid: str, body: DispatchTruckPatchIn,
+                               _auth: dict = Depends(require_auth)):
+    """Configure one truck (product, destination, name, load). 400 on invalid."""
+    try:
+        patch = body.model_dump(exclude_none=True)
+        return {"truck": FLEET.update_dispatch_truck(tid, patch)}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/dispatch/trucks/{tid}/start")
+async def dispatch_truck_start(tid: str, _auth: dict = Depends(require_auth)):
+    """Start ONE configured truck. 400 if it is a draft (missing config)."""
+    try:
+        return FLEET.start_dispatch_truck(tid)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.delete("/dispatch/trucks/{tid}")
+async def dispatch_truck_delete(tid: str, _auth: dict = Depends(require_auth)):
+    """Remove ONE truck. Cleans its live twin + incident/service/approval
+    state; other trucks keep running; DB report history is preserved."""
+    try:
+        return await FLEET.remove_dispatch_truck(tid)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
 
 
 @router.post("/dispatch/start")
@@ -118,7 +189,13 @@ async def dispatch_start(_auth: dict = Depends(require_auth)):
 
 @router.post("/dispatch/clear")
 async def dispatch_clear(_auth: dict = Depends(require_auth)):
-    return FLEET.clear_dispatch()
+    # `clear_dispatch` is async (it awaits vehicle teardown), so it must be
+    # awaited. Without the await this returned a coroutine object, which FastAPI
+    # then tried to serialise:
+    #   ValueError: [TypeError("'coroutine' object is not iterable")]
+    #   RuntimeWarning: coroutine 'FleetOrchestrator.clear_dispatch' was never awaited
+    # so POST /api/fleet/dispatch/clear returned 500 and cleared nothing.
+    return await FLEET.clear_dispatch()
 
 
 @router.get("/scenarios")
