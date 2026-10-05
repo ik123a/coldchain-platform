@@ -25,11 +25,19 @@ async def startup():
         await conn.run_sync(Base.metadata.create_all)
     log.info("database ready (auto-created tables)")
     # fleet world (SIMULATION ONLY) — laptop demo, no hardware
+    #
+    # Default is a COLD world: nothing spawns and nothing runs until the
+    # operator adds and starts trucks from the UI (the world loop starts
+    # lazily with the first truck — see FleetOrchestrator.ensure_loop).
+    # Set FLEET_AUTOSTART=1 explicitly to boot with the 12-truck round-robin
+    # demo fleet already moving.
     import os, asyncio
     from .simulation.fleet_orchestrator import FLEET
-    if os.getenv("FLEET_AUTOSTART", "1") == "1":
+    if os.getenv("FLEET_AUTOSTART", "0") == "1":
         asyncio.create_task(FLEET.start(12))
         log.info("fleet world started (12 vehicles)")
+    else:
+        log.info("cold world: no vehicles running — add and start trucks from the UI")
 
 
 app.include_router(auth.router)

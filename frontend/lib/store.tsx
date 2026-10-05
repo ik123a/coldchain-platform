@@ -147,6 +147,20 @@ function reducer(st: State, a: Action): State {
     case "fleet_event": {
       const ev = a.payload as any;
       const t = ev.type as string;
+      // A truck removed by the operator disappears from the dashboard the
+      // moment the event arrives — not up to 4s later when the REST poll
+      // happens to overwrite the list.
+      if (t === "vehicle.removed") {
+        return { ...st,
+                 fleetVehicles: (st.fleetVehicles ?? []).filter(
+                   (v: any) => v.vehicle_id !== ev.vehicle_id),
+                 fleetEvents: [ev, ...st.fleetEvents].slice(0, 90),
+                 notices: [{ id: Date.now() + Math.random(),
+                             text: `${ev.vehicle_id} removed from the fleet`,
+                             sev: "INFO", source: t,
+                             at: new Date().toISOString(), read: false },
+                           ...st.notices].slice(0, NOTICE_MAX) };
+      }
       let notices = st.notices;
       const LABELS: Record<string, [string, "CRITICAL" | "INFO" | "OK"]> = {
         "fleet.incident.created": [`INCIDENT ${ev.vehicle_id}: ${ev.root_cause}`, "CRITICAL"],

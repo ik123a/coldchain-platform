@@ -8,6 +8,7 @@ import type { Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useStore } from "@/lib/store";
 import { FleetRiskBanner } from "@/components/live-map/FleetRiskBanner";
+import FleetManagerPanel from "@/components/simulation/FleetManagerPanel";
 import { api, post } from "@/lib/api";
 import { 
   Activity, Bot, Maximize2, Play, Radio, Thermometer 
@@ -269,6 +270,11 @@ export default function DashboardPage() {
       <div className="relative flex-1 min-h-0 w-full">
         <div ref={mapContainer} className="h-full w-full" />
         <MapMarkers map={mapReady ? mapRef.current : null} points={mapPoints} onSelect={(id) => { if (!id.startsWith("wh-")) setSelectedId(id); }} />
+
+        {/* Fleet management: add / configure / start / remove trucks without
+            leaving the dashboard. Top-left keeps it clear of the vehicle
+            inspector and telemetry feed that own the right side. */}
+        <FleetManagerPanel className="absolute left-4 top-3" />
 
         {/* Ambient Particle Field */}
         <ParticleField count={30} color="var(--accent)" opacity={0.08} speed={0.15} connected className="z-10" />

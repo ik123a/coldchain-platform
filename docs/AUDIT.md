@@ -337,3 +337,68 @@ decision is documented in-code with the reasoning and the bug it prevents.
 
 The code is in better shape than the video and the UI tidiness. Judge the
 simulation logic generously and the presentation harshly.
+
+---
+
+## 11. Dynamic truck management (added 2026-10-02)
+
+The "2 to 3 trucks" limitation is gone. The fleet is fully operator-controlled.
+
+**Backend** (`fleet_orchestrator.py`, `api/routes/fleet.py`):
+
+- Each truck has a stable id (`T01`, `T02`, …) from a monotonic counter — ids
+  are never reused, so remove-then-add cannot collide.
+- `DISPATCH_MAX` raised 3 → 12. It is a presentation limit (the tick loop
+  already runs the 12-truck demo fleet; `rebuild` accepts 60), enforced with a
+  readable 400 and exposed to the UI via `GET /api/fleet/dispatch → max`.
+- New per-truck endpoints, all validated, none automatic:
+  - `POST /api/fleet/dispatch/trucks` — add one truck; a bare `{}` creates a
+    DRAFT with an auto id/name. Nothing is started, no product/destination is
+    assigned, no rescue/AI decision fires.
+  - `PATCH /api/fleet/dispatch/trucks/{tid}` — configure. An empty
+    product/destination CLEARS the field (draft); a full pair is revalidated
+    (unknown product, duplicate destination, incompatible cargo all → 400).
+    Product/destination changes are refused while running.
+  - `POST /api/fleet/dispatch/trucks/{tid}/start` — start ONE truck; drafts
+    are refused with a readable 400. Idempotent.
+  - `DELETE /api/fleet/dispatch/trucks/{tid}` — remove ONE truck. Cleans the
+    twin, active incident mapping, alert/escalation counters, in-flight
+    service call, transfers and pending approvals for THAT vehicle only;
+    broadcasts `vehicle.removed`; DB report history is preserved.
+- `_respawn` matches the spec by stable vehicle id (was display name).
+- `clear_dispatch` now also removes spawned twins (it used to orphan them).
+- The bulk `POST /api/fleet/dispatch` + `/dispatch/start` are kept for
+  compatibility; drafts are skipped by the bulk start, never auto-started.
+
+**Frontend** (`components/simulation/DispatchBuilder.tsx`, `lib/store.tsx`):
+
+- The dispatch builder is now a "Truck management" panel: prominent
+  **+ Add Truck** (immediate, no refresh), per-truck Configure (auto-save on
+  change; server 400 details surfaced verbatim), per-truck **Start**
+  (disabled until product + destination are chosen), per-truck **Remove**
+  (`window.confirm` "…is currently in delivery. Remove this truck?" for
+  running trucks, immediate for drafts), a live `N/max` counter, and
+  "Start all configured". The product prefill was removed — nothing is
+  assigned automatically.
+- `store.tsx` handles `vehicle.removed` so the dashboard drops the truck the
+  moment the event arrives, not on the next 4 s poll.
+
+**Verified** (backend/tests/test_dynamic_fleet.py, 46 checks + live GUI run):
+add ×4 past the old cap, per-truck start, remove inactive, remove active
+(with active incident + pending approval) while other trucks keep running,
+ids never reused, cap refused past 12, clear removes spawned twins. Live UI:
+add → configure → start → confirm-dialog remove (both dismiss/accept
+branches) → incident raised on one truck (approval queue showed "Divert
+Truck 03 → WH-001" with that truck's own telemetry and cost-ranked
+alternatives) → removal cleaned the incident and the approval with no effect
+on the 14 demo-fleet twins.
+
+**Default boot is now a COLD world** (2026-10-02): `FLEET_AUTOSTART` defaults
+OFF — nothing spawns and nothing runs until the operator adds and starts
+trucks from the UI. The world tick loop starts lazily with the first truck
+(`FleetOrchestrator.ensure_loop`, called by both truck-start paths), so a
+truck started in a cold world moves, telemeters and raises incidents exactly
+like in a warm one. `FLEET_AUTOSTART=1` explicitly boots the old 12-truck
+round-robin demo fleet. Verified live: cold boot → 0 vehicles → add + start
+from the live-map panel → clock ticks, truck moves, compressor failure
+produced the AI divert recommendation → cleanup returned the world to empty.

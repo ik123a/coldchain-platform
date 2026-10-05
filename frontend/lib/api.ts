@@ -21,6 +21,12 @@ export async function api<T = any>(path: string, opts: RequestInit = {}): Promis
 export const post = <T = any>(path: string, body?: unknown): Promise<T> =>
   api<T>(path, { method: "POST", body: body != null ? JSON.stringify(body) : undefined });
 
+export const patch = <T = any>(path: string, body?: unknown): Promise<T> =>
+  api<T>(path, { method: "PATCH", body: body != null ? JSON.stringify(body) : undefined });
+
+export const del = <T = any>(path: string): Promise<T> =>
+  api<T>(path, { method: "DELETE" });
+
 export const API_BASE = API;
 // The WebSocket is deliberately NOT proxied — Next's rewrites do not carry an
 // Upgrade, so a ws:// origin URL connects but never receives frames (verified:
