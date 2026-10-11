@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .core.config import CORS_ORIGINS
 from .database.engine import Base, engine
 from .models import entities  # noqa: F401  (ensures models registered on Base.metadata)
-from .api.routes import auth, facilities, shipments, simulations, incidents, analytics, reports, demo, status, fleet, gemini
+from .api.routes import auth, facilities, shipments, simulations, incidents, analytics, reports, demo, status, fleet, gemini, maintenance
 from .websocket.handler import router as ws_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -63,6 +63,7 @@ app.include_router(incidents.router)
 app.include_router(analytics.router)
 app.include_router(reports.router)
 app.include_router(fleet.router)
+app.include_router(maintenance.router)
 app.include_router(gemini.router)
 app.include_router(ws_router)
 

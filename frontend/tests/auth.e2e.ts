@@ -1,5 +1,7 @@
-import { test } from '@e2e-dev/web';
-import { expect } from 'e2e';
+// Importing the helpers module registers the suite's afterAll cleanup (deletes
+// the throwaway accounts this run created and restarts the fleet), so a run
+// leaves the workspace as it found it.
+import { test, expect, acct } from './_helpers';
 
 // No model is used anywhere in this file: every assertion is a locator check, so
 // the suite runs deterministically with no API key.
@@ -7,11 +9,6 @@ import { expect } from 'e2e';
 // Each test creates its OWN account. An earlier version registered once and let
 // later tests depend on that session, which made them order-dependent — they
 // passed or failed based on file ordering rather than on the app's behaviour.
-
-function acct(tag: string) {
-  const s = `${Date.now()}${Math.floor(Math.random() * 10_000)}`;
-  return { tag, email: `e2e_${tag}_${s}@coldchain.io`, password: 'secret123' };
-}
 
 async function registerOperator(app: any, screen: any, a: ReturnType<typeof acct>) {
   await app.open('/login');

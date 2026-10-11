@@ -1,13 +1,9 @@
-import { test } from '@e2e-dev/web';
-import { expect } from 'e2e';
+// Importing the helpers module registers the suite's afterAll cleanup.
+import { test, expect, acct } from './_helpers';
 
 // Each test registers its OWN driver, so no test depends on another's session.
 // An earlier version shared one account across three tests, which made results
 // depend on file ordering.
-function acct() {
-  const s = `${Date.now()}${Math.floor(Math.random() * 10_000)}`;
-  return { email: `drv_${s}@coldchain.io`, password: 'secret123' };
-}
 
 async function registerDriver(app: any, screen: any, browser: any, a: ReturnType<typeof acct>) {
   await app.open('/login');
