@@ -23,6 +23,19 @@ app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS or ["*"],
 async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Lightweight migration: create_all does not ALTER an existing table, so
+        # a database created before the RBAC columns existed would raise
+        # "no such column: users.role" on the first login. Both columns are
+        # nullable/defaulted so adding them in place is safe and idempotent.
+        try:
+            from sqlalchemy import text as _sql
+            cols = {row[1] for row in (await conn.execute(_sql("PRAGMA table_info(users)"))).fetchall()}
+            if "role" not in cols:
+                await conn.execute(_sql("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'operator'"))
+            if "vehicle_id" not in cols:
+                await conn.execute(_sql("ALTER TABLE users ADD COLUMN vehicle_id VARCHAR(40)"))
+        except Exception as e:  # non-SQLite backends create columns via create_all
+            log.debug("users migration skipped: %s", e)
     log.info("database ready (auto-created tables)")
     # fleet world (SIMULATION ONLY) — laptop demo, no hardware
     #

@@ -5,10 +5,11 @@ import { usePathname } from "next/navigation";
 import {
   Activity, BarChart3, Bot, ChevronLeft, ChevronRight,
   ClipboardList, Container, Droplets, FastForward, FlaskConical,
-  List, Map, Moon, Settings, Siren, Sun, Warehouse, Search
+  List, LogOut, Map, Moon, Settings, Siren, Sun, Warehouse, Search
 } from "lucide-react";
 import { StatusBeacon } from "./ui/status-beacon";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { resolveTheme } from "@/lib/theme";
 import NotificationCentre from "./NotificationCentre";
 import { CommandPalette } from "./CommandPalette";
@@ -56,6 +57,7 @@ const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 export default function Layout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const { st, dispatch } = useStore();
+  const { user, signOut } = useAuth();
   const [openCmd, setOpenCmd] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -238,6 +240,25 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             >
               {systemOk ? "Operational" : "Degraded"}
             </span>
+
+            {user && (
+              <div className="hidden items-center gap-2 border-l border-[var(--border)] pl-4 md:flex">
+                <span
+                  className="max-w-[140px] truncate t-micro text-[var(--text-secondary)]"
+                  title={user.email}
+                >
+                  {user.name || user.email}
+                </span>
+                <button
+                  onClick={signOut}
+                  title="Sign out"
+                  aria-label="Sign out"
+                  className="flex h-6 min-h-6 min-w-6 items-center justify-center rounded-[var(--r-md)] border border-[var(--border)] bg-[var(--surface-inset)] text-[var(--text-muted)] transition-colors hover:border-[var(--critical)] hover:text-[var(--critical)]"
+                >
+                  <LogOut size={12} aria-hidden />
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
