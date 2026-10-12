@@ -116,14 +116,50 @@ def handling_cost_inr(facility: dict, units: int, cargo_type: str | None = None)
 
 
 class RouteScorer:
-    """Weighted route score incl. projected cargo risk at arrival."""
+    """Weighted route score incl. projected cargo risk at arrival.
+
+    Projection model (the fix for the CONTINUE-on-CRITICAL defect):
+    the old projection applied the failure slope over the ENTIRE route even when
+    the route ends at a cold facility, so a divert projected a worse temperature
+    than continuing — backwards, since the whole point of the divert is that the
+    facility's dock pulls the cargo back into its band. The projection is now
+    two-legged: the failure slope applies only up to arrival, then the facility
+    recovery leg (recovery_rate_c_per_min) pulls the temperature toward the
+    band's midpoint for the remaining processing time. A continue option (no
+    facility) keeps the pure linear model. Recovery strength is configurable per
+    facility via `recovery_rate_c_per_min` (default 0.55 C/min for powered cold
+    storage) so the model stays data-driven rather than assumed.
+    """
+
+    # Default dock recovery for a powered cold room, C per minute of processing.
+    DEFAULT_RECOVERY_C_PER_MIN = 0.55
 
     def score(self, route: dict, traffic_factor: float, vehicle, facility: dict | None = None) -> dict:
         eta = route["duration_min"]
         slope = (0.20 if vehicle.compressor == "FAILED"
                  else 0.10 if vehicle.compressor == "DEGRADED"
                  else 0.02 if vehicle.door_open else 0.0)
-        proj_temp = vehicle.box.temperature + slope * eta
+
+        if facility is None:
+            # Continue: no cold dock at the end, the failure keeps acting for
+            # the whole remaining trip (the original linear model).
+            proj_temp = vehicle.box.temperature + slope * eta
+        else:
+            # Divert: warming only until arrival at the facility, then the dock
+            # pulls the load back toward the band midpoint.
+            travel_min = max(0.0, min(eta, float(facility.get("eta_travel_min", eta * 0.6))))
+            process_min = max(0.0, eta - travel_min)
+            temp_at_arrival = vehicle.box.temperature + slope * travel_min
+            recover = float(facility.get("recovery_rate_c_per_min",
+                                         self.DEFAULT_RECOVERY_C_PER_MIN))
+            band_mid = (vehicle.box.mn + vehicle.box.mx) / 2.0 if getattr(vehicle.box, "mn", None) is not None \
+                else vehicle.box.mx - 2.0
+            # Exponential approach toward the band midpoint: fast at first,
+            # asymptotic near the band — a load cannot be overcooled instantly.
+            gap = temp_at_arrival - band_mid
+            proj_temp = band_mid + gap * pow(2.718281828, -recover * process_min / max(gap, 1.0) * 3.0) \
+                if gap > 0 else band_mid + gap
+
         over = max(0.0, proj_temp - vehicle.box.mx)
         cargo_risk_pts = min(50.0, over * 8.0 + max(0.0, vehicle.box.temperature - vehicle.box.mx) * 4)
         proj_risk = ("CRITICAL" if cargo_risk_pts > 30 else "HIGH" if cargo_risk_pts > 15
@@ -211,15 +247,24 @@ class FleetCoordinator:
 
         improves_risk = _risk_worse(cont_scored["cargo_risk_after"], best["scored"]["cargo_risk_after"])
         eta_gain = cont_scored["eta_min"] - best["scored"]["eta_min"]
-        if improves_risk or eta_gain >= 3.0:
+        # SAFETY OVERRIDE: if continuing projects CRITICAL cargo risk and a
+        # compatible divert projects anything better, divert. The raw score and
+        # ETA arithmetic must not outvote a projection that the load is being
+        # destroyed — this is the branch the approval gate depends on.
+        continue_is_critical = cont_scored["cargo_risk_after"] == "CRITICAL"
+        divert_better_than_critical = best is not None and \
+            best["scored"]["cargo_risk_after"] != "CRITICAL"
+        if improves_risk or eta_gain >= 3.0 or (continue_is_critical and divert_better_than_critical):
             cand = best["candidate"]
+            critical_override = continue_is_critical and divert_better_than_critical
             return {"decision": "DIVERT", "target": cand["id"],
                     "candidates": candidates, "options": options,
-                    "reason": (f"{cand['name']} chosen: ETA {best['scored']['eta_min']}m vs "
+                    "reason": (f"{'CRITICAL on current route: ' if critical_override else ''}"
+                               f"{cand['name']} chosen: ETA {best['scored']['eta_min']}m vs "
                                f"{cont_scored['eta_min']}m on current route; projected cargo risk "
-                               f"{cont_scored['cargo_risk_after']} -> {best['scored']['cargo_risk_after']}. "
-                               f"{cand['reason']}. This demonstrates nearest-is-not-best: ranking used "
-                               f"travel+queue+processing+capacity, not distance."),
+                               f"{cont_scored['cargo_risk_after']} -> {best['scored']['cargo_risk_after']} "
+                               f"via facility recovery. "
+                               f"{cand.get('reason', 'Ranked by travel+queue+processing+capacity, not distance.')}."),
                     "confidence": min(0.95, 0.6 + (0.1 if improves_risk else 0.0)
                                       + min(0.25, eta_gain * 0.02)),
                     "scored": best["scored"], "candidate": cand}
