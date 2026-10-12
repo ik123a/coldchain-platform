@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { downloadReport } from "@/lib/reports";
 import { useStore } from "@/lib/store";
 
 /** Pull the full report for one incident. The list endpoint carries no report
@@ -86,8 +87,8 @@ export default function Reports() {
                 detected {new Date(i.detected_at).toLocaleString()} {i.resolved_at && "· resolved " + new Date(i.resolved_at).toLocaleTimeString()} · peak {i.peak_temperature?.toFixed(1)}°C
               </div>
             </div>
-            <a href={`/api/reports/${i.id}.json`} className="btn t-label">JSON ⬇</a>
-            <a href={`/api/reports/${i.id}.pdf`} className="btn btn-primary t-label">PDF ⬇</a>
+            <button onClick={() => downloadReport(i.id, "json").catch((e) => alert(e.message))} className="btn t-label">JSON ⬇</button>
+            <button onClick={() => downloadReport(i.id, "pdf").catch((e) => alert(e.message))} className="btn btn-primary t-label">PDF ⬇</button>
             <button
               onClick={() => setOpenId(openId === i.id ? null : i.id)}
               className="btn t-label"

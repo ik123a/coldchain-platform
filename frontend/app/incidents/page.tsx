@@ -3,6 +3,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { api, post } from "@/lib/api";
+import { downloadReport } from "@/lib/reports";
 import { useStore } from "@/lib/store";
 import { Play, Siren, X } from "lucide-react";
 
@@ -308,8 +309,8 @@ function IncidentsInner() {
                   <div className="flex items-center justify-between">
                     <div className="t-body font-semibold text-[var(--green)]">Final report — response score {rep.score}/100</div>
                     <div className="flex gap-2">
-                      <a href={`/api/reports/${selected.id}.json`} className="btn t-label">Download JSON</a>
-                      <a href={`/api/reports/${selected.id}.pdf`} className="btn btn-primary t-label">Download PDF</a>
+                      <button onClick={() => downloadReport(selected.id, "json").catch((e) => alert(e.message))} className="btn t-label">Download JSON</button>
+                      <button onClick={() => downloadReport(selected.id, "pdf").catch((e) => alert(e.message))} className="btn btn-primary t-label">Download PDF</button>
                     </div>
                   </div>
                   <pre className="t-label text-[var(--text2)] whitespace-pre-wrap mt-2 leading-relaxed font-mono">{rep.report}</pre>

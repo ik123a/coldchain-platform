@@ -392,7 +392,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--surface-card)]">
               <Thermometer size={13} className="text-[var(--warning)]" />
               <span className="text-[var(--text-dim)]">HEAT SHIELD:</span>
-              <span className="text-[var(--text)] font-bold">ARRHENIUS GATED</span>
+              <span className="text-[var(--text)] font-bold">TREND PROJECTION</span>
             </div>
           </div>
           {/* Live Telemetry Data Stream */}
@@ -401,7 +401,14 @@ export default function DashboardPage() {
               <Activity size={10} className="animate-pulse" />
               <span>LIVE TELEMETRY FEED</span>
             </div>
-            <DataStream speed={1800} maxLines={8} />
+            <DataStream
+              events={(st.events || []).slice(0, 8).map((e, i) => ({
+                id: `${e.ts}-${i}`,
+                text: [e.kind, e.agent ? `(${e.agent})` : null, e.detail].filter(Boolean).join(" "),
+                timestamp: e.ts,
+              }))}
+              maxLines={8}
+            />
           </div>
         </div>
 

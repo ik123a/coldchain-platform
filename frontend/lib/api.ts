@@ -58,3 +58,20 @@ export const WS_URL =
   (typeof window !== "undefined"
     ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8000/ws`
     : "ws://127.0.0.1:8000/ws");
+
+// --- WebSocket tickets -------------------------------------------------------
+//
+// The backend no longer accepts anonymous sockets: `/ws` requires a single-use
+// ticket minted over the authenticated REST API. A browser cannot set headers on
+// a WebSocket handshake, so the ticket travels as a subprotocol value
+// (`cc-ticket.<ticket>`), which the server echoes back to complete the handshake.
+//
+// Deliberately NOT the query string: uvicorn logs `WebSocket /ws?ticket=...` on
+// every accept, which would write the credential into the access log.
+export const WS_TICKET_PROTOCOL = "cc-ticket";
+
+export async function fetchWsTicket(): Promise<{ ticket: string; protocol: string } | null> {
+  if (!getToken()) return null;          // no session -> do not even ask
+  const out = await api<{ ticket: string; protocol: string }>("/api/ws/ticket", { method: "POST" });
+  return out?.ticket ? out : null;
+}
