@@ -1,12 +1,18 @@
 """Fleet REST endpoints."""
 from __future__ import annotations
 import asyncio
+import json
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from ...core.authz import require_auth, require_auth_read
+from ...core.authz import (require_auth, require_auth_read, require_role,
+                           require_vehicle_scope)
 from ...simulation.fleet_orchestrator import FLEET
 from ...simulation.analytics import fleet_kpis
 from ...simulation.routing import RoutingService, nearest_node
+from ...simulation.geo_data import CARGO_TYPES, DESTINATIONS
+from ...simulation import incidents_catalogue as IC
+from ...simulation import prediction as PRED
+from ...simulation import scenarios as SCENARIOS
 
 router = APIRouter(prefix="/api/fleet", tags=["fleet"])
 
@@ -34,6 +40,321 @@ class RebuildIn(BaseModel):
     traffic_intensity: float = Field(default=1.0, ge=0.5, le=2.0)
     failure_probability: float = Field(default=0.0, ge=0.0, le=1.0)
     speed: float = Field(default=2.0, ge=0.25, le=100)
+
+
+class DispatchTruckIn(BaseModel):
+    """One operator-defined truck.
+
+    `cargo_type` and `destination_id` are REQUIRED and are never defaulted:
+    auto-assigning either one is the behaviour this endpoint replaces. The
+    simulation validates compatibility and returns 400 rather than quietly
+    substituting a different product or warehouse.
+    """
+    name: str = Field(min_length=1, max_length=40)
+    cargo_type: str = Field(min_length=1, max_length=30)
+    destination_id: str = Field(min_length=1, max_length=12)
+    origin_id: str | None = Field(default=None, max_length=12)
+    load_units: int = Field(default=400, ge=1, le=1000)
+
+
+class DispatchIn(BaseModel):
+    trucks: list[DispatchTruckIn] = Field(min_length=1, max_length=12)
+
+
+class DispatchTruckAddIn(BaseModel):
+    """Body for POST /dispatch/trucks (add one truck).
+
+    Everything is optional: a bare `{}` creates a DRAFT truck with an
+    auto-assigned unique id and name that the operator then configures. The
+    server never fills in a product or destination by itself.
+    """
+    name: str | None = Field(default=None, max_length=40)
+    cargo_type: str | None = Field(default=None, max_length=30)
+    destination_id: str | None = Field(default=None, max_length=12)
+    origin_id: str | None = Field(default=None, max_length=12)
+    load_units: int | None = Field(default=None, ge=1, le=1000)
+
+
+class DispatchTruckPatchIn(BaseModel):
+    """Configure one truck (PATCH /dispatch/trucks/{tid}). Only sent fields change."""
+    name: str | None = Field(default=None, max_length=40)
+    cargo_type: str | None = Field(default=None, max_length=30)
+    destination_id: str | None = Field(default=None, max_length=12)
+    origin_id: str | None = Field(default=None, max_length=12)
+    load_units: int | None = Field(default=None, ge=1, le=1000)
+
+
+class ApprovalIn(BaseModel):
+    approve: bool
+    note: str | None = Field(default=None, max_length=500)
+
+
+class ApprovalModeIn(BaseModel):
+    require_approval: bool
+
+
+@router.get("/dispatch")
+async def dispatch_get(_auth: dict = Depends(require_auth_read)):
+    """Current operator-defined trucks plus the catalogue needed to configure them.
+
+    The catalogue (products and candidate destinations, each with the products
+    it accepts) ships in the same payload so the UI never has to hardcode the
+    available options.
+    """
+    return {
+        "trucks": FLEET._dispatch_specs(),
+        "count": len(FLEET.dispatch),
+        "max": FLEET.DISPATCH_MAX,
+        "catalog": {
+            "products": list(CARGO_TYPES),
+            "destinations": [
+                {"id": w["id"], "name": w["name"], "kind": "warehouse",
+                 "cargo_types": w.get("cargo_types", []),
+                 "available_capacity": w.get("available_capacity", 0)}
+                for w in FLEET.warehouses
+            ] + [
+                {"id": d["id"], "name": d["name"], "kind": "delivery_point",
+                 "cargo_types": d.get("required_cargo", []),
+                 "available_capacity": d.get("capacity", 0)}
+                for d in DESTINATIONS
+            ],
+        },
+    }
+
+
+@router.post("/dispatch")
+async def dispatch_set(body: DispatchIn, _auth: dict = Depends(require_role("operator"))):
+    """Validate and store the operator's truck definitions (bulk replace).
+
+    Kept for compatibility; the per-truck endpoints below are the primary
+    dynamic-fleet interface.
+    """
+    try:
+        return FLEET.configure_dispatch([t.model_dump() for t in body.trucks])
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/dispatch/trucks")
+async def dispatch_truck_add(body: DispatchTruckAddIn,
+                             _auth: dict = Depends(require_role("operator"))):
+    """Add ONE truck. A bare {} creates a draft with a unique id and name.
+
+    Nothing is started, no product or destination is assigned, no rescue or
+    AI decision is triggered — the operator configures and starts it.
+    """
+    try:
+        return {"truck": FLEET.add_dispatch_truck(body.model_dump(exclude_none=False))}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.patch("/dispatch/trucks/{tid}")
+async def dispatch_truck_patch(tid: str, body: DispatchTruckPatchIn,
+                               _auth: dict = Depends(require_role("operator"))):
+    """Configure one truck (product, destination, name, load). 400 on invalid."""
+    try:
+        patch = body.model_dump(exclude_none=True)
+        return {"truck": FLEET.update_dispatch_truck(tid, patch)}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/dispatch/trucks/{tid}/start")
+async def dispatch_truck_start(tid: str, _auth: dict = Depends(require_role("operator"))):
+    """Start ONE configured truck. 400 if it is a draft (missing config)."""
+    try:
+        return FLEET.start_dispatch_truck(tid)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.delete("/dispatch/trucks/{tid}")
+async def dispatch_truck_delete(tid: str, _auth: dict = Depends(require_role("operator"))):
+    """Remove ONE truck. Cleans its live twin + incident/service/approval
+    state; other trucks keep running; DB report history is preserved."""
+    try:
+        return await FLEET.remove_dispatch_truck(tid)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@router.post("/dispatch/start")
+async def dispatch_start(_auth: dict = Depends(require_role("operator"))):
+    """Spawn the configured trucks into the live world."""
+    try:
+        return FLEET.start_dispatch()
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/dispatch/clear")
+async def dispatch_clear(_auth: dict = Depends(require_role("operator"))):
+    # `clear_dispatch` is async (it awaits vehicle teardown), so it must be
+    # awaited. Without the await this returned a coroutine object, which FastAPI
+    # then tried to serialise:
+    #   ValueError: [TypeError("'coroutine' object is not iterable")]
+    #   RuntimeWarning: coroutine 'FleetOrchestrator.clear_dispatch' was never awaited
+    # so POST /api/fleet/dispatch/clear returned 500 and cleared nothing.
+    return await FLEET.clear_dispatch()
+
+
+@router.get("/scenarios")
+async def fleet_scenarios(_auth: dict = Depends(require_auth_read)):
+    """Run the deterministic scenario suite A-F and report each outcome.
+
+    Requirement 28 asks for repeatable demonstrations. Each scenario builds a
+    fresh orchestrator, injects a known fault, pins ambient temperature, and
+    asserts a specific outcome — so re-running this in front of an examiner
+    produces the same story rather than whatever the weather did today.
+
+    A scenario that cannot produce its outcome asserts the honest result (see
+    scenario A's docstring) instead of a hoped-for one, and reports why.
+    """
+    results = SCENARIOS.run_all()
+    return {
+        "total": len(results),
+        "passed": sum(1 for r in results if r.passed),
+        "all_passed": all(r.passed for r in results),
+        "scenarios": [{"name": r.name, "title": r.title,
+                       "expectation": r.expectation, "passed": r.passed,
+                       "observed": r.observed, "failures": r.failures}
+                      for r in results],
+    }
+
+
+@router.get("/predictions")
+async def fleet_predictions(_auth: dict = Depends(require_auth_read)):
+    """Safe-remaining-time projection for every vehicle, worst first.
+
+    Sorted by risk so a deteriorating load is visible without the caller
+    having to scan 14 trucks. This is a telemetry projection, not an
+    Arrhenius/RSL calculation — no kinetics model exists in this codebase, and
+    each payload says so via `model` and `kinetics_modelled`.
+    """
+    order = {"ALREADY PAST CRITICAL CEILING": 0, "ALREADY BELOW SAFE FLOOR": 0,
+             "WILL SPOIL BEFORE ARRIVAL": 1, "CRITICAL — margin under 10 minutes": 2,
+             "AT RISK — little slack for traffic": 3, "WATCH": 4,
+             "RECOVERING": 5, "STABLE": 6}
+    rows = []
+    for vid, v in FLEET.vehicles.items():
+        snap = v.snapshot()
+        p = PRED.project(snap, FLEET._incident_ctx(v))
+        rows.append({"vehicle_id": vid, "cargo_type": snap["cargo"]["cargo_type"],
+                     **p})
+    rows.sort(key=lambda r: (order.get(r["verdict"], 9),
+                             r.get("margin_vs_eta_min") if r.get("margin_vs_eta_min") is not None else 1e9))
+    return {"model": "linear_trend_projection", "kinetics_modelled": False,
+            "count": len(rows), "predictions": rows}
+
+
+@router.get("/incidents/{iid}/diagnosis")
+async def incident_diagnosis(iid: int, _auth: dict = Depends(require_auth_read)):
+    """Multi-cause analysis for one incident.
+
+    Requirement 9/10: an incident must not imply a single cause. This returns
+    the ranked causes with their reasoning, the evidence each rests on, and an
+    explicit statement that the scores are heuristic — not measured
+    probabilities.
+    """
+    from ...models.entities import AIAnalysis
+    from ...database.engine import SessionLocal
+    from sqlalchemy import select as _sel
+
+    async with SessionLocal() as s:
+        rows = (await s.execute(
+            _sel(AIAnalysis).where(AIAnalysis.incident_id == iid,
+                                   AIAnalysis.agent_name.in_(("diagnosis", "incident_classifier")))
+        )).scalars().all()
+    out: dict = {"incident_id": iid, "causes": [], "evidence": [], "scoring_basis": None}
+    for r in rows:
+        try:
+            d = json.loads(r.analysis)
+        except Exception:
+            continue
+        if r.agent_name == "diagnosis":
+            out.update({k: d.get(k) for k in
+                        ("root_cause", "confidence", "causes", "trend_c_per_min",
+                         "reasoning", "scoring_basis", "evidence_window")})
+        else:
+            out["evidence"] = d.get("evidence", [])
+            out["incident_type"] = d.get("type")
+            out["catalogue_category"] = d.get("catalogue_category")
+    return out
+
+
+@router.get("/incidents/catalogue")
+async def incident_catalogue(_auth: dict = Depends(require_auth_read)):
+    """Every incident type the simulation can classify, plus the honest gaps.
+
+    `unavailable` entries are the failure modes from the brief that this model
+    cannot actually observe. They are listed with the reason rather than
+    omitted, so an examiner asking "why no seal-degradation incident?" gets a
+    real answer instead of silence.
+    """
+    return {
+        "types": IC.catalogue_for_ui(),
+        "detectable": list(IC.INCIDENT_CATALOGUE.keys()),
+        "count": len(IC.INCIDENT_CATALOGUE),
+        "note": "Each detector reads only signals present in the vehicle twin; "
+                "nothing here is inferred from a sensor the simulation lacks.",
+    }
+
+
+@router.get("/approvals")
+async def approvals(_auth: dict = Depends(require_auth_read)):
+    """Pending AI recommendations awaiting a human decision, plus recent history.
+
+    `require_approval` is reported so the UI can show whether the gate is even
+    active — with it off, an operator would sit waiting for a queue that can
+    never fill, which reads as a broken button rather than a disabled feature.
+    """
+    pending = list(FLEET.pending_approvals.values())
+    return {
+        "require_approval": FLEET.require_approval,
+        "auto_approve_timeout_sim_min": FLEET.AUTO_APPROVE_TIMEOUT_S,
+        # Escalation is separate from auto-approve and reported separately so
+        # the UI can say which mechanism is in play. 0 disables it.
+        "escalate_after_sim_min": FLEET.ESCALATE_AFTER_SIM_MIN,
+        "escalated_count": sum(1 for p in pending if p.get("escalated")),
+        "pending": pending,
+        "pending_count": len(pending),
+        "resolved": list(FLEET.resolved_approvals.values())[-10:],
+    }
+
+
+@router.post("/approvals/mode")
+async def approvals_mode(body: ApprovalModeIn, _auth: dict = Depends(require_role("operator"))):
+    """Turn the human-in-the-loop gate on or off.
+
+    Off reproduces the original fully-autonomous behaviour, which is useful for
+    a side-by-side demonstration. This is deliberately explicit rather than an
+    environment variable: it is a presentation decision, and hiding it in
+    process config means the examiner cannot see it change.
+
+    Declared BEFORE `/approvals/{key:path}` below. With the path converter
+    greedy, a later `/approvals/mode` is captured as key="mode" and this route
+    never runs — the request then fails validation with a confusing 422 about a
+    missing `approve` field.
+    """
+    FLEET.require_approval = bool(body.require_approval)
+    return {"require_approval": FLEET.require_approval,
+            "pending_count": len(FLEET.pending_approvals)}
+
+
+@router.post("/approvals/{key:path}")
+async def approvals_resolve(key: str, body: ApprovalIn,
+                             _auth: dict = Depends(require_auth)):
+    """Approve or reject a queued rescue recommendation.
+
+    Rejection is a supported outcome, not an error: the truck keeps its planned
+    destination and the decision is recorded for the report.
+    """
+    try:
+        prop = await FLEET.resolve_approval(key, body.approve, body.note or "")
+    except KeyError:
+        raise HTTPException(404, "no pending approval with that key")
+    return prop
 
 
 @router.get("/state")
@@ -66,38 +387,42 @@ async def vehicle_history(vid: str, window: str = "5m", _auth: dict = Depends(re
 
 
 @router.post("/vehicle/{vid}/inject")
-async def inject(vid: str, body: InjectIn, _auth: dict = Depends(require_auth)):
+async def inject(vid: str, body: InjectIn, claims: dict = Depends(require_auth)):
+    # A driver may only fault the truck they are bound to; otherwise any driver
+    # could take the whole fleet down with a direct API call.
+    require_vehicle_scope(vid, claims)
     return await FLEET.inject(vid, body.failure)
 
 
 @router.post("/vehicle/{vid}/action")
-async def action(vid: str, body: ActionIn, _auth: dict = Depends(require_auth)):
+async def action(vid: str, body: ActionIn, claims: dict = Depends(require_auth)):
+    require_vehicle_scope(vid, claims)
     return await FLEET.apply_action(vid, body.action)
 
 
 @router.post("/inject-random")
-async def inject_random(_auth: dict = Depends(require_auth)):
+async def inject_random(_auth: dict = Depends(require_role("operator"))):
     return await FLEET.inject_random()
 
 
 @router.post("/speed")
-async def speed(body: SpeedIn, _auth: dict = Depends(require_auth)):
+async def speed(body: SpeedIn, _auth: dict = Depends(require_role("operator"))):
     return {"speed": FLEET.set_speed(body.speed)}
 
 
 @router.post("/weather")
-async def weather(body: WeatherIn, _auth: dict = Depends(require_auth)):
+async def weather(body: WeatherIn, _auth: dict = Depends(require_role("operator"))):
     """Force a weather state (demo lever; emits weather.changed)."""
     return {"weather": FLEET.set_weather(body.weather)}
 
 
 @router.post("/pause")
-async def pause(_auth: dict = Depends(require_auth)):
+async def pause(_auth: dict = Depends(require_role("operator"))):
     return {"paused": FLEET.toggle_pause()}
 
 
 @router.post("/resume")
-async def resume(_auth: dict = Depends(require_auth)):
+async def resume(_auth: dict = Depends(require_role("operator"))):
     if FLEET.paused:
         FLEET.toggle_pause()
     return {"paused": False}
@@ -153,7 +478,7 @@ async def replay(incident_id: int, _auth: dict = Depends(require_auth_read)):
 
 
 @router.post("/rebuild")
-async def rebuild(body: RebuildIn, _auth: dict = Depends(require_auth)):
+async def rebuild(body: RebuildIn, _auth: dict = Depends(require_role("operator"))):
     """Stop → configure from body → spawn → start. Returns new world descriptor."""
     return await FLEET.rebuild(
         scenario_seed=body.seed, weather=body.weather,

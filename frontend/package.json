@@ -5,23 +5,27 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
-    "start": "next start -p 3000"
+    "start": "next start -p 3000",
+    "e2e": "e2e run",
+    "e2e:list": "e2e list"
   },
   "dependencies": {
     "clsx": "2.1.1",
     "framer-motion": "^13.2.0",
     "lucide-react": "0.509.0",
     "maplibre-gl": "^6.9.0",
-    "next": "15.3.2",
+    "next": "15.5.27",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "recharts": "2.15.3"
   },
   "devDependencies": {
+    "@e2e-dev/web": "^0.14.0",
     "@tailwindcss/postcss": "4.1.12",
     "@types/node": "22.15.21",
     "@types/react": "19.1.1",
     "@types/react-dom": "19.1.1",
+    "e2e": "^0.19.0",
     "tailwindcss": "4.1.12",
     "typescript": "5.8.3"
   }

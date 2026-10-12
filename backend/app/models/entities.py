@@ -12,6 +12,11 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(80))
     email: Mapped[str] = mapped_column(String(160), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(200), default="")
+    # RBAC. "operator" sees the whole fleet; "driver" is bound to one vehicle
+    # (vehicle_id) and only sees their own truck. Default operator so accounts
+    # created before this column existed keep full access.
+    role: Mapped[str] = mapped_column(String(20), default="operator")
+    vehicle_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

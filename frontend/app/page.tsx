@@ -96,7 +96,7 @@ export default function Home() {
           </h2>
           <p className="t-body md:t-title text-[var(--text-dim)] max-w-2xl mt-2 leading-relaxed">
             A single compressor mechanical failure causes rapid temperature creep inside insulated trailers. 
-            ColdChain Rescue integrates the Arrhenius reaction equation to model real biological spoilage curves.
+            ColdChain Rescue projects safe remaining time from measured telemetry: warming trend, current margin, and distance still to run.
           </p>
         </div>
 
@@ -115,10 +115,10 @@ export default function Home() {
             <div className="w-10 h-10 rounded-xl bg-[var(--surface-inset)] border border-[var(--border)] text-[var(--critical)] grid place-items-center">
               <ShieldAlert size={20} />
             </div>
-            <h3 className="t-title font-bold text-[var(--text)]">Arrhenius Degradation</h3>
+            <h3 className="t-title font-bold text-[var(--text)]">Predictive Safe Remaining Time</h3>
             <p className="t-body-sm text-[var(--text-dim)] leading-relaxed">
-              Biological breakdown accelerates exponentially: <code className="text-[var(--critical)] font-mono">k(T) = A·exp(-Ea/RT)</code>. 
-              Our Arrhenius engine calculates exact minutes until irreversible protein or active ingredient spoilage.
+              Margin over time comes from real readings: <code className="text-[var(--critical)] font-mono">time = margin / trend</code>, then compared against the ETA. 
+              A least-squares fit over recent readings gives the warming rate, and dividing the remaining temperature margin by that rate gives minutes until the load breaches its band.
             </p>
           </div>
 
@@ -133,38 +133,33 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Arrhenius Shelf-Life Rate Comparison Matrix */}
+        {/* Projection Basis — measured, not assumed */}
         <div className="bg-[var(--surface-raised)] p-6 rounded-2xl border border-[var(--border)] space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
             <div>
-              <span className="t-body-sm font-mono text-[var(--accent)] font-bold uppercase">KINETICS BENCHMARK</span>
-              <h4 className="t-body font-semibold text-[var(--text)] mt-0.5">Thermal Degradation Rate Multiplier vs Temperature</h4>
+              <span className="t-body-sm font-mono text-[var(--accent)] font-bold uppercase">PROJECTION BASIS</span>
+              <h4 className="t-body font-semibold text-[var(--text)] mt-0.5">How the safe-remaining-time estimate is produced</h4>
             </div>
             <div className="t-label font-mono text-[var(--text-dim)]">
-              Ea = 78.4 kJ/mol · Reference: 4.0°C Nominal
+              deterministic · no kinetic model
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 t-body-sm font-mono">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 t-body-sm font-mono">
             <div className="p-3 rounded-xl bg-[var(--surface-card)] border border-[var(--border)]">
-              <div className="text-[var(--text-dim)] t-body-sm">4.0°C (NOMINAL)</div>
-              <div className="t-metric font-bold text-[var(--nominal)] mt-1">1.0x</div>
-              <div className="t-body-sm text-[var(--text-dim)] mt-1">Baseline shelf-life: 24.0h</div>
+              <div className="text-[var(--text-dim)] t-body-sm">1 · WARMING TREND</div>
+              <div className="t-body font-bold text-[var(--text)] mt-1">Least-squares fit</div>
+              <div className="t-body-sm text-[var(--text-dim)] mt-1">Over the recent sensor readings — no assumed physics constants.</div>
             </div>
             <div className="p-3 rounded-xl bg-[var(--surface-card)] border border-[var(--border)]">
-              <div className="text-[var(--text-dim)] t-body-sm">8.0°C (THRESHOLD)</div>
-              <div className="t-metric font-bold text-[var(--warning)] mt-1">1.6x</div>
-              <div className="t-body-sm text-[var(--warning)] mt-1">Safe shelf-life: 14.8h</div>
+              <div className="text-[var(--text-dim)] t-body-sm">2 · MARGIN</div>
+              <div className="t-body font-bold text-[var(--text)] mt-1">Band edge − current temp</div>
+              <div className="t-body-sm text-[var(--text-dim)] mt-1">The cargo band comes from the shipment's own storage profile.</div>
             </div>
             <div className="p-3 rounded-xl bg-[var(--surface-card)] border border-[var(--border)]">
-              <div className="text-[var(--text-dim)] t-body-sm">12.0°C (BREACH)</div>
-              <div className="t-metric font-bold text-[var(--critical)] mt-1">4.2x</div>
-              <div className="t-body-sm text-[var(--critical)] mt-1">Critical threshold: 5.7h</div>
-            </div>
-            <div className="p-3 rounded-xl bg-[var(--surface-card)] border border-[var(--surface-inset)] bg-[var(--surface-inset)]">
-              <div className="text-[var(--text-dim)] t-body-sm">18.0°C (EXCURSION)</div>
-              <div className="t-metric font-bold text-[var(--critical)] mt-1">11.8x</div>
-              <div className="t-body-sm text-[var(--critical)] mt-1">Catastrophic loss in &lt;2.0h</div>
+              <div className="text-[var(--text-dim)] t-body-sm">3 · TIME TO BREACH</div>
+              <div className="t-body font-bold text-[var(--text)] mt-1">margin ÷ trend</div>
+              <div className="t-body-sm text-[var(--text-dim)] mt-1">Compared against ETA: breach before arrival ⇒ recommend divert.</div>
             </div>
           </div>
         </div>
@@ -178,7 +173,7 @@ export default function Home() {
             Compare the Status Quo vs. Autonomous Rescue
           </h2>
           <p className="t-body text-[var(--text-dim)] max-w-2xl mt-2 leading-relaxed">
-            When mechanical failure strikes, two futures diverge. Our secondary physics clone computes the exact financial and cargo impact of doing nothing versus executing autonomous rerouting.
+            When mechanical failure strikes, two futures diverge. The scenario below is an <strong>illustrative walkthrough</strong> of the decision flow the platform automates — the figures come from a worked example, not from a live physics simulation.
           </p>
         </div>
 
@@ -191,7 +186,7 @@ export default function Home() {
                 <span className="t-body-sm font-mono font-bold text-[var(--critical)]">TRAJECTORY A: STATUS QUO</span>
               </div>
               <span className="t-micro font-mono px-2 py-0.5 rounded bg-[var(--surface-inset)] text-[var(--critical)] border border-[var(--border)]">
-                100% CARGO LOSS
+                EXAMPLE SCENARIO
               </span>
             </div>
 
@@ -209,7 +204,7 @@ export default function Home() {
                 <div className="t-title font-bold text-[var(--critical)] mt-0.5">18 min</div>
               </div>
               <div>
-                <div className="t-micro text-[var(--text-dim)]">EST. LOSS</div>
+                <div className="t-micro text-[var(--text-dim)]">CARGO AT RISK (EXAMPLE)</div>
                 <div className="t-title font-bold text-[var(--critical)] mt-0.5">$145,000</div>
               </div>
             </div>
@@ -223,7 +218,7 @@ export default function Home() {
                 <span className="t-body-sm font-mono font-bold text-[var(--nominal)]">TRAJECTORY B: AUTONOMOUS DETOUR</span>
               </div>
               <span className="t-micro font-mono px-2 py-0.5 rounded bg-[var(--surface-inset)] text-[var(--nominal)] border border-[var(--border)]">
-                0% CARGO LOSS
+                EXAMPLE SCENARIO
               </span>
             </div>
 
@@ -241,7 +236,7 @@ export default function Home() {
                 <div className="t-title font-bold text-[var(--nominal)] mt-0.5">9.2 min</div>
               </div>
               <div>
-                <div className="t-micro text-[var(--text-dim)]">SAVED VALUE</div>
+                <div className="t-micro text-[var(--text-dim)]">VALUE PROTECTED (EXAMPLE)</div>
                 <div className="t-title font-bold text-[var(--nominal)] mt-0.5">$145,000</div>
               </div>
             </div>
@@ -261,7 +256,7 @@ export default function Home() {
           {[
             { stage: "01", name: "MONITOR", desc: "Kalman gate", col: "text-[var(--nominal)]" },
             { stage: "02", name: "DIAGNOSE", desc: "Compressor wear", col: "text-[var(--warning)]" },
-            { stage: "03", name: "PREDICT", desc: "Arrhenius RSL", col: "text-[var(--critical)]" },
+            { stage: "03", name: "PREDICT", desc: "Safe-time projection", col: "text-[var(--critical)]" },
             { stage: "04", name: "SEVERITY", desc: "Critical Lane", col: "text-[var(--critical)]" },
             { stage: "05", name: "SEARCH", desc: "5 Cold Hubs", col: "text-[var(--accent)]" },
             { stage: "06", name: "RESERVE", desc: "Bay 3 pre-chill", col: "text-[var(--accent)]" },
@@ -289,7 +284,7 @@ export default function Home() {
               Real-Time Maneuver Physics & Recovery
             </h2>
             <p className="t-body text-[var(--text-dim)] max-w-2xl mt-1">
-              Autonomous multi-agent recovery scenarios: spatial camera tracking, Arrhenius degradation detection, dynamic vector rerouting, and cold-dock cargo offload.
+              Autonomous multi-agent recovery scenarios: spatial camera tracking, safe-time projection, dynamic vector rerouting, and cold-dock cargo offload.
             </p>
           </div>
           <Link
@@ -340,7 +335,7 @@ export default function Home() {
           </div>
           <h3 className="t-metric-lg font-bold text-[var(--text)]">Experience ColdChain Rescue Live</h3>
           <p className="t-body-sm text-[var(--text-dim)] max-w-xl leading-relaxed">
-            Launch the live twin with simulated compressor failure, watch the Arrhenius rate surge, and observe sub-second autonomous hub diversion.
+            Launch the live twin with simulated compressor failure, watch the warming-rate surge, and observe sub-second autonomous hub diversion.
           </p>
         </div>
 

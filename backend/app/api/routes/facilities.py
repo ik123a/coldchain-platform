@@ -31,7 +31,7 @@ async def list_zones(facility_id: int | None = None, db=Depends(get_db)):
 
 
 @router.post("/zones", response_model=ZoneOut, status_code=201)
-async def create_zone(body: ZoneIn, db=Depends(get_db)):
+async def create_zone(body: ZoneIn, _auth: dict = Depends(require_auth), db=Depends(get_db)):
     z = StorageZone(**body.model_dump())
     db.add(z); await db.commit(); await db.refresh(z)
     return z

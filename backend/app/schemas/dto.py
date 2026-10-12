@@ -8,6 +8,8 @@ class RegisterIn(BaseModel):
     name: str = Field(min_length=2, max_length=80)
     email: str = Field(min_length=5, max_length=160)
     password: str = Field(min_length=6, max_length=72)
+    role: str = Field(default="operator", max_length=20)
+    vehicle_id: str | None = Field(default=None, max_length=40)
 
 
 class LoginIn(BaseModel):

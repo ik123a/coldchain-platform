@@ -8,7 +8,7 @@ const CAPABILITIES = [
   {
     n: "01",
     title: "Thermal integrity",
-    body: "Arrhenius kinetics integrate the full temperature history into a remaining-shelf-life quantity, so urgency is physics rather than a threshold.",
+    body: "A least-squares fit over recent readings turns the warming trend into a safe-remaining-time projection, reported with its confidence and stated as a linear extrapolation rather than validated kinetics",
     href: "/twin",
     icon: Thermometer,
     tone: "var(--thermal-1)",

@@ -38,28 +38,44 @@ def generate_reference_image(
     if aspect_ratio not in ASPECT_RATIOS:
         aspect_ratio = "16:9"
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={GEMINI_API_KEY}"
+    # API keys come from the environment ONLY. This list previously carried two
+    # hardcoded Google/Gemini keys as trailing fallbacks, which put live
+    # credentials in tracked source -- and because the literal was last in the
+    # list, the service would keep working with the embedded key even if the env
+    # vars were removed. Do not re-add literals here; put keys in backend/.env.
+    candidate_keys = [k for k in [
+        os.getenv("GEMINI_API_KEY"),
+        os.getenv("GEMINI_API_KEY_BACKUP"),
+        os.getenv("GOOGLE_API_KEY"),
+    ] if k]
 
-    # Build prompt parts
-    parts: List[Dict[str, Any]] = [{"text": prompt}]
-
-    # If reference images provided, encode and attach for multi-reference consistency
+    # Validate references BEFORE building the request or touching the network.
+    # The old behaviour — skip the rejected entry and generate anyway — meant a
+    # request the caller was not authorized to make still produced a billable
+    # call. Fail closed: a refused reference must cost nothing. (The route layer
+    # already rejects this earlier; this is the service's own guard.)
     if reference_images:
-        for ref_path in reference_images[:3]:
-            p = Path(ref_path)
-            if p.exists():
-                try:
-                    with open(p, "rb") as f:
-                        enc = base64.b64encode(f.read()).decode("utf-8")
-                    mime = "image/jpeg" if p.suffix.lower() in [".jpg", ".jpeg"] else "image/png"
-                    parts.append({
-                        "inlineData": {
-                            "mimeType": mime,
-                            "data": enc
-                        }
-                    })
-                except Exception as e:
-                    log.warning(f"Could not read reference image {ref_path}: {e}")
+        from .safe_paths import resolve_reference, ReferenceRejected
+        for ref in reference_images[:3]:
+            try:
+                resolve_reference(ref)
+            except ReferenceRejected as e:
+                log.warning("generation refused, reference rejected: %s", e)
+                return {"success": False, "error": f"reference rejected: {e}",
+                        "rejected_reference": True}
+
+    # Build prompt parts. Only approved references (validated above) are read.
+    parts: List[Dict[str, Any]] = [{"text": prompt}]
+    if reference_images:
+        from .safe_paths import read_reference
+        for ref in reference_images[:3]:
+            raw, mime = read_reference(ref)
+            parts.append({
+                "inlineData": {
+                    "mimeType": mime,
+                    "data": base64.b64encode(raw).decode("utf-8"),
+                }
+            })
 
     payload = {
         "contents": [{"parts": parts}],
@@ -84,9 +100,16 @@ def generate_reference_image(
 
     last_error = "No keys configured"
     for key in candidate_keys:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+        # The key goes in the x-goog-api-key HEADER, not the query string. Google
+        # accepts both; the header form keeps the credential out of URLs, which
+        # reach access logs, browser history, and any exception message that
+        # embeds the request URL (a failed-call test printed a live key exactly
+        # this way). Do not move it back.
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         try:
-            resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=45)
+            resp = requests.post(url, json=payload, timeout=45,
+                                 headers={"Content-Type": "application/json",
+                                          "x-goog-api-key": key})
             if resp.status_code == 200:
                 data = resp.json()
                 candidates = data.get("candidates", [])

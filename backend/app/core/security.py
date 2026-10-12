@@ -105,10 +105,23 @@ def _b64(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
 
 
-def create_token(user_id: int, email: str) -> str:
+def create_token(user_id: int, email: str, role: str = "operator",
+                 vehicle_id: str | None = None,
+                 ttl_seconds: int | None = None,
+                 extra: dict | None = None) -> str:
+    """Sign a JWT.
+
+    `ttl_seconds` and `extra` exist for DOWNLOAD TICKETS: a link-borne credential
+    should be short-lived and bound to the specific resource it authorizes, not a
+    reusable 12-hour session token. Default behaviour is unchanged for logins.
+    """
     header = _b64(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
-    payload = _b64(json.dumps({"sub": str(user_id), "email": email,
-                               "exp": int(time.time()) + TOKEN_TTL}).encode())
+    payload_dict = {"sub": str(user_id), "email": email, "role": role,
+                    "vehicle_id": vehicle_id,
+                    "exp": int(time.time()) + (ttl_seconds if ttl_seconds else TOKEN_TTL)}
+    if extra:
+        payload_dict.update(extra)
+    payload = _b64(json.dumps(payload_dict).encode())
     sig = _b64(hmac.new(SECRET.encode(), f"{header}.{payload}".encode(), hashlib.sha256).digest())
     return f"{header}.{payload}.{sig}"
 

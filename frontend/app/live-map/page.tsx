@@ -17,6 +17,7 @@ import { ShimmerText } from "@/components/ui/shimmer-text";
 import { WeatherOverlay } from "@/components/ui/weather-overlay";
 import { MapMarkers, type MapPoint } from "@/components/ui/map-markers";
 import { MapOverlay, type IncidentPin, type LL, type RouteGeom } from "@/components/ui/map-overlay";
+import FleetManagerPanel from "@/components/simulation/FleetManagerPanel";
 
 const RISK_COLORS: Record<string, string> = {
   LOW: "var(--nominal-soft)", MEDIUM: "var(--warning-soft)", HIGH: "#f97316", CRITICAL: "var(--critical-soft)",
@@ -853,6 +854,11 @@ export default function LiveMapPage() {
             <MapMarkers map={mapReady ? mapRef.current : null} points={mapPoints} onSelect={(id) => { if (!id.startsWith("wh-")) { setSelected(id); const v = vehicles.find((x) => x.vehicle_id === id); if (v) mapRef.current?.flyTo({ center: [v.lng, v.lat], zoom: 10.5 }); } }} />
             {/* Simulated Weather Effect on Map */}
             <WeatherOverlay condition="heatwave" intensity={0.25} className="z-10 rounded-xl" />
+            {/* Fleet management over the map: works in windowed AND fullscreen
+                mode because it lives inside the map card. Top-left keeps it
+                clear of the vehicle inspector (top-right) and the follow
+                banner (top-centre). */}
+            <FleetManagerPanel className="absolute left-3 top-3" />
             <AnimatePresence>
               {following && (
                 <motion.div

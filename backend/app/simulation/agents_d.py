@@ -181,6 +181,10 @@ class ResponsePlannerAgent:
 class RecoveryVerifierAgent:
     name = "recovery_verifier"
 
+    # Applies to BOTH boundaries. The over-shoot term floors at 0, so a one-sided
+    # check passes any load driven far below `mn` — that was the defect fixed here.
+    TOLERANCE_C = 1.2
+
     def run(self, engine: Engine, history: list, zone: dict, actions_executed: list[str], verified_window=8):
         if not actions_executed:
             return {"agent": self.name, "verified": False,
@@ -188,20 +192,31 @@ class RecoveryVerifierAgent:
         recent = history[-verified_window:]
         trend = _trend(recent, n=len(recent))
         snap = engine.snapshot()
-        over = max(0.0, snap["true_temperature"] - zone["mx"])
+        t = snap["true_temperature"]
+        mn, mx = zone["mn"], zone["mx"]
+        over = max(0.0, t - mx)
+        under = max(0.0, mn - t)
         falling = trend < -0.02
-        in_range = snap["true_temperature"] <= zone["mx"] and snap["true_temperature"] >= zone["mn"]
+        in_range = t <= mx and t >= mn
         compressor_path = snap["backup_cooling"] or snap["compressor_on"]
         evidence = [
             f"trend {trend:+.2f}°C/min over last {len(recent)} ticks",
-            f"temperature {snap['true_temperature']}°C (band {zone['mn']}-{zone['mx']})",
+            f"true temperature {t}°C (band {mn}-{mx})",
+            f"over max {over:.2f}C, under min {under:.2f}C (tolerance {self.TOLERANCE_C}C either side)",
             f"backup cooling {'ON' if snap['backup_cooling'] else 'OFF'}, compressor {'ON' if snap['compressor_on'] else 'OFF'}",
         ]
-        ok = (falling and over <= 1.2) or (in_range and compressor_path)
+        # Both routes require the cargo inside its band on both sides. Backup
+        # cooling is a mitigation, never proof the cargo came back into range.
+        recovering = falling and over <= self.TOLERANCE_C and under <= self.TOLERANCE_C
+        sustained = in_range and compressor_path
+        ok = recovering or sustained
         return {"agent": self.name, "verified": ok,
                 "evidence": evidence,
                 "trend_c_per_min": round(trend, 3),
-                "in_range_now": in_range, "over_by": round(over, 2),
+                "in_range_now": in_range,
+                "over_by": round(over, 2), "under_by": round(under, 2),
+                "cooling_path_active": bool(compressor_path),
+                "basis": "true temperature inside the cargo-specific band on both boundaries",
                 "confidence": round(min(0.98, 0.55 + (-trend) * 3.0 + (0.2 if in_range else 0)), 2)}
 
 
@@ -221,11 +236,33 @@ class ReporterAgent:
             return default if v is None else v
 
         recovery_t = num("resolved_tick", num("tick", 0)) - num("detected_tick", 0)
+        # An unresolved incident has no resolution tick, so resolved_tick falls
+        # back to `tick` (0) while detected_tick is large — producing a negative
+        # recovery time such as "-1672 ticks", which reads as nonsense in the
+        # report and feeds a bogus score (the slow-recovery penalty floors at 0,
+        # so an unresolved incident was silently scored as if recovery were
+        # instant). Report it as undetermined instead, and do not let it move
+        # the score at all: an incident that has not ended has no response
+        # quality to judge yet.
+        unresolved = ctx.get("resolved_tick") is None
+        recovery_t = None if unresolved else recovery_t
+        recovery_penalty = 0 if unresolved else min(20, max(0, recovery_t - 8))
+
         score = 100
         score -= min(30, max(0, num("peak_over_by", 0) * 3))               # severity penalty
         score -= min(25, max(0, (num("risk_at_peak", 0) - 55) / 2))        # risk stayed high
-        score -= min(20, max(0, recovery_t - 8))                            # slow recovery
-        score -= min(15, max(0, 12 - num("time_to_plan_ticks", 4)))     # slow driving? handled below
+        score -= recovery_penalty                                           # slow recovery
+        # Planning FASTER must score HIGHER. The penalty was written as
+        # `min(15, max(0, 12 - time_to_plan_ticks))`, which is largest when
+        # time_to_plan_ticks is SMALL — so the quicker the planning, the more
+        # was subtracted. Measured before the fix: 0 ticks scored 77 while 12
+        # ticks scored 89, reporting an urgent response as worse than a lazy
+        # one. The accompanying comment said "handled below" for logic that
+        # was never written.
+        #
+        # Correct form: slowness is (ticks - target), floored at zero, so a
+        # response at or under target costs nothing and delay costs up to 15.
+        score -= min(15, max(0, (num("time_to_plan_ticks", 4) - 6) / 2))
         score += min(10, num("early_confidence_bonus", 0))
         score = int(max(35, min(98, score)))
 
@@ -237,7 +274,8 @@ class ReporterAgent:
             f"Peak temperature: {ctx.get('peak_temperature')}°C over band by {ctx.get('peak_over_by', 0)}°C",
             f"Risk at peak: {ctx.get('risk_at_peak')}    Cargo health remaining: {ctx.get('cargo_health')}%",
             f"Root cause: {ctx.get('root_cause')} (confidence {ctx.get('root_cause_confidence')})",
-            f"Recovery time: {recovery_t} ticks — actions: {', '.join(ctx.get('actions_executed', [])) or 'manual'}",
+            f"Recovery time: {recovery_t if recovery_t is not None else 'not resolved yet'} ticks"
+            f" — actions: {', '.join(ctx.get('actions_executed', [])) or 'manual'}",
             f"",
             f"RESPONSE QUALITY SCORE: {score}/100",
             f"",

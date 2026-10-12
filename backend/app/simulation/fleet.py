@@ -365,6 +365,7 @@ class VehicleTwin:
                 "engine_temperature": round(self.engine_temp_c, 1),
             },
             "refrigeration": {
+            "sensor_frozen": bool(self.box.snapshot().get("sensor_frozen")),
                 "compressor_status": self.compressor,
                 "cooling_efficiency": round(self.box.cooling_efficiency * 100, 1),
                 "temperature": snap["temperature"],
@@ -382,6 +383,21 @@ class VehicleTwin:
                 "risk_score": self.risk.get("score", 0.0),
                 "risk_explain": self.risk.get("explain", ""),
                 "exposure_ticks": self.over_ticks,
+                # The product's safe band. Prediction reads these, and they were
+                # missing here — so every projection silently fell back to the
+                # hardcoded 2-8C produce defaults and scored a -18C freezer
+                # against a produce band, flagging healthy frozen loads as
+                # "below safe floor". Bands differ per cargo type, so this must
+                # come from the vehicle, not a constant.
+                "mn": self.box.mn,
+                "mx": self.box.mx,
+                # Fitted warming rate. Prediction needs this every tick; it was
+                # being computed on each step but never reaching the client or
+                # any downstream module.
+                "trend_c_per_min": self.trend_c_per_min(),
+                # True temperature alongside the reported one, so a frozen
+                # probe can be told apart from a genuinely steady box.
+                "true_temperature": round(self.box.temperature, 2),
                 "time_to_critical_min": (round(self.time_to_critical_min(), 1)
                                          if self.time_to_critical_min() is not None else None),
             },

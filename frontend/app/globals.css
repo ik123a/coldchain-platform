@@ -38,6 +38,10 @@
   --accent: #d4a24c;
   --accent-ink: #8dccff;
   --accent-ink-hover: #a9dbff;
+  /* Foreground for text/glyphs sitting ON an --accent fill. Dark in both
+     themes because --accent is a mid-tone gold; black-on-gold reads at every
+     accent stop. Used by the primary button (login CTA) and any accent chip. */
+  --accent-on: #17130a;
 
   /* Map overlay glyphs — see the light-theme block for why these exist.
        Over dark tiles the glyph outline is near-black and the label needs a
@@ -621,6 +625,9 @@ input:focus, select:focus { border-color: var(--accent); }
   --accent: #a2761b;
   --accent-ink: #0b4d78;
   --accent-ink-hover: #093f63;
+  /* Dark-gold accent on the light canvas: black text clears AA (~5.4:1);
+     white on #a2761b is only ~3.9:1, which fails for normal-size text. */
+  --accent-on: #17130a;
 
   /* Map overlay glyph tokens. The map sits on raster tiles, so its
    markers need a surface-independent outline + label glow rather than

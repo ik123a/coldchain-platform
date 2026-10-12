@@ -7,6 +7,8 @@ import * as maplibregl from "maplibre-gl";
 import type { Map as MLMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useStore } from "@/lib/store";
+import { FleetRiskBanner } from "@/components/live-map/FleetRiskBanner";
+import FleetManagerPanel from "@/components/simulation/FleetManagerPanel";
 import { api, post } from "@/lib/api";
 import { 
   Activity, Bot, Maximize2, Play, Radio, Thermometer 
@@ -246,7 +248,7 @@ export default function DashboardPage() {
           <span className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--warning)]" />
             <span className="font-bold text-[var(--warning-soft)]">WEATHER OVERRIDE</span>
-            <span className="text-[var(--text-muted)]">HEATWAVE ACTIVE (44.0°C Ambient) · Arrhenius Degradation 2.4x</span>
+            <span className="text-[var(--text-muted)]">HEATWAVE ACTIVE (44.0°C Ambient) · Warming Rate 2.4x</span>
           </span>
           <span className="text-[var(--text-dim)]">│</span>
           <span className="flex items-center gap-2">
@@ -257,10 +259,22 @@ export default function DashboardPage() {
         </Marquee>
       </div>
 
+      {/* Predictive warning (P7). Above the map so a load about to spoil is
+          visible without opening a vehicle drawer. Renders nothing when every
+          load is stable — verified: 14/14 healthy loads produce no banner. */}
+      <div className="shrink-0 px-4 pt-3">
+        <FleetRiskBanner />
+      </div>
+
       {/* 2. DOMINANT LIVE MAP CANVAS (SECTION 9 & 10) */}
       <div className="relative flex-1 min-h-0 w-full">
         <div ref={mapContainer} className="h-full w-full" />
         <MapMarkers map={mapReady ? mapRef.current : null} points={mapPoints} onSelect={(id) => { if (!id.startsWith("wh-")) setSelectedId(id); }} />
+
+        {/* Fleet management: add / configure / start / remove trucks without
+            leaving the dashboard. Top-left keeps it clear of the vehicle
+            inspector and telemetry feed that own the right side. */}
+        <FleetManagerPanel className="absolute left-4 top-3" />
 
         {/* Ambient Particle Field */}
         <ParticleField count={30} color="var(--accent)" opacity={0.08} speed={0.15} connected className="z-10" />
@@ -378,7 +392,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--surface-card)]">
               <Thermometer size={13} className="text-[var(--warning)]" />
               <span className="text-[var(--text-dim)]">HEAT SHIELD:</span>
-              <span className="text-[var(--text)] font-bold">ARRHENIUS GATED</span>
+              <span className="text-[var(--text)] font-bold">TREND PROJECTION</span>
             </div>
           </div>
           {/* Live Telemetry Data Stream */}
@@ -387,7 +401,14 @@ export default function DashboardPage() {
               <Activity size={10} className="animate-pulse" />
               <span>LIVE TELEMETRY FEED</span>
             </div>
-            <DataStream speed={1800} maxLines={8} />
+            <DataStream
+              events={(st.events || []).slice(0, 8).map((e, i) => ({
+                id: `${e.ts}-${i}`,
+                text: [e.kind, e.agent ? `(${e.agent})` : null, e.detail].filter(Boolean).join(" "),
+                timestamp: e.ts,
+              }))}
+              maxLines={8}
+            />
           </div>
         </div>
 

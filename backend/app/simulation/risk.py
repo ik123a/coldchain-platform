@@ -8,6 +8,30 @@ CARGO_SENSITIVITY = {
     "pharmaceutical": 1.4,
 }
 
+# The fleet used the key "pharma" (BOX_PROFILES in fleet.py) while this module
+# and simulations.py used "pharmaceutical". Every VehicleTwin carries
+# cargo_type="pharma", so CARGO_SENSITIVITY[pharma] missed and the whole fleet
+# silently fell back to the default sensitivity — the multiplier was inert.
+#
+# Fixed at the lookup rather than by renaming either side: "pharma" is what
+# geo_data.WAREHOUSES/DESTINATIONS declare as `required_cargo` and
+# `cargo_types`, so it is the canonical id in the fleet world. "pharmaceutical"
+# is the legacy id used by the classic simulation path and by shipments seeded
+# in demo.py. Accept both, normalise to one key.
+_CARGO_ALIASES = {
+    "pharma": "pharmaceutical",
+    "pharmaceutical": "pharmaceutical",
+    "fresh_produce": "fresh_produce",
+    "dairy": "dairy",
+    "frozen_goods": "frozen_goods",
+}
+
+
+def canonical_cargo(cargo_type: str) -> str:
+    """Map any accepted cargo id onto the canonical CARGO_SENSITIVITY key."""
+    key = (cargo_type or "").strip().lower()
+    return _CARGO_ALIASES.get(key, key)
+
 
 def risk(r: dict, zone: dict, exposure_ticks: int, cargo_type="fresh_produce", trend_c_per_min=0.0) -> dict:
     """r = one engine snapshot dict."""
@@ -33,7 +57,7 @@ def risk(r: dict, zone: dict, exposure_ticks: int, cargo_type="fresh_produce", t
     # cargo already degraded
     cargo = max(0.0, (100.0 - r.get("cargo_health", 100.0)) * 0.15)
 
-    sensitivity = CARGO_SENSITIVITY.get(cargo_type, 1.0)
+    sensitivity = CARGO_SENSITIVITY.get(canonical_cargo(cargo_type), 1.0)
     score = (extent + duration + humidity + door + compressor + power + trend + cargo) * sensitivity
     score = round(min(100.0, score), 1)
 

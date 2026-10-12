@@ -52,7 +52,7 @@ async def _seed_base(db) -> dict:
 
 
 @router.post("/demo/base")
-async def demo_base(db=Depends(get_db)):
+async def demo_base(_auth: dict = Depends(require_auth), db=Depends(get_db)):
     """Seed facilities, zones, shipments. Idempotent."""
     data = await _seed_base(db)
     return {"facility": {"id": data["facility"].id, "name": data["facility"].name, "location": data["facility"].location},

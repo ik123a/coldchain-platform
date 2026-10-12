@@ -53,7 +53,7 @@ async def get_incident(iid: int, db=Depends(get_db)):
 
 
 @router.post("/{iid}/action")
-async def execute_action(iid: int, body: ExecuteActionIn, db=Depends(get_db)):
+async def execute_action(iid: int, body: ExecuteActionIn, _auth: dict = Depends(require_auth), db=Depends(get_db)):
     inc = await db.get(Incident, iid)
     if not inc: raise HTTPException(404, "incident not found")
     r = RUNNERS.get(inc.simulation_id)
@@ -69,7 +69,7 @@ async def execute_action(iid: int, body: ExecuteActionIn, db=Depends(get_db)):
 
 
 @router.post("/{iid}/what-if")
-async def what_if(iid: int, ticks: int = 12, db=Depends(get_db)):
+async def what_if(iid: int, ticks: int = 12, _auth: dict = Depends(require_auth), db=Depends(get_db)):
     """Project forward N ticks WITHOUT touching the main engine."""
     inc = await db.get(Incident, iid)
     if not inc: raise HTTPException(404, "incident not found")
@@ -117,7 +117,7 @@ async def what_if(iid: int, ticks: int = 12, db=Depends(get_db)):
 
 
 @router.post("/{iid}/ask-ai")
-async def ask_ai(iid: int, body: AskIn, db=Depends(get_db)):
+async def ask_ai(iid: int, body: AskIn, _auth: dict = Depends(require_auth), db=Depends(get_db)):
     inc, acts, analy = await _incident_full(iid, db)
     readings = (await db.execute(select(SensorReading).where(SensorReading.simulation_id == inc.simulation_id)
                                  .order_by(SensorReading.tick.desc()).limit(10))).scalars().all()

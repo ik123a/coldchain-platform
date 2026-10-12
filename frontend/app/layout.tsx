@@ -3,8 +3,9 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "./ops.css";
 import { StoreProvider } from "@/lib/store";
+import { AuthProvider } from "@/lib/auth";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
-import Layout from "@/components/Layout";
+import Shell from "@/components/Shell";
 
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], display: "swap", variable: "--font-mono" });
@@ -31,9 +32,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   body paints, so a light-mode user never sees a dark flash. React
                   renders inline <script> in place (only src= scripts get hoisted). */}
               <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
-              <StoreProvider>
-          <Layout>{children}</Layout>
-        </StoreProvider>
+              <AuthProvider>
+          <StoreProvider>
+            <Shell>{children}</Shell>
+          </StoreProvider>
+              </AuthProvider>
       </body>
     </html>
   );

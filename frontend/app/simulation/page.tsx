@@ -8,6 +8,8 @@ import { TempChart } from "@/components/TempChart";
 import { RiskGauge } from "@/components/RiskGauge";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { StatusBeacon } from "@/components/ui/status-beacon";
+import DispatchBuilder from "@/components/simulation/DispatchBuilder";
+import ApprovalQueue from "@/components/simulation/ApprovalQueue";
 
 const FAILURES = [
   { key: "compressor_failure", label: "Compressor failure", cls: "btn-red" },
@@ -74,10 +76,12 @@ export default function SimulationPage() {
         </p>
       </header>
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
-      {/* control column */}
-      <div className="space-y-4">
-        <div className="base-card p-4 space-y-3">
-          <div className="t-body font-semibold">Simulation control</div>
+            {/* control column */}
+                        <div className="space-y-4">
+                          <DispatchBuilder />
+                          <ApprovalQueue />
+                          <div className="base-card p-4 space-y-3">
+                <div className="t-body font-semibold">Single-truck simulation control</div>
           <label className="block t-label text-[var(--text3)]">Shipment
             <select className="mt-1 w-full" value={shipmentId ?? ""} onChange={e => setShipmentId(e.target.value ? +e.target.value : null)}>
               <option value="">demo fresh produce</option>
@@ -226,7 +230,7 @@ export default function SimulationPage() {
             <RiskGauge score={sim?.risk_score ?? 12} level={sim?.risk_level ?? "LOW"} />
             <div className="space-y-1">
               <div className="t-body-sm font-semibold text-[var(--text)]">Deterministic Multi-Agent Risk Engine</div>
-              <div className="t-body-sm text-[var(--text3)] leading-relaxed">Combines Arrhenius biological shelf-life degradation, compressor duty cycle, insulation thermal decay coefficient, and time-to-breach.</div>
+              <div className="t-body-sm text-[var(--text3)] leading-relaxed">Combines measured warming trend, compressor duty cycle, insulation thermal decay coefficient, and time-to-breach. The projection is a linear trend extrapolation, not a kinetics simulation.</div>
               <div className="t-body-sm font-mono text-[var(--accent)] pt-1">Breach Velocity: {sim && sim.true_temperature > 6 ? "+0.42°C/min (ACCELERATING)" : "0.00°C/min (STEADY)"}</div>
             </div>
           </div>

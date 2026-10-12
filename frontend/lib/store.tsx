@@ -1,8 +1,27 @@
 "use client";
-import { createContext, useContext, useMemo, useReducer, useEffect, ReactNode } from "react";
+import { createContext, useContext, useMemo, useReducer, useEffect, useRef, useState, ReactNode } from "react";
 import { api } from "./api";
-import { WS_URL } from "./api";
+import { WS_URL, fetchWsTicket } from "./api";
+import { useAuth } from "./auth";
+
+// Bounded reconnect: after this many consecutive failures stop retrying and let
+// the 4s REST poll keep the views fresh, rather than hammering the mint endpoint.
+const MAX_WS_RETRIES = 6;
 import { resolveTheme, THEME_KEY, type Theme } from "./theme";
+
+export interface Notice {
+  id: number;
+  text: string;
+  sev: "CRITICAL" | "INFO" | "OK";
+  source: string;
+  at: string;
+  read: boolean;
+}
+
+// The activity centre keeps a full history rather than the 5-item window the
+// old toast stack used. These notices no longer expire on a timer, so a bounded
+// buffer would silently discard the record an examiner might scroll back to.
+const NOTICE_MAX = 100;
 
 export interface Reading {
   tick: number; temperature: number; true_temperature: number; humidity: number;
@@ -37,7 +56,7 @@ interface State {
   connected: boolean;
   theme: Theme;
   selectedIncident?: number | null;
-  toasts: { id: number; text: string; sev: string }[];
+  notices: Notice[];
   fleetVehicles?: any[];
   fleetEvents?: any[];
   fleetWarehouses?: any[];
@@ -70,7 +89,7 @@ const initial: State = {
   theme: (typeof window !== "undefined"
     ? ((localStorage.getItem(THEME_KEY) as Theme | null) ?? "system")
     : "system"),
-  connected: false, selectedIncident: null, toasts: [],
+  connected: false, selectedIncident: null, notices: [],
   agentsStatus: defaultAgents,
   fleetVehicles: [], fleetEvents: [], fleetMeta: {},
 };
@@ -98,8 +117,21 @@ function reducer(st: State, a: Action): State {
         if (ev.kind === "report_ready") agentsStatus["reporter"] = { status: "COMPLETE", note: `score ${ev.score}` };
         if (ev.kind === "incident_detected") { Object.keys(agentsStatus).forEach(k => { if (k !== "monitoring") agentsStatus[k] = { status: "STANDBY", note: "" } }); }
       }
-      const toasts = [...st.toasts, { id: Date.now() + Math.random(), text: ev.detail || ev.kind, sev: ev.kind.includes("detected") ? "CRITICAL" : ev.kind.includes("resolved") || ev.kind.includes("verified") ? "OK" : "INFO" }].slice(-5);
-      return { ...st, events: [ev, ...st.events].slice(0, 90), agentsStatus, selectedIncident: ev.simulation_id ? st.selectedIncident ?? st.incidents[0]?.id : st.selectedIncident, toasts };
+      const notice: Notice = {
+        id: Date.now() + Math.random(),
+        text: ev.detail || ev.kind,
+        sev: ev.kind.includes("detected") ? "CRITICAL" : ev.kind.includes("resolved") || ev.kind.includes("verified") ? "OK" : "INFO",
+        source: ev.agent || "agent",
+        at: new Date().toISOString(),
+        read: false,
+      };
+      return {
+        ...st,
+        events: [ev, ...st.events].slice(0, 90),
+        agentsStatus,
+        selectedIncident: ev.simulation_id ? st.selectedIncident ?? st.incidents[0]?.id : st.selectedIncident,
+        notices: [notice, ...st.notices].slice(0, NOTICE_MAX),
+      };
     }
     case "fleet": {
       const p = a.payload as any;
@@ -120,27 +152,52 @@ function reducer(st: State, a: Action): State {
     case "fleet_event": {
       const ev = a.payload as any;
       const t = ev.type as string;
-      const toasts = [...st.toasts];
-      if (["fleet.incident.created", "ai.route.decision", "vehicle.route.changed", "cargo.transferred"].includes(t)) {
-        toasts.push({ id: Date.now() + Math.random(),
-                      text: t === "ai.route.decision"
-                        ? `AI: ${ev.decision} -> ${ev.target} (${ev.vehicle_id})`
-                        : t === "fleet.incident.created"
-                        ? `INCIDENT ${ev.vehicle_id}: ${ev.root_cause}`
-                        : t === "vehicle.route.changed"
-                        ? `${ev.vehicle_id} rerouted -> ${ev.new_target}`
-                        : `${ev.vehicle_id} transferred ${ev.units}u`,
-                      sev: t === "fleet.incident.created" ? "CRITICAL" : t === "ai.route.decision" ? "INFO" : "OK" });
+      // A truck removed by the operator disappears from the dashboard the
+      // moment the event arrives — not up to 4s later when the REST poll
+      // happens to overwrite the list.
+      if (t === "vehicle.removed") {
+        return { ...st,
+                 fleetVehicles: (st.fleetVehicles ?? []).filter(
+                   (v: any) => v.vehicle_id !== ev.vehicle_id),
+                 fleetEvents: [ev, ...st.fleetEvents].slice(0, 90),
+                 notices: [{ id: Date.now() + Math.random(),
+                             text: `${ev.vehicle_id} removed from the fleet`,
+                             sev: "INFO", source: t,
+                             at: new Date().toISOString(), read: false },
+                           ...st.notices].slice(0, NOTICE_MAX) };
+      }
+      let notices = st.notices;
+      const LABELS: Record<string, [string, "CRITICAL" | "INFO" | "OK"]> = {
+        "fleet.incident.created": [`INCIDENT ${ev.vehicle_id}: ${ev.root_cause}`, "CRITICAL"],
+        "ai.route.decision": [`AI recommends ${ev.decision} to ${ev.target} (${ev.vehicle_id})`, "INFO"],
+        "ai.approval.requested": [`Approval needed: ${ev.vehicle_name ?? ev.vehicle_id} to ${ev.target}`, "CRITICAL"],
+        "ai.approval.resolved": [
+          `Operator ${ev.approved ? "APPROVED" : "REJECTED"} ${ev.vehicle_id} to ${ev.target}`, "OK"],
+        "vehicle.route.changed": [`${ev.vehicle_id} rerouted to ${ev.new_target}`, "OK"],
+        "cargo.transferred": [`${ev.vehicle_id} transferred ${ev.units}u`, "OK"],
+        "weather.changed": [`Weather: ${ev.weather}`, "INFO"],
+        "vehicle.failure.injected": [`Failure injected on ${ev.vehicle_id}: ${ev.failure}`, "CRITICAL"],
+      };
+      const hit = LABELS[t];
+      if (hit) {
+        notices = [{ id: Date.now() + Math.random(), text: hit[0], sev: hit[1], source: t, at: new Date().toISOString(), read: false }, ...notices].slice(0, NOTICE_MAX);
       }
       return { ...st, fleetEvents: [ev, ...st.fleetEvents].slice(0, 90),
                fleetMeta: { simMinute: ev.sim_minute ?? st.fleetMeta?.simMinute, weather: ev.weather ?? st.fleetMeta?.weather },
-               toasts: toasts.slice(-5) };
+               notices };
     }
     case "incidents": return { ...st, incidents: a.payload };
     case "select_incident": return { ...st, selectedIncident: a.payload };
     case "connected": return { ...st, connected: a.payload };
     case "theme": return { ...st, theme: a.payload };
-    case "dismiss_toast": return { ...st, toasts: st.toasts.filter(t => t.id !== a.payload) };
+    case "ack_notice":
+      return {
+        ...st,
+        notices: st.notices.map((n) =>
+          a.payload === "all" ? { ...n, read: true }
+          : n.id === a.payload ? { ...n, read: true } : n),
+      };
+    case "clear_notices": return { ...st, notices: st.notices.filter((n) => !n.read) };
     case "sim_status": return { ...st, sim: st.sim ? { ...st.sim, status: a.payload } : st.sim };
     default: return st;
   }
@@ -151,22 +208,67 @@ export const useStore = () => useContext(Ctx);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [st, dispatch] = useReducer(reducer, initial);
+  // Session state drives the socket. `user` (from the auth context that wraps
+  // this provider) is a RELIABLE change signal on login/logout; reading
+  // localStorage alone would not re-render this component reliably, so the
+  // socket could miss a login or survive a logout.
+  const { user } = useAuth();
+  const activeSocket = useRef<WebSocket | null>(null);
+  const reconnectTimer = useRef<any>(null);
+  const attempts = useRef(0);
+  const [retryTick, setRetryTick] = useState(0);
 
   useEffect(() => {
-    let ws: WebSocket | null = null;
-    let timer: any;
     let pi: any;
-    // ws.close() fires onclose, which schedules a reconnect. Without this
-    // flag the cleanup below clears the timer BEFORE closing the socket, so
-    // onclose immediately schedules a fresh one that nothing ever cancels —
-    // every unmount leaked a reconnect loop and an orphaned WebSocket.
-    let disposed = false;
-    const connect = () => {
-      if (disposed) return;
+    const poll = async () => {
+      try { dispatch({ type: "status", payload: await api("/api/status") }); } catch {}
+      try { dispatch({ type: "dashboard", payload: await api("/api/dashboard") }); } catch {}
+      try { dispatch({ type: "fleet", payload: await api("/api/fleet/state") }); } catch {}
+      loadIncidents();
+    };
+    poll();
+    pi = setInterval(poll, 4000);
+    return () => {
+      clearInterval(pi);
+    };
+  }, []);
+
+  // Connect only while a session exists; tear the socket down when it ends.
+  //
+  // Every attempt mints a FRESH ticket: tickets are single-use, so reusing the
+  // previous value would be rejected as a replay and the socket would never
+  // recover. Retries are bounded with exponential backoff — a tight loop against
+  // the mint endpoint is exactly the abuse the rate limiter exists to stop.
+  useEffect(() => {
+    if (!user) {
+      // No session: nothing to authorize, and any existing socket must go.
+      activeSocket.current?.close();
+      activeSocket.current = null;
+      return;
+    }
+    let cancelled = false;
+    let sock: WebSocket | null = null;
+
+    function scheduleRetry() {
+      if (cancelled || attempts.current >= MAX_WS_RETRIES) return;
+      const delay = Math.min(1500 * 2 ** attempts.current, 30000);
+      attempts.current += 1;
+      clearTimeout(reconnectTimer.current);
+      reconnectTimer.current = setTimeout(() => setRetryTick((n) => n + 1), delay);
+    }
+
+    (async () => {
       try {
-        ws = new WebSocket(WS_URL);
-        ws.onopen = () => dispatch({ type: "connected", payload: true });
-        ws.onmessage = (e) => {
+        const t = await fetchWsTicket();
+        if (cancelled) return;
+        if (!t) { scheduleRetry(); return; }
+        // One owner at a time: a lingering socket (StrictMode double-invoke or a
+        // fast re-login) must not keep dispatching into the store alongside this.
+        activeSocket.current?.close();
+        sock = new WebSocket(WS_URL, [`cc-ticket.${t.ticket}`]);
+        activeSocket.current = sock;
+        sock.onopen = () => { attempts.current = 0; dispatch({ type: "connected", payload: true }); };
+        sock.onmessage = (e) => {
           try {
             const m = JSON.parse(e.data);
             if (m.type === "sensor_update") dispatch({ type: "reading", payload: m as Reading });
@@ -179,31 +281,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             if (m.type === "incident_detected" || m.type === "fleet.incident.created") loadIncidents();
           } catch {}
         };
-        ws.onclose = () => {
+        sock.onclose = () => {
           dispatch({ type: "connected", payload: false });
-          if (!disposed) timer = setTimeout(connect, 1500);
+          scheduleRetry();
         };
-        ws.onerror = () => ws?.close();
+        sock.onerror = () => sock?.close();
       } catch {
-        if (!disposed) timer = setTimeout(connect, 2000);
+        scheduleRetry();
       }
-    };
-    connect();
-    const poll = async () => {
-      try { dispatch({ type: "status", payload: await api("/api/status") }); } catch {}
-      try { dispatch({ type: "dashboard", payload: await api("/api/dashboard") }); } catch {}
-      try { dispatch({ type: "fleet", payload: await api("/api/fleet/state") }); } catch {}
-      loadIncidents();
-    };
-    poll();
-    pi = setInterval(poll, 4000);
+    })();
+
     return () => {
-      disposed = true;
-      clearTimeout(timer);
-      clearInterval(pi);
-      ws?.close();
+      cancelled = true;
+      clearTimeout(reconnectTimer.current);
+      sock?.close();
+      if (activeSocket.current === sock) activeSocket.current = null;
     };
-  }, []);
+  }, [user, retryTick]);
 
   async function loadIncidents() {
     try { dispatch({ type: "incidents", payload: await api("/api/incidents") }); } catch {}

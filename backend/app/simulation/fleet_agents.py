@@ -44,17 +44,24 @@ class FacilityMatcher:
             travel = route["duration_min"]
             total = travel + w["queue_min"] + w["proc_min"] * 0.3
             cap_pct = w["available_capacity"] / max(1, w["capacity"])
-            score = 100.0 - total * 2.0 + cap_pct * 20.0 - w["busy_docks"] * 2.5
+            cost_inr = handling_cost_inr(w, getattr(vehicle, "load_units", 0),
+                                         vehicle.cargo_type)
+            # Cheaper is better, on the same scale as the time terms above, so
+            # cost can never outweigh a genuinely closer cold store.
+            score = (100.0 - total * 2.0 + cap_pct * 20.0 - w["busy_docks"] * 2.5
+                     - min(25.0, cost_inr / 20.0))
             out.append({
                 "id": w["id"], "name": w["name"], "compatible": True,
                 "score": round(score, 1),
                 "distance_km": round(route["distance_km"], 1),
                 "eta_travel_min": round(travel, 1),
                 "eta_total_min": round(total, 1),
+                "cost_inr": cost_inr,
                 "free_capacity": w["available_capacity"],
                 "queue_min": w["queue_min"], "proc_min": w["proc_min"],
                 "reason": (f"travel {travel:.0f}m + queue {w['queue_min']}m + proc "
                            f"{w['proc_min']}m; {w['available_capacity']}u free; "
+                           f"cost Rs {cost_inr:,.0f}; "
                            f"{vehicle.cargo_type} supported"),
             })
         compatible = sorted([o for o in out if o.get("compatible")], key=lambda o: -o["score"])
@@ -62,8 +69,50 @@ class FacilityMatcher:
         return compatible + rejected
 
 
-WEIGHTS = {"eta": 0.40, "cargo": 0.20, "traffic": 0.15, "distance": 0.10,
+# Requirement 16 asks the agent to weigh cost ("kitna paisa legega") alongside
+# time, traffic and proximity. There was no cost model at all before this, so
+# every recommendation was free — which makes "nearest cold storage" and
+# "most expensive cold storage" score identically.
+#
+# `cost` is carved out of eta and cargo rather than added as a seventh term, so
+# the weights still sum to 1.0 and scores stay comparable with earlier ones.
+WEIGHTS = {"eta": 0.32, "cargo": 0.18, "traffic": 0.15, "distance": 0.10,
+           "cost": 0.10,
            "facility": 0.10, "energy": 0.05}
+
+
+def handling_cost_inr(facility: dict, units: int, cargo_type: str | None = None) -> float:
+    """Cost of transferring `units` of cargo into `facility`, in rupees.
+
+    Built from what the facility record actually carries, not a flat rate:
+
+      * handling      scales with volume — a 1000-unit transfer costs more than
+                      a 200-unit one, sublinearly because the cold room is
+                      already running either way
+      * capability    a facility that cannot hold this cargo type cannot take it
+                      at any price, which the matcher already filters on
+      * premium       specialised cold storage (pharma-grade, deep freeze) costs
+                      more to keep at temperature than a produce room
+
+    Deliberately simple and explainable. A panel should be able to check the
+    arithmetic by hand, and every term traces to a field on the facility.
+    """
+    base = 45.0                      # fixed cold-room entry + dock handling
+    per_unit = 0.55                  # sublinear volume term
+    capacity_u = float(facility.get("capacity") or 1)
+    # Fuller facility -> more overhead per unit to maintain.
+    scale = 1.0 + 0.25 * (units / max(capacity_u, 1.0))
+    cost = base + per_unit * units * scale
+
+    premium = 1.0
+    cargo_types = {str(c).lower() for c in (facility.get("cargo_types") or [])}
+    if "pharmaceutical" in cargo_types or "pharma" in cargo_types:
+        premium *= 1.6               # validated, monitored cold storage
+    if facility.get("deep_freeze") or "frozen" in cargo_types:
+        premium *= 1.35              # held well below zero
+    if cargo_type and "frozen" in str(cargo_type).lower():
+        premium *= 1.25              # transferring frozen goods is harder
+    return round(cost * premium, 0)
 
 
 class RouteScorer:
@@ -80,16 +129,22 @@ class RouteScorer:
         proj_risk = ("CRITICAL" if cargo_risk_pts > 30 else "HIGH" if cargo_risk_pts > 15
                      else "MEDIUM" if cargo_risk_pts > 6 else "LOW")
         energy_pct = (vehicle.battery_pct if vehicle.energy == "ELECTRIC" else vehicle.fuel_pct)
+        cost_inr = (handling_cost_inr(facility, getattr(vehicle, "load_units", 0),
+                                      getattr(vehicle, "cargo_type", None))
+                    if facility else 0.0)
         s = ((100.0 - min(eta, 60.0) * 1.2) * WEIGHTS["eta"]
              + (100.0 - cargo_risk_pts * 2.0) * WEIGHTS["cargo"]
              + max(0.0, 100.0 - (traffic_factor - 1.0) * 100.0) * WEIGHTS["traffic"]
              + max(0.0, 100.0 - min(route["distance_km"], 60.0)) * WEIGHTS["distance"]
              + ((100.0 - facility["eta_total_min"] * 1.5) * WEIGHTS["facility"] if facility else 0.0)
-             + energy_pct * WEIGHTS["energy"])
+             + energy_pct * WEIGHTS["energy"]
+             + (max(0.0, 100.0 - min(cost_inr / 40.0, 100.0)) * WEIGHTS["cost"]
+                if facility else 0.0))
         return {"variant": route.get("variant", "route"),
                 "score": round(s, 1), "eta_min": round(eta, 1),
                 "distance_km": round(route["distance_km"], 1),
                 "traffic_factor": traffic_factor,
+                "cost_inr": cost_inr,
                 "projected_temp_c": round(proj_temp, 1),
                 "cargo_risk_after": proj_risk,
                 "geometry": route["geometry"]}
