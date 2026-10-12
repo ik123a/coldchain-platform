@@ -32,6 +32,10 @@ from . import lessons as LNS
 log = logging.getLogger("fleet")
 SUSTAIN_TICKS = 6            # consecutive over-band world-ticks → incident
 ARRIVE_KM = 0.3
+# A service truck is on scene within this radius of its assigned truck. Named so
+# the value is not a bare literal in two places (`_service_progress` and the
+# re-target guard), which is how the two could silently drift apart.
+SERVICE_ARRIVAL_KM = 0.8
 EVENT_RETENTION_HOURS = 6    # telemetry history window; incidents and reports are never pruned
 
 
@@ -74,6 +78,13 @@ class FleetOrchestrator:
         # removing a user truck must clean these even before any fleet spawn.
         self.service_tasks: dict[str, str] = {}    # service vid -> target vid
         self.service_pending: dict[str, str] = {}  # target vid -> task type
+        # service vid -> sim_minute of its last navigation re-target. Bounds how
+        # often a service truck is re-routed toward a moving target.
+        self._service_retarget_at: dict[str, float] = {}
+        # Monotonic counter folded into FleetRoute ids. `int(sim_minute)` alone
+        # is not unique — two diverts for one vehicle inside the same sim-minute
+        # collided and the insert raised UNIQUE constraint failed.
+        self._route_seq = 0
         self.transfers: dict[str, dict] = {}       # donor vid -> transfer state
         # --- human-in-the-loop approval queue ---
         # `require_approval` is the master switch for the demonstration. It
@@ -310,6 +321,7 @@ class FleetOrchestrator:
             self.vehicles[svc.id] = svc
         self.service_tasks: dict[str, str] = {}   # service vid -> target vid
         self.service_pending: dict[str, str] = {}  # target vid -> task type
+        self._service_retarget_at: dict[str, float] = {}
         self.transfers: dict[str, dict] = {}       # donor vid -> transfer state
 
     # ---------------- manual dispatch fleet (user-defined trucks) ----------------
@@ -1181,8 +1193,16 @@ class FleetOrchestrator:
         v.done_km = 0.0
         v.dest_id = target
         v.route_adherence = 60.0
+        self._route_seq += 1     # see __init__: int(sim_minute) alone collides
         async with SessionLocal() as s:
-            s.add(FleetRoute(id=f"R-{v.id}-{int(self.sim_minute)}-{target}-{old_target}",
+            # The id embeds int(sim_minute), which is NOT unique: two diverts for
+            # the same vehicle to the same target within one sim-minute produce
+            # the same id, and the insert then dies with
+            # `UNIQUE constraint failed: fleet_routes.id` — surfacing as HTTP 500
+            # on the operator's approval. A per-process counter disambiguates.
+            # `merge` (not `add`) makes a genuine repeat an update rather than an
+            # error, so the operator's second click can never fail this way.
+            await s.merge(FleetRoute(id=f"R-{v.id}-{int(self.sim_minute)}-{target}-{old_target}-{self._route_seq}",
                              vehicle_id=v.id,
                              origin_id=old_target, destination_id=target, route_type="AI",
                              geometry=json.dumps(v.geom)[:60000],
@@ -1230,20 +1250,37 @@ class FleetOrchestrator:
             # and the fleet eventually had nowhere to divert to — which presents as "no
             # cold storage available" rather than the bug it is.
             self._release_dock(v.dest_id, units, consumed=True)
-        async with SessionLocal() as s:
-            s.add(CargoTransfer(vehicle_id=v.id, facility_id=v.dest_id, units=units,
-                                health_pct=v.box.cargo_health, sim_minute=self.sim_minute))
-            inc = await s.get(Incident, inc_id)
-            if inc:
-                inc.status = "TRANSFERRED"
-            await s.commit()
-        v.load_units = 0
-        # recovery verification: backup cooling must pull temp back in band
-        ok = v.box.temperature <= v.box.mx + 1.0 or v.box.backup_cooling
+        # Recovery is verified BEFORE the load is unloaded: once `v.load_units = 0`
+        # the box temperature describes an empty vehicle, which is no evidence that
+        # the cargo it was carrying was recovered. `backup_cooling` stays out of the
+        # proof: switching a mitigation on must not on its own resolve an incident.
+        _t = v.box.snapshot()["true_temperature"]
+        within_band = v.box.mn <= _t <= v.box.mx
         verdict = A.RecoveryVerifierAgent().run(
             v.box, getattr(v, "_snaps", [])[-8:], {"mn": v.box.mn, "mx": v.box.mx},
             ["activate_backup_cooling"] if v.box.backup_cooling else [])
-        resolved = verdict.get("verified", False) or ok
+        resolved = bool(verdict.get("verified", False)) and within_band
+        # A load that reached a facility was rescued by relocation. That is a
+        # different outcome from an in-situ temperature recovery, so it keeps its
+        # own state instead of being folded into RESOLVED.
+        transferred = units > 0 and wh is not None
+        outcome = "RESOLVED" if resolved else ("TRANSFERRED" if transferred else "ESCALATED")
+        async with SessionLocal() as s:
+            if transferred:
+                s.add(CargoTransfer(vehicle_id=v.id, facility_id=v.dest_id, units=units,
+                                    health_pct=v.box.cargo_health, sim_minute=self.sim_minute))
+            inc = await s.get(Incident, inc_id)
+            if inc:
+                inc.status = outcome
+                if resolved:
+                    inc.resolved_at = datetime.utcnow()
+                    inc.resolved_tick = int(self.sim_minute)
+            await s.commit()
+        # Cargo only leaves the vehicle when a facility actually took delivery.
+        # After a failed divert the load stays aboard, so ESCALATED does not also
+        # silently erase a stranded load and record it as a completed move.
+        if wh is not None:
+            v.load_units = 0
 
         # Requirement 12: the report must say what the agent learned, including
         # when it failed. The reporter already renders a `lessons` list but the
@@ -1268,18 +1305,17 @@ class FleetOrchestrator:
             approval)
 
         async with SessionLocal() as s:
-            inc = await s.get(Incident, inc_id)
-            if inc:
-                inc.status = "RESOLVED" if resolved else "ESCALATED"
-                inc.resolved_at = datetime.utcnow() if resolved else None
-                inc.resolved_tick = int(self.sim_minute) if resolved else None
+            # `outcome` was already committed with the transfer above; re-writing
+            # it here would clobber a TRANSFERRED result with ESCALATED.
             s.add(AIAnalysis(incident_id=inc_id, agent_name="recovery_verifier",
                              analysis=json.dumps(verdict)[:4000],
                              confidence=verdict.get("confidence", 0.5)))
             s.add(AIAnalysis(incident_id=inc_id, agent_name="lessons",
                              analysis=json.dumps({"lessons": lessons,
+                                                  "outcome": outcome,
                                                   "resolved": resolved,
                                                   "verified": bool(verdict.get("verified")),
+                                                  "transferred": transferred,
                                                   "basis": "derived from outcome evidence, not canned text"},
                                                  )[:4000],
                              confidence=1.0))
@@ -1287,11 +1323,13 @@ class FleetOrchestrator:
         self._lessons[inc_id] = lessons
         await BROADCAST.emit(0, "cargo.transferred",
                              {"vehicle_id": v.id, "facility_id": v.dest_id, "units": units,
-                              "resolved": resolved, "incident_id": inc_id,
+                              "resolved": resolved, "transferred": transferred,
+                              "outcome": outcome, "incident_id": inc_id,
                               "evidence": verdict.get("evidence", [])})
-        await self._evt(v, f"{v.id} transferred {units}u to {v.dest_id} — "
-                          f"{'recovery verified' if resolved else 'still critical'}",
-                          "info" if resolved else "critical")
+        moved = f"transferred {units}u to {v.dest_id}" if transferred else \
+                f"no facility accepted {units}u"
+        await self._evt(v, f"{v.id} {moved} — {outcome.lower()}",
+                        "info" if outcome == "RESOLVED" else "critical")
         # respawn the vehicle on a new mission to keep the fleet alive
         self._respawn(v)
 
@@ -1391,21 +1429,84 @@ class FleetOrchestrator:
         return priority_queue(self.vehicles, self.incident_db)
 
     def _service_progress(self, dt: float):
-        """Advance service trucks toward their target; repair on arrival."""
+        """Advance service trucks toward their target; repair on arrival.
+
+        A service truck has no destination node, so the generic `_place_on_route`
+        movement cannot bring it anywhere: its `dest_id` is whatever cargo route
+        it spawned with. Measured live: service trucks sat 4.9 km and 6.7 km from
+        their assigned truck and never closed the gap, because nothing steered
+        them toward it.
+
+        Fix: on dispatch the service truck is RE-TARGETED at its target truck's
+        current position, using the same route-from-current-position primitive
+        `_apply_divert` uses. `step()` then closes the distance normally on every
+        world tick, and arrival fires when it enters the service radius.
+
+        Re-targeting only happens in the tick BEFORE the truck is within the
+        arrival radius, so a truck already on scene is not re-routed under itself
+        and the arrival branch cannot thrash between `d < R` and `d >= R`.
+        """
         for svc_id, target_id in list(self.service_tasks.items()):
             svc, tgt = self.vehicles.get(svc_id), self.vehicles.get(target_id)
             if not tgt or tgt.id not in self.vehicles:
                 self.service_tasks.pop(svc_id, None)
+                self.service_pending.pop(target_id, None)
                 continue
             d = haversine_km((svc.lng, svc.lat), (tgt.lng, tgt.lat))
-            if d < 0.8:   # arrived at the broken truck
+            if d < SERVICE_ARRIVAL_KM:   # arrived at the broken truck
                 task = self.service_pending.pop(target_id, "repair")
                 tgt.repair()
                 self.service_tasks.pop(svc_id, None)
                 self._queue_event_nowait("service.completed",
                                          {"service_id": svc_id, "vehicle_id": target_id, "task": task})
-            # else: keep driving; trucks respawn toward their own destinations,
-            # so distance closes only via target's own motion — acceptable for sim.
+                continue
+            # Not yet on scene: steer the truck at the target's live position.
+            #
+            # There must be NO gap between the arrival radius and the re-target
+            # threshold. A first version only re-targeted while `d > 0.8 * 2.5`
+            # (2.0 km), which left a dead zone: a truck that drifted to 0.82 km
+            # was already outside the 0.8 km arrival radius, so it could never
+            # arrive, and it was under 2.0 km, so it was never re-targeted
+            # either. It sat there for the rest of the run and
+            # `service.completed` never fired. Measured live: SERVICE-1236-0 at
+            # exactly 0.82 km, stranded.
+            #
+            # The guard now re-targets at anything beyond the arrival radius, so
+            # closing the gap is always possible. The rate limit (once a sim
+            # minute, and only while it is a meaningful correction) is what stops
+            # the truck being yanked around during a normal approach.
+            if d > SERVICE_ARRIVAL_KM and \
+                    (self.sim_minute - self._service_retarget_at.get(svc_id, -99.0)) >= 1.0:
+                prev = self._service_retarget_at.get(svc_id)
+                self._retarget_service(svc, tgt)
+                self._service_retarget_at[svc_id] = self.sim_minute
+                # Only log the first re-target of a task, not every sim-minute.
+                if prev is None:
+                    log.info("service %s re-targeted at %s (%.2f km out)",
+                             svc_id, target_id, d)
+
+    def _retarget_service(self, svc, tgt) -> None:
+        """Point a service truck at its target truck's current position.
+
+        Uses the same route-from-current-position primitive `_apply_divert` uses,
+        so geometry/distance units stay consistent with every other reroute. No
+        broadcast: this is internal fleet movement, not an operator-visible route
+        decision, and emitting `vehicle.route.changed` here would falsely satisfy
+        the acceptance sweep's chain assertion.
+        """
+        try:
+            factor = self.traffic.factor_for(nearest_node(svc.lng, svc.lat),
+                                             nearest_node(tgt.lng, tgt.lat))
+            r = self.routing.route_from_point(svc.lng, svc.lat, nearest_node(tgt.lng, tgt.lat), factor)
+            if not r or r.get("distance_km", 0) <= 0:
+                return
+            svc.geom = [list(p) for p in r["geometry"]]
+            svc.total_km = r["distance_km"]
+            svc.done_km = 0.0
+        except Exception:
+            # Navigation is best-effort: a routing failure must not kill the
+            # world tick. The truck simply keeps its previous heading.
+            pass
 
     def _queue_event_nowait(self, etype: str, payload: dict):
         try:

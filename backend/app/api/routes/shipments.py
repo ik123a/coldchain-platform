@@ -18,7 +18,7 @@ async def list_shipments(status: str | None = None, db=Depends(get_db)):
 
 
 @router.post("", response_model=ShipmentOut, status_code=201)
-async def create_shipment(body: ShipmentIn, db=Depends(get_db)):
+async def create_shipment(body: ShipmentIn, _auth: dict = Depends(require_auth), db=Depends(get_db)):
     sh = Shipment(**body.model_dump())
     db.add(sh); await db.commit(); await db.refresh(sh)
     return sh

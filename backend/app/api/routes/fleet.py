@@ -4,7 +4,8 @@ import asyncio
 import json
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from ...core.authz import require_auth, require_auth_read
+from ...core.authz import (require_auth, require_auth_read, require_role,
+                           require_vehicle_scope)
 from ...simulation.fleet_orchestrator import FLEET
 from ...simulation.analytics import fleet_kpis
 from ...simulation.routing import RoutingService, nearest_node
@@ -122,7 +123,7 @@ async def dispatch_get(_auth: dict = Depends(require_auth_read)):
 
 
 @router.post("/dispatch")
-async def dispatch_set(body: DispatchIn, _auth: dict = Depends(require_auth)):
+async def dispatch_set(body: DispatchIn, _auth: dict = Depends(require_role("operator"))):
     """Validate and store the operator's truck definitions (bulk replace).
 
     Kept for compatibility; the per-truck endpoints below are the primary
@@ -136,7 +137,7 @@ async def dispatch_set(body: DispatchIn, _auth: dict = Depends(require_auth)):
 
 @router.post("/dispatch/trucks")
 async def dispatch_truck_add(body: DispatchTruckAddIn,
-                             _auth: dict = Depends(require_auth)):
+                             _auth: dict = Depends(require_role("operator"))):
     """Add ONE truck. A bare {} creates a draft with a unique id and name.
 
     Nothing is started, no product or destination is assigned, no rescue or
@@ -150,7 +151,7 @@ async def dispatch_truck_add(body: DispatchTruckAddIn,
 
 @router.patch("/dispatch/trucks/{tid}")
 async def dispatch_truck_patch(tid: str, body: DispatchTruckPatchIn,
-                               _auth: dict = Depends(require_auth)):
+                               _auth: dict = Depends(require_role("operator"))):
     """Configure one truck (product, destination, name, load). 400 on invalid."""
     try:
         patch = body.model_dump(exclude_none=True)
@@ -160,7 +161,7 @@ async def dispatch_truck_patch(tid: str, body: DispatchTruckPatchIn,
 
 
 @router.post("/dispatch/trucks/{tid}/start")
-async def dispatch_truck_start(tid: str, _auth: dict = Depends(require_auth)):
+async def dispatch_truck_start(tid: str, _auth: dict = Depends(require_role("operator"))):
     """Start ONE configured truck. 400 if it is a draft (missing config)."""
     try:
         return FLEET.start_dispatch_truck(tid)
@@ -169,7 +170,7 @@ async def dispatch_truck_start(tid: str, _auth: dict = Depends(require_auth)):
 
 
 @router.delete("/dispatch/trucks/{tid}")
-async def dispatch_truck_delete(tid: str, _auth: dict = Depends(require_auth)):
+async def dispatch_truck_delete(tid: str, _auth: dict = Depends(require_role("operator"))):
     """Remove ONE truck. Cleans its live twin + incident/service/approval
     state; other trucks keep running; DB report history is preserved."""
     try:
@@ -179,7 +180,7 @@ async def dispatch_truck_delete(tid: str, _auth: dict = Depends(require_auth)):
 
 
 @router.post("/dispatch/start")
-async def dispatch_start(_auth: dict = Depends(require_auth)):
+async def dispatch_start(_auth: dict = Depends(require_role("operator"))):
     """Spawn the configured trucks into the live world."""
     try:
         return FLEET.start_dispatch()
@@ -188,7 +189,7 @@ async def dispatch_start(_auth: dict = Depends(require_auth)):
 
 
 @router.post("/dispatch/clear")
-async def dispatch_clear(_auth: dict = Depends(require_auth)):
+async def dispatch_clear(_auth: dict = Depends(require_role("operator"))):
     # `clear_dispatch` is async (it awaits vehicle teardown), so it must be
     # awaited. Without the await this returned a coroutine object, which FastAPI
     # then tried to serialise:
@@ -323,7 +324,7 @@ async def approvals(_auth: dict = Depends(require_auth_read)):
 
 
 @router.post("/approvals/mode")
-async def approvals_mode(body: ApprovalModeIn, _auth: dict = Depends(require_auth)):
+async def approvals_mode(body: ApprovalModeIn, _auth: dict = Depends(require_role("operator"))):
     """Turn the human-in-the-loop gate on or off.
 
     Off reproduces the original fully-autonomous behaviour, which is useful for
@@ -386,38 +387,42 @@ async def vehicle_history(vid: str, window: str = "5m", _auth: dict = Depends(re
 
 
 @router.post("/vehicle/{vid}/inject")
-async def inject(vid: str, body: InjectIn, _auth: dict = Depends(require_auth)):
+async def inject(vid: str, body: InjectIn, claims: dict = Depends(require_auth)):
+    # A driver may only fault the truck they are bound to; otherwise any driver
+    # could take the whole fleet down with a direct API call.
+    require_vehicle_scope(vid, claims)
     return await FLEET.inject(vid, body.failure)
 
 
 @router.post("/vehicle/{vid}/action")
-async def action(vid: str, body: ActionIn, _auth: dict = Depends(require_auth)):
+async def action(vid: str, body: ActionIn, claims: dict = Depends(require_auth)):
+    require_vehicle_scope(vid, claims)
     return await FLEET.apply_action(vid, body.action)
 
 
 @router.post("/inject-random")
-async def inject_random(_auth: dict = Depends(require_auth)):
+async def inject_random(_auth: dict = Depends(require_role("operator"))):
     return await FLEET.inject_random()
 
 
 @router.post("/speed")
-async def speed(body: SpeedIn, _auth: dict = Depends(require_auth)):
+async def speed(body: SpeedIn, _auth: dict = Depends(require_role("operator"))):
     return {"speed": FLEET.set_speed(body.speed)}
 
 
 @router.post("/weather")
-async def weather(body: WeatherIn, _auth: dict = Depends(require_auth)):
+async def weather(body: WeatherIn, _auth: dict = Depends(require_role("operator"))):
     """Force a weather state (demo lever; emits weather.changed)."""
     return {"weather": FLEET.set_weather(body.weather)}
 
 
 @router.post("/pause")
-async def pause(_auth: dict = Depends(require_auth)):
+async def pause(_auth: dict = Depends(require_role("operator"))):
     return {"paused": FLEET.toggle_pause()}
 
 
 @router.post("/resume")
-async def resume(_auth: dict = Depends(require_auth)):
+async def resume(_auth: dict = Depends(require_role("operator"))):
     if FLEET.paused:
         FLEET.toggle_pause()
     return {"paused": False}
@@ -473,7 +478,7 @@ async def replay(incident_id: int, _auth: dict = Depends(require_auth_read)):
 
 
 @router.post("/rebuild")
-async def rebuild(body: RebuildIn, _auth: dict = Depends(require_auth)):
+async def rebuild(body: RebuildIn, _auth: dict = Depends(require_role("operator"))):
     """Stop → configure from body → spawn → start. Returns new world descriptor."""
     return await FLEET.rebuild(
         scenario_seed=body.seed, weather=body.weather,

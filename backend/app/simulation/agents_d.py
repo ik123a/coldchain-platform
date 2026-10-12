@@ -181,6 +181,10 @@ class ResponsePlannerAgent:
 class RecoveryVerifierAgent:
     name = "recovery_verifier"
 
+    # Applies to BOTH boundaries. The over-shoot term floors at 0, so a one-sided
+    # check passes any load driven far below `mn` — that was the defect fixed here.
+    TOLERANCE_C = 1.2
+
     def run(self, engine: Engine, history: list, zone: dict, actions_executed: list[str], verified_window=8):
         if not actions_executed:
             return {"agent": self.name, "verified": False,
@@ -188,20 +192,31 @@ class RecoveryVerifierAgent:
         recent = history[-verified_window:]
         trend = _trend(recent, n=len(recent))
         snap = engine.snapshot()
-        over = max(0.0, snap["true_temperature"] - zone["mx"])
+        t = snap["true_temperature"]
+        mn, mx = zone["mn"], zone["mx"]
+        over = max(0.0, t - mx)
+        under = max(0.0, mn - t)
         falling = trend < -0.02
-        in_range = snap["true_temperature"] <= zone["mx"] and snap["true_temperature"] >= zone["mn"]
+        in_range = t <= mx and t >= mn
         compressor_path = snap["backup_cooling"] or snap["compressor_on"]
         evidence = [
             f"trend {trend:+.2f}°C/min over last {len(recent)} ticks",
-            f"temperature {snap['true_temperature']}°C (band {zone['mn']}-{zone['mx']})",
+            f"true temperature {t}°C (band {mn}-{mx})",
+            f"over max {over:.2f}C, under min {under:.2f}C (tolerance {self.TOLERANCE_C}C either side)",
             f"backup cooling {'ON' if snap['backup_cooling'] else 'OFF'}, compressor {'ON' if snap['compressor_on'] else 'OFF'}",
         ]
-        ok = (falling and over <= 1.2) or (in_range and compressor_path)
+        # Both routes require the cargo inside its band on both sides. Backup
+        # cooling is a mitigation, never proof the cargo came back into range.
+        recovering = falling and over <= self.TOLERANCE_C and under <= self.TOLERANCE_C
+        sustained = in_range and compressor_path
+        ok = recovering or sustained
         return {"agent": self.name, "verified": ok,
                 "evidence": evidence,
                 "trend_c_per_min": round(trend, 3),
-                "in_range_now": in_range, "over_by": round(over, 2),
+                "in_range_now": in_range,
+                "over_by": round(over, 2), "under_by": round(under, 2),
+                "cooling_path_active": bool(compressor_path),
+                "basis": "true temperature inside the cargo-specific band on both boundaries",
                 "confidence": round(min(0.98, 0.55 + (-trend) * 3.0 + (0.2 if in_range else 0)), 2)}
 
 

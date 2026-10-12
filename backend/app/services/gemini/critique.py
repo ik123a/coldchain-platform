@@ -31,9 +31,21 @@ def critique_reference_asset(asset_id: str, title: str, category: str, prompt: s
     """
     Critique a design reference asset using Gemini reasoning.
     Returns structured JSON with scores and anti-slop assessment.
+
+    HONESTY CONTRACT (the old behaviour was a lie): a missing key, an exhausted
+    key pool, a provider error, or unparseable output previously returned
+    `_fallback_critique` — hardcoded 9.x scores with verdict APPROVED — which a
+    caller cannot distinguish from a real critique. Now every non-success is an
+    explicit error with a machine-readable `status`:
+      unavailable  — no credential configured
+      rate_limited — provider returned 429
+      failed       — provider error / network failure / malformed output
+    Only a genuine 200 with parseable JSON returns scores.
     """
     if not GEMINI_API_KEY:
-        return _fallback_critique(asset_id, title, category)
+        return {"success": False, "status": "unavailable",
+                "error": "GEMINI_API_KEY not configured; critique unavailable",
+                "asset_id": asset_id}
 
     system_instruction = (
         "You are an elite product design director and anti-slop design critic evaluating UI/UX concepts "
@@ -86,8 +98,10 @@ Output ONLY valid JSON.
     # credentials in tracked source -- and because the literal was last in the
     # list, the service would keep working with the embedded key even if the env
     # vars were removed. Do not re-add literals here; put keys in backend/.env.
+    # (Tests monkeypatch module attrs; read them defensively so a patched
+    # GEMINI_API_KEY is honoured without touching os.environ.)
     candidate_keys = [k for k in [
-        os.getenv("GEMINI_API_KEY"),
+        GEMINI_API_KEY or os.getenv("GEMINI_API_KEY"),
         os.getenv("GEMINI_API_KEY_BACKUP"),
         os.getenv("GOOGLE_API_KEY"),
     ] if k]
@@ -98,7 +112,8 @@ Output ONLY valid JSON.
 
     for key in candidate_keys:
         for model in candidate_models:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+            # Key in the header, not the query string (see image_generation).
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
             payload = {
                 "contents": [{"parts": [{"text": f"{system_instruction}\n\n{user_query}"}]}],
                 "generationConfig": {
@@ -107,43 +122,39 @@ Output ONLY valid JSON.
                 }
             }
             try:
-                resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=20)
+                resp = requests.post(url, json=payload, timeout=20,
+                                     headers={"Content-Type": "application/json",
+                                              "x-goog-api-key": key})
                 if resp.status_code == 200:
                     data = resp.json()
                     cand = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                    return json.loads(cand)
+                    try:
+                        parsed = json.loads(cand)
+                    except (ValueError, TypeError):
+                        log.warning("critique output was not valid JSON (model=%s)", model)
+                        continue
+                    if not isinstance(parsed, dict) or "overall_verdict" not in parsed:
+                        log.warning("critique output incomplete (model=%s); "
+                                    "refusing to fabricate a verdict", model)
+                        continue
+                    parsed["asset_id"] = parsed.get("asset_id", asset_id)
+                    return parsed
+                elif resp.status_code == 429:
+                    log.warning("critique rate limited by provider (model=%s)", model)
+                    return {"success": False, "status": "rate_limited",
+                            "error": "critique provider rate limited; retry later",
+                            "asset_id": asset_id}
                 else:
-                    log.warning(f"Key/Model ({model}) returned {resp.status_code}, trying next...")
+                    log.warning("Key/Model (%s) returned %s, trying next...",
+                                model, resp.status_code)
+            except requests.Timeout:
+                log.warning("critique provider timeout (model=%s)", model)
             except Exception as e:
-                log.warning(f"Critique attempt on {model} failed: {e}")
+                # Exception text can embed request details; keep it categorical.
+                log.warning("Critique attempt on %s failed: %s", model,
+                            type(e).__name__)
 
-    log.info("All Gemini online keys exhausted, using deterministic anti-slop evaluator.")
-    return _fallback_critique(asset_id, title, category)
-
-
-def _fallback_critique(asset_id: str, title: str, category: str) -> Dict[str, Any]:
-    """Reliable offline deterministic critique adhering to the Anti-AI-Slop rubric."""
-    return {
-        "asset_id": asset_id,
-        "scores": {
-            "visual_quality": 9.4,
-            "information_hierarchy": 9.6,
-            "simplicity": 9.2,
-            "originality": 8.9,
-            "logistics_fit": 9.8,
-            "ai_slop_risk": 1.4,
-            "motion_quality": 9.1
-        },
-        "overall_verdict": "APPROVED",
-        "strengths": [
-            "Restrained dark charcoal palette eliminates visual fatigue",
-            "Contextual progressive disclosure replaces cluttered multi-card layouts",
-            "Map surface commands 70%+ of primary viewport",
-            "Tabular monospace telemetry ensures rapid numerical scanability"
-        ],
-        "subtractions_recommended": [
-            "Ensure glowing borders do not exceed 1px subtle accents",
-            "Maintain minimal telemetry overlays during high-speed map zooming"
-        ],
-        "critique_summary": f"Strong logistics focus for '{title}'. High signal-to-noise ratio, zero AI slop, ready for enterprise deployment."
-    }
+    log.warning("all critique keys/models exhausted; returning explicit failure")
+    return {"success": False, "status": "failed",
+            "error": "critique provider failed; no verdict available",
+            "asset_id": asset_id}

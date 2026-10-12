@@ -45,20 +45,22 @@ def generate_reference_video(
 
     instance: Dict[str, Any] = {"prompt": prompt}
 
-    # If reference image is provided, attach as image-to-video starter
+    # If reference image is provided, attach as image-to-video starter.
+    # Resolved through the approved-asset library — never a client-chosen path.
+    # FAIL CLOSED like the image service: a refused reference must not still
+    # trigger a billable Veo job with the reference silently dropped.
     if reference_images and len(reference_images) > 0:
-        first_ref = Path(reference_images[0])
-        if first_ref.exists():
-            try:
-                with open(first_ref, "rb") as f:
-                    enc = base64.b64encode(f.read()).decode("utf-8")
-                mime = "image/jpeg" if first_ref.suffix.lower() in [".jpg", ".jpeg"] else "image/png"
-                instance["image"] = {
-                    "bytesBase64Encoded": enc,
-                    "mimeType": mime
-                }
-            except Exception as e:
-                log.warning(f"Could not encode reference image for Veo: {e}")
+        from .safe_paths import read_reference, ReferenceRejected
+        try:
+            raw, mime = read_reference(reference_images[0])
+            instance["image"] = {
+                "bytesBase64Encoded": base64.b64encode(raw).decode("utf-8"),
+                "mimeType": mime,
+            }
+        except ReferenceRejected as e:
+            log.warning("generation refused, reference rejected: %s", e)
+            return {"success": False, "error": f"reference rejected: {e}",
+                    "rejected_reference": True}
 
     payload = {
         "instances": [instance],
@@ -71,9 +73,13 @@ def generate_reference_video(
 
     last_error = "No API keys configured"
     for key in candidate_keys:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:predictLongRunning?key={key}"
+        # Key in the x-goog-api-key header, not the query string (see the image
+        # service for the full rationale: URLs reach logs).
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:predictLongRunning"
         try:
-            resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
+            resp = requests.post(url, json=payload, timeout=60,
+                                 headers={"Content-Type": "application/json",
+                                          "x-goog-api-key": key})
             if resp.status_code == 200:
                 operation = resp.json()
                 op_name = operation.get("name")
@@ -100,9 +106,16 @@ def check_video_operation(operation_name: str) -> Dict[str, Any]:
     if not GEMINI_API_KEY:
         return {"success": False, "error": "GEMINI_API_KEY missing"}
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/{operation_name}?key={GEMINI_API_KEY}"
+    # operation_name reaches a URL path. The API's format is `models/<model>/
+    # operations/<id>` — anchor the check so a crafted value cannot redirect the
+    # GET at an arbitrary path or query on the googleapis host (SSRF-by-parameter).
+    import re as _re
+    if not _re.fullmatch(r"models/[\w.\-]+/operations/[\w\-]+", operation_name or ""):
+        return {"success": False, "error": "malformed operation_name"}
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/{operation_name}"
     try:
-        resp = requests.get(url, timeout=15)
+        resp = requests.get(url, timeout=15, headers={"x-goog-api-key": GEMINI_API_KEY})
         if resp.status_code == 200:
             return resp.json()
         return {"success": False, "status_code": resp.status_code, "error": resp.text[:300]}

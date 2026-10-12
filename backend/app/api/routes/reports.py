@@ -1,13 +1,20 @@
 """Reports: regenerate for any incident and download as JSON or PDF."""
-import io, json
-from fastapi import APIRouter, Depends, HTTPException, Response
+import io, json, os
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from sqlalchemy import select
+from ...core.authz import require_auth, require_auth_read
+from ...core.security import create_token, decode_token
 from ...database.engine import get_db
 from ...models.entities import Incident, AIAnalysis, RecommendedAction, SensorReading
 from ...simulation.agents_d import ReporterAgent
 from ...simulation import lessons as LNS
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
+
+# A download ticket rides in a URL query string, so it is exposed to access logs,
+# browser history and Referer headers. It must therefore be short-lived — the
+# 12-hour session TTL is not appropriate for a link-borne credential.
+REPORT_TICKET_TTL_S = int(os.environ.get("REPORT_TICKET_TTL_S", 300))
 
 
 async def _build_report(inc: Incident, db) -> dict:
@@ -84,8 +91,95 @@ async def _build_report(inc: Incident, db) -> dict:
     }
 
 
+def _authorize_report_read(iid: int, ticket: str | None, authorization: str | None) -> None:
+    """Authorize a report read from either transport.
+
+    WHY TWO TRANSPORTS
+    ------------------
+    The UI reaches these files through plain `<a href="/api/reports/1.pdf">`
+    links, and a browser navigation cannot attach an `Authorization` header. So
+    there are two supported ways in, and both are checked server-side:
+
+      1. `Authorization: Bearer <token>` — for fetch()/XHR and API clients.
+      2. `?ticket=<signed token>` — for link navigations. The frontend obtains
+         this from `POST /api/reports/{iid}/ticket` and appends it to the href.
+
+    The ticket is the SAME signed JWT as the bearer token, not a new weaker
+    credential: same HMAC, same expiry, same claims. No new trust surface is
+    introduced, and an unsigned or tampered ticket is rejected exactly like a bad
+    bearer token. Both paths fail closed.
+
+    Note the ticket may appear in server logs and browser history because it is
+    in the query string; that is inherent to link-based downloads. It is
+    short-lived (REPORT_TICKET_TTL_S, default 5 min) and bound to one incident,
+    which bounds the window and the blast radius.
+    """
+    raw = None
+    from_ticket = False
+    if authorization and authorization.lower().startswith("bearer "):
+        raw = authorization.split(None, 1)[1]
+    elif ticket:
+        raw = ticket
+        from_ticket = True
+    if not raw:
+        raise HTTPException(
+            401,
+            "Report download requires authentication. Send an Authorization: "
+            "Bearer <token> header, or fetch a ticket from "
+            f"POST /api/reports/{iid}/ticket and pass it as ?ticket=<token>.",
+        )
+    claims = decode_token(raw)
+    if not claims:
+        raise HTTPException(401, "Invalid or expired token.")
+
+    # A ticket is BOUND to one incident. Without this a ticket minted for any
+    # report would download any other report the holder can name — resource
+    # substitution. A full bearer token is a session credential, not a ticket,
+    # so it is not resource-scoped (it authorizes the account, checked elsewhere).
+    if from_ticket:
+        bound = claims.get("iid")
+        if bound is None:
+            raise HTTPException(401, "This token is not a report ticket.")
+        if int(bound) != int(iid):
+            raise HTTPException(
+                403,
+                f"This ticket authorizes incident {bound}, not incident {iid}.",
+            )
+    return claims
+
+
+@router.post("/{iid}/ticket")
+async def report_ticket(iid: int, claims: dict = Depends(require_auth), db=Depends(get_db)):
+    """Mint a download ticket for `iid` so a plain link can carry authorization.
+
+    The ticket is a freshly-signed JWT for the SAME identity, not a bespoke
+    weaker credential — one signing path, one expiry rule, one thing to audit.
+
+    The incident must exist, so the endpoint cannot be used to probe which ids
+    are valid without a token in the first place.
+    """
+    inc = await db.get(Incident, iid)
+    if not inc:
+        raise HTTPException(404, "incident not found")
+    # SHORT-LIVED and RESOURCE-BOUND. The session token lives 12h, which is far too
+    # long for a credential that rides in a URL (logs, history, Referer). 5 minutes
+    # is enough for a click-through download, and `iid` makes the ticket useless
+    # for any other report.
+    ticket = create_token(
+        int(claims["sub"]) if str(claims.get("sub", "")).isdigit() else 0,
+        claims.get("email", ""),
+        claims.get("role", "operator"),
+        claims.get("vehicle_id"),
+        ttl_seconds=REPORT_TICKET_TTL_S,
+        extra={"iid": iid, "typ": "report_ticket"},
+    )
+    return {"iid": iid, "ticket": ticket, "expires_in": REPORT_TICKET_TTL_S}
+
+
 @router.get("/{iid}.json")
-async def report_json(iid: int, db=Depends(get_db)):
+async def report_json(iid: int, ticket: str | None = Query(None),
+                      authorization: str | None = Header(None), db=Depends(get_db)):
+    _authorize_report_read(iid, ticket, authorization)
     inc = await db.get(Incident, iid)
     if not inc: raise HTTPException(404, "incident not found")
     data = await _build_report(inc, db)
@@ -95,7 +189,9 @@ async def report_json(iid: int, db=Depends(get_db)):
 
 
 @router.get("/{iid}.pdf")
-async def report_pdf(iid: int, db=Depends(get_db)):
+async def report_pdf(iid: int, ticket: str | None = Query(None),
+                     authorization: str | None = Header(None), db=Depends(get_db)):
+    _authorize_report_read(iid, ticket, authorization)
     inc = await db.get(Incident, iid)
     if not inc: raise HTTPException(404, "incident not found")
     data = await _build_report(inc, db)

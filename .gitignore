@@ -52,3 +52,8 @@ docs/demo/film/_*/
 
 # e2e test runner artifacts (report.json, traces, screenshots)
 frontend/.e2e/
+
+# runtime artifacts from the launcher / local runs
+.run/
+*.pids.json
+.hermes-tmp.*

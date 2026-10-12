@@ -1,5 +1,6 @@
 """ColdChain Rescue — FastAPI entrypoint."""
 import logging
+import re
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,6 +12,42 @@ from .websocket.handler import router as ws_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("coldchain")
+
+
+class _RedactWsTickets(logging.Filter):
+    """Scrub `?ticket=<value>` out of every log record.
+
+    uvicorn logs WebSocket handshakes as `WebSocket <path with query string>`
+    (uvicorn.protocols.utils.get_path_with_query_string), so a ticket passed as a
+    query parameter — the documented fallback for non-browser clients — would be
+    written verbatim into access logs, which are typically retained and more
+    widely readable than the ticket store. Installing this filter keeps that
+    fallback from becoming a credential leak.
+
+    A filter is used rather than string-matching at the call site because the
+    leaking logger is uvicorn's, which the application does not control.
+    """
+
+    _PATTERN = re.compile(r"(ticket=)[^&\s\"']+")
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        try:
+            msg = record.getMessage()
+        except Exception:
+            return True
+        if "ticket=" not in msg:
+            return True
+        redacted = self._PATTERN.sub(r"\1<redacted>", msg)
+        # Collapse the record to a pre-formatted message so the original args
+        # cannot re-expand the secret during formatting.
+        record.msg = redacted
+        record.args = ()
+        return True
+
+
+logging.getLogger().addFilter(_RedactWsTickets())
+for _name in ("uvicorn", "uvicorn.error", "uvicorn.access", "uvicorn.protocols.websockets"):
+    logging.getLogger(_name).addFilter(_RedactWsTickets())
 
 app = FastAPI(title="ColdChain Rescue", description="AI cold-chain simulation & operation center",
               version="1.0.0-m1")
