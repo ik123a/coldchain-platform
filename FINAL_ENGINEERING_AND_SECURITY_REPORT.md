@@ -1,8 +1,8 @@
 # FINAL ENGINEERING AND SECURITY REPORT — ColdChain Rescue
 
 **Project:** `D:\Projects\capstone project\coldchain-platform`
-**Branch:** `chore/token-adoption-codemod` · **HEAD:** `117f1d8` (unchanged; nothing committed or pushed)
-**Report date:** 12 October 2026
+**Branch:** `chore/token-adoption-codemod` · **HEAD:** `161269c` — this work is now **committed in 3 commits** (`41a6744` backend, `51f48c0` frontend, `161269c` docs), **not pushed**.
+**Report date:** 12 October 2026 (updated after commit)
 **Live database digest:** `3510d9fbb2f80c4e` before and after every verification run — **unchanged throughout**.
 
 ---
@@ -14,6 +14,8 @@ The platform is **functionally complete and security-hardened for its intended s
 This finalization pass closed the last critical dependency exposure — **Next.js 15.3.2/15.3.3 was vulnerable to two unauthenticated RCE advisories on Windows hosts, where this project actually runs** — by upgrading to **15.5.27** (latest stable 15.5.x) and re-verifying the build and the full acceptance sweep (19/19).
 
 **Readiness statement:** ready for the M2 capstone demonstration on a trusted network. Not production-ready for public internet deployment (see §12, §13). One manual action is mandatory before any public exposure: **rotate the Gemini API key** (§11).
+
+**Scope caveat (adopted verbatim from the project owner):** these results indicate strong progress toward release readiness; they do **not** establish that every browser workflow has been manually verified, nor that every production deployment risk has been eliminated. Backend/API correctness is evidenced by the suites and the 19/19 sweep; interactive UX and operational hardening for a hostile network remain open items (§10, §12).
 
 ---
 
@@ -183,6 +185,11 @@ Isolated sweep environment: fresh empty SQLite at `D:/Temp/cc_sweep_final_w842w3
 
 A live Gemini API key was exposed through test output in an earlier session (the URL-embedded `?key=` pattern, since removed from the code entirely). **This key must be treated as compromised and rotated in the Google AI Studio / Cloud console by the account owner.** Code-level mitigations (header transport, no-URL test, log redaction) are complete, but revocation is external and **has not been performed** — nothing in this report claims it has.
 
+**Rotation attempt status (12 Oct, post-report):**
+- Control test against the provider confirmed the exposed key in `backend/.env` **still authenticates** (HTTP 200; initial 503s were transient provider-side). It has NOT been revoked.
+- Browser-driven rotation in AI Studio was attempted and is currently **blocked: the local browser automation daemon is unresponsive** (all probes timed out). Rotation therefore remains a **manual action for the project owner**.
+- Once a replacement key is placed in `backend/.env`, a controlled verification (provider call with the key sent via `x-goog-api-key` header, value never printed) will confirm the new credential without exposure. The same check should be applied to `GEMINI_API_KEY_BACKUP` and `GOOGLE_API_KEY`, which hold distinct values and must be revoked too if they match any exposed credential.
+
 ---
 
 ## 12. Deployment constraints
@@ -205,4 +212,4 @@ A live Gemini API key was exposed through test output in an earlier session (the
 | P2 | Multi-worker ticket/limiter store | Redis-backed adapter behind the existing interfaces |
 | P3 | Root-level 0-byte `coldchain.db` artefact | Delete manually once confirmed unneeded (left untouched by policy) |
 
-**Nothing was committed or pushed.** All temporary processes were stopped (isolated servers on 8001/8010 terminated; ports verified free); no user process was touched; branch and HEAD unchanged (`chore/token-adoption-codemod` @ `117f1d8`).
+**Committed (not pushed) at the project owner's instruction: 3 commits on `chore/token-adoption-codemod`** — `41a6744` (backend security/correctness), `51f48c0` (frontend + Next 15.5.27), `161269c` (this report + handoff doc). Runtime artifacts (`.run/`) untracked and gitignored; the owner's demo-film assets under `docs/demo/` remain intentionally untracked. All temporary processes were stopped (isolated servers on 8001/8010 terminated; ports verified free); no user process was touched; the live database was never modified.
