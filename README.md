@@ -6,23 +6,43 @@ A live operational **digital twin for cold-chain logistics**: it detects
 temperature excursions *while a vehicle is moving*, explains the cause, and
 drives a verified recovery — rather than reporting the loss after delivery.
 
+![ColdChain Rescue](docs/demo/final/thumbnail.png)
+
 ---
 
-## 📹 Demo video
+## 📹 Demo video (enhanced edition)
 
-A narrated 2:03 walkthrough of every screen, with live telemetry.
+A narrated 3:42 walkthrough recorded from the running system: a compressor
+failure is injected, the twin fails the truck live, the diagnosis agent scores
+root causes, a human operator approves the diversion, a service truck executes
+the repair, and recovery is verified against the cargo's temperature band —
+with animated callouts, captions, and a full sound design.
 
-| Version | File |
+[![Watch the demo](docs/demo/final/screenshot_fleet.jpg)](docs/demo/final/ColdChain_Rescue_Demo_Enhanced.mp4)
+
+**▶ [`docs/demo/final/ColdChain_Rescue_Demo_Enhanced.mp4`](docs/demo/final/ColdChain_Rescue_Demo_Enhanced.mp4)** — 1920×1080, 3:42, narration + captions
+
+Chapters: `0:00` hook · `0:20` product · `0:40` live fleet map · `1:00` fault
+injection · `1:20` diagnosis · `1:41` human approval · `2:05` execution ·
+`2:22` verified recovery · `2:46` architecture · `3:11` test evidence
+
+An earlier 2:03 walkthrough of every screen (no narration track edit) is at
+[`docs/demo/coldchain-rescue-demo-narrated.mp4`](docs/demo/coldchain-rescue-demo-narrated.mp4).
+
+Regenerate the enhanced cut with
+[`docs/demo/final/enhanced/remotion-project`](docs/demo/final/enhanced/remotion-project)
+(Remotion 4.0.535, `npx remotion render Demo`). The production report — what is
+real footage vs. overlay, gate results, honest limitations — is
+[`docs/demo/final/PRODUCTION_REPORT.md`](docs/demo/final/PRODUCTION_REPORT.md).
+
+## ✨ Highlights
+
+| | |
 |---|---|
-| **With narration** | [`docs/demo/coldchain-rescue-demo-narrated.mp4`](docs/demo/coldchain-rescue-demo-narrated.mp4) — 1600×950, Gemini TTS voiceover |
-| Silent | [`docs/demo/coldchain-rescue-demo.mp4`](docs/demo/coldchain-rescue-demo.mp4) — same visuals |
-
-Chapters: `0:00` overview · `0:11` dashboard · `0:26` live map · `0:43` fleet ·
-`0:51` incidents · `1:03` AI command (the agent chain) · `1:19` digital twin ·
-`1:27` simulation · `1:53` settings · `1:59` theme toggle
-
-Regenerate with [`docs/demo/record_demo.py`](docs/demo/record_demo.py) — see
-[`docs/demo/README.md`](docs/demo/README.md) for the gotchas.
+| ![Live fleet map](docs/demo/final/screenshot_fleet.jpg) | ![Incident + diagnosis](docs/demo/final/screenshot_incident.jpg) |
+| **Live fleet map** — 14 vehicles, real-time telemetry | **Incident lifecycle** — injection → diagnosis → resolution |
+| ![Human approval](docs/demo/final/screenshot_approval.jpg) | ![Thumbnail](docs/demo/final/thumbnail.png) |
+| **Human approval gate** — autonomy proposes, never acts | **Verified recovery** — evidence before an incident closes |
 
 ## 📖 Full documentation
 
@@ -94,7 +114,7 @@ Then open <http://localhost:3000/live-map>.
 ## Verify everything
 
 ```powershell
-python .loop/judge.py        # 6 goals + 3 boundaries; exit 0 = releasable
+python .loop/judge.py        # 6 goals + 3 boundaries. Exit 0 = releasable
 python tools/rubric_audit.py # self-audit against the CBCA301 rubric
 ```
 
@@ -120,7 +140,7 @@ cannot report a fixed list of gaps.
 
 ## Architecture in one paragraph
 
-Next.js 15 + React 19 + Tailwind 4 frontend; FastAPI + SQLAlchemy + SQLite
+Next.js 15 + React 19 + Tailwind 4 frontend. FastAPI + SQLAlchemy + SQLite
 backend; a **15-module deterministic Python simulation** driving six
 rule-based operational agents. **There is no LLM in the operational path** —
 Google/Gemini keys are used only to generate design-reference images. The UI
@@ -160,9 +180,9 @@ automated agent (or a tired human) from declaring success without evidence.
 |---|---|
 | G1 | `tsc --noEmit` exits 0 |
 | G2 | 5/5 backend suites independently exit 0 |
-| G3 | Backend serves; `ai_mode` is exactly `DETERMINISTIC-AGENTS` |
+| G3 | Backend serves. `ai_mode` is exactly `DETERMINISTIC-AGENTS` |
 | G4 | 14 routes: HTTP 200, exactly one `<h1>`, 0 console errors |
-| G5 | Computed-style probes match a human-written baseline; layout guards clean |
+| G5 | Computed-style probes match a human-written baseline. Layout guards clean |
 | G6 | No control renders under the 24px WCAG 2.5.8 hit area |
 | B1 | 8 protected files byte-identical to baseline — **tests cannot be edited to make the gate pass** |
 | B2 | No credential material in any tracked file |
@@ -179,11 +199,11 @@ Recorded rather than hidden — see `docs/ARCHITECTURE.md` §8 and
 
 - Simulation only — no real telematics hardware
 - SQLite, single-node
-- **No authentication on operational routes.** Not chosen unilaterally: it is a
-  product/security decision for the team and guide. The JWT layer *refuses to
-  start* outside development without an explicit secret, so the current state
-  fails safe rather than shipping a forgeable default. The auth endpoints exist
-  (`register`/`login`/`me`) but do not gate `/api/fleet/*`.
+- **Authentication:** fail-closed JWT auth now gates the API (Phase 1 of the
+  security hardening — 138 tests, database-isolated). The JWT layer *refuses to
+  start* outside development without an explicit secret. WebSocket telemetry
+  uses single-use, short-lived tickets. Full detail in
+  [`FINAL_ENGINEERING_AND_SECURITY_REPORT.md`](FINAL_ENGINEERING_AND_SECURITY_REPORT.md).
 - `/live-map` still interpolates through the data layer (2,604 mutations/s)
 - Arrhenius parameters are validated against **synthetic** ground truth
   generated from the same parameters (MAPE 0.10%) — proof the implementation is
@@ -207,15 +227,16 @@ history. Current status:
 | Working tree | ✅ Clean — verified by shape scan |
 
 The rewrite used `git filter-repo` with a blob callback
-([`tools/redact_blobs.py`](tools/redact_blobs.py)); redaction rules are in
+([`tools/redact_blobs.py`](tools/redact_blobs.py)). Redaction rules are in
 [`tools/redact_secrets.txt`](tools/redact_secrets.txt) and
 [`tools/scan_history_secrets.py`](tools/scan_history_secrets.py) re-verifies the
 whole history.
 
-> **GitHub still holds the pre-rewrite history until the cleaned history is
-> force-pushed.** See the handover notes.
+> Cleaned history is what this repository serves. `scan_history_secrets.py`
+> re-verifies the whole history on demand.
 
-## ⚠️ Known dependency advisory
+## 🔒 Dependency posture
 
-`next@15.3.2` carries [CVE-2025-66478](https://nextjs.org/blog/CVE-2025-66478).
-Upgrade to a patched 15.x before any public deployment.
+Next.js was upgraded 15.3.2 → **15.5.27** (patched for the Windows RCE and
+AVIF advisories) and the full build + acceptance sweep re-verified — see
+[`FINAL_ENGINEERING_AND_SECURITY_REPORT.md`](FINAL_ENGINEERING_AND_SECURITY_REPORT.md).
