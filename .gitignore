@@ -53,6 +53,12 @@ docs/demo/film/_*/
 # e2e test runner artifacts (report.json, traces, screenshots)
 frontend/.e2e/
 
+# Remotion scratch and builds
+docs/demo/final/enhanced/remotion-project/out/
+docs/demo/final/enhanced/remotion-project/.remotion/
+docs/demo/**/*.mp4
+docs/demo/**/*.webm
+
 # runtime artifacts from the launcher / local runs
 .run/
 *.pids.json

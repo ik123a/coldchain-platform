@@ -1,0 +1,43 @@
+1
+00:00:00,800 --> 00:00:19,664
+Refrigerated cargo is unforgiving. A compressor fails on a 42-degree afternoon, and the load begins to climb past its safe band within minutes. Can the system notice, decide, and act before the cargo is lost?
+
+2
+00:00:21,164 --> 00:00:40,148
+This is ColdChain Rescue — a digital twin for refrigerated logistics. A fleet of refrigerated trucks, live telemetry, deterministic rescue agents, and a human operator who approves every critical move.
+
+3
+00:00:41,648 --> 00:00:59,504
+The live map shows the whole fleet: position, cargo temperature, operating state. Each vehicle is a digital twin carrying its own thermal model.
+
+4
+00:01:01,004 --> 00:01:19,148
+The operator injects a compressor failure into one truck — a genuine fault injection. The twin responds immediately: compressor failed, cargo temperature rising.
+
+5
+00:01:20,648 --> 00:01:40,376
+The diagnosis agent scores the six most likely root causes and shows its evidence: compressor state, temperature slope, confidence. A rule-based expert system — every number can be traced.
+
+6
+00:01:41,876 --> 00:02:04,268
+The coordinator scores every candidate facility — travel time, dock queue, capacity, cost — then stops and asks a human. The operator sees the recommendation with its reasoning, and approves.
+
+7
+00:02:05,768 --> 00:02:21,992
+The approved diversion is applied to the twin's route. A service truck is dispatched, drives to the failing vehicle, completes the repair. Each event broadcasts the moment it happens.
+
+8
+00:02:23,492 --> 00:02:46,004
+An incident is not closed because a mitigation was attempted. Recovery verification checks the cargo against its temperature band with recorded evidence. Analytics keeps fixes, verified recoveries, transfers, and escalations strictly separate.
+
+9
+00:02:47,504 --> 00:03:10,424
+Under the hood: Next.js front end, FastAPI backend over REST and an authenticated WebSocket stream, deterministic Python agents over SQLite. Roles enforced server-side, single-use tickets for every telemetry connection.
+
+10
+00:03:11,924 --> 00:03:27,020
+The engineering is verified, not claimed: 143 database-isolated tests, a 19-point acceptance sweep, and honest failure paths that refuse to fake an approval or invent a recovery.
+
+11
+00:03:28,520 --> 00:03:40,928
+ColdChain Rescue: detect, diagnose, propose, ask the human, execute, verify. That is how a cold chain gets rescued.

@@ -56,7 +56,7 @@ reference, design decisions and known limitations.
 ```
 ┌──────────────────────────────────────────────────────────┐
 │  FRONTEND — Next.js 15 · React 19 · Tailwind 4           │
-│  14 routes · MapLibre GL basemap · WebSocket client       │
+│  17 routes · MapLibre GL basemap · WebSocket client       │
 └─────────────┬──────────────────────┬─────────────────────┘
               │ REST (proxied)       │ WebSocket
               ▼                      ▼
@@ -164,6 +164,7 @@ browser, no server or dependencies required.
 | Document | Rubric item it serves |
 |---|---|
 | [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md) | **Start here** — full usage guide, every control, architecture, API reference |
+| [`DESIGN.md`](DESIGN.md) | **Design Contract ("OPS v2")** — tokens, typography, thermal spectrum, anti-slop rules |
 | [`docs/LOG-DIARY.md`](docs/LOG-DIARY.md) | Milestone-2 — Documentation & Project Management (progress evidence, action plan, future prospects) |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Milestone-2 — System/Technical Design |
 | [`docs/TESTING.md`](docs/TESTING.md) | Milestone-2 — Testing & Validation |
@@ -178,10 +179,10 @@ automated agent (or a tired human) from declaring success without evidence.
 
 | ID | Check |
 |---|---|
-| G1 | `tsc --noEmit` exits 0 |
-| G2 | 5/5 backend suites independently exit 0 |
+| G1 | `tsc --noEmit` exits 0 (100% clean type check) |
+| G2 | 5/5 backend suites independently exit 0 (143/143 tests passed) |
 | G3 | Backend serves. `ai_mode` is exactly `DETERMINISTIC-AGENTS` |
-| G4 | 14 routes: HTTP 200, exactly one `<h1>`, 0 console errors |
+| G4 | 17 routes: HTTP 200, exactly one `<h1>`, 0 console errors |
 | G5 | Computed-style probes match a human-written baseline. Layout guards clean |
 | G6 | No control renders under the 24px WCAG 2.5.8 hit area |
 | B1 | 8 protected files byte-identical to baseline — **tests cannot be edited to make the gate pass** |
