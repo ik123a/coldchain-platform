@@ -162,7 +162,7 @@ function reducer(st: State, a: Action): State {
                  fleetEvents: [ev, ...st.fleetEvents].slice(0, 90),
                  notices: [{ id: Date.now() + Math.random(),
                              text: `${ev.vehicle_id} removed from the fleet`,
-                             sev: "INFO", source: t,
+                             sev: "INFO" as const, source: t,
                              at: new Date().toISOString(), read: false },
                            ...st.notices].slice(0, NOTICE_MAX) };
       }

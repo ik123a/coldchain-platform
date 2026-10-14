@@ -16,7 +16,7 @@ async function registerDriver(app: any, screen: any, browser: any, a: ReturnType
   await screen.getByLabel('Password').fill(a.password);
   await screen.getByRole('button', 'Create account & sign in').tap();
   // A driver must never land on the operator dashboard.
-  await expect(browser).toHaveURL('/driver');
+  await (expect(browser) as any).toHaveURL('/driver');
 }
 
 test('a driver registers, claims a free truck and sees only that truck', async ({
@@ -49,7 +49,7 @@ test('a driver is blocked from the operator dashboard', async ({ app, screen, br
 
   // The RBAC guard: a driver requesting an operator route is bounced back.
   await app.open('/dashboard');
-  await expect(browser).toHaveURL('/driver');
+  await (expect(browser) as any).toHaveURL('/driver');
   await expect(screen.getByText('DRIVER CONSOLE')).toBeVisible();
 });
 

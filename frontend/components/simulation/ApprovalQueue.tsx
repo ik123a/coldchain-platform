@@ -33,6 +33,9 @@ type Proposal = {
   cargo_health: number;
   raised_at_sim_minute: number;
   status: string;
+  escalated?: boolean;
+  escalated_at_sim_minute?: number;
+  note?: string;
 };
 
 type Payload = {
