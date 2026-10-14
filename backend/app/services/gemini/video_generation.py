@@ -103,15 +103,15 @@ def generate_reference_video(
 
 def check_video_operation(operation_name: str) -> Dict[str, Any]:
     """Check the status of a Veo long-running operation."""
-    if not GEMINI_API_KEY:
-        return {"success": False, "error": "GEMINI_API_KEY missing"}
-
     # operation_name reaches a URL path. The API's format is `models/<model>/
     # operations/<id>` — anchor the check so a crafted value cannot redirect the
     # GET at an arbitrary path or query on the googleapis host (SSRF-by-parameter).
     import re as _re
     if not _re.fullmatch(r"models/[\w.\-]+/operations/[\w\-]+", operation_name or ""):
         return {"success": False, "error": "malformed operation_name"}
+
+    if not GEMINI_API_KEY:
+        return {"success": False, "error": "GEMINI_API_KEY missing"}
 
     url = f"https://generativelanguage.googleapis.com/v1beta/{operation_name}"
     try:

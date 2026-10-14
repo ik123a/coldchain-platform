@@ -20,6 +20,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.environ.setdefault("APP_ENV", "development")
 
 from app.services.gemini.safe_paths import (  # noqa: E402
     ALLOWED_SUFFIXES, APPROVED_IMAGES, MAX_REFERENCE_BYTES,

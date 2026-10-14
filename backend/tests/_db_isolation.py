@@ -64,6 +64,7 @@ def isolate() -> str:
     _TMP_URL = "sqlite+aiosqlite:///" + os.path.join(_TMP_DIR, "test.db").replace("\\", "/")
     os.environ["DATABASE_URL"] = _TMP_URL
     os.environ["CC_TEST_ISOLATED"] = "1"
+    os.environ.setdefault("APP_ENV", "development")
 
     # Never touch an existing SQLite file: the temp dir is ours alone and is
     # removed on exit. remove_ignore_errors=True keeps a Windows file-lock

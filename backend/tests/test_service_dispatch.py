@@ -260,6 +260,8 @@ class ServiceDispatchTests(unittest.IsolatedAsyncioTestCase):
         v = cargo[0]
 
         bundle = {"target": "WH-001", "reason": "unit test", "scored": {}}
+        async with engine.begin() as conn:
+            await conn.execute(text("DELETE FROM fleet_routes WHERE vehicle_id = :vid"), {"vid": v.id})
         for _ in range(3):                     # same vehicle, same target, same minute
             await F._apply_divert(v, bundle)
 

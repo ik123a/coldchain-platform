@@ -56,10 +56,25 @@ frontend/.e2e/
 # Remotion scratch and builds
 docs/demo/final/enhanced/remotion-project/out/
 docs/demo/final/enhanced/remotion-project/.remotion/
-docs/demo/final/assets/raw_scratch/
+docs/demo/final/enhanced/remotion-project/*.log
+docs/demo/final/enhanced/remotion-project/frame_*.jpg
+docs/demo/final/assets/
+docs/demo/final/SlopMonster/
+docs/demo/final/motionmaxxing/
+docs/demo/final/.agents/
+docs/demo/final/.claude/
+docs/demo/final/qc_final/
+docs/demo/final/*.png
+docs/demo/final/*.jpg
+docs/demo/film/vo2/
+docs/demo/*.png
 docs/demo/test_probe.py
 docs/demo/**/*.mp4
 docs/demo/**/*.webm
+docs/demo/**/*.mp3
+docs/demo/**/*.wav
+docs/demo/final/skills-lock.json
+docs/demo/final/enhanced/audio_design/
 
 # runtime artifacts from the launcher / local runs
 .run/
