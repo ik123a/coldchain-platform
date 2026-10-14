@@ -10,17 +10,19 @@ drives a verified recovery — rather than reporting the loss after delivery.
 
 ---
 
-## 📹 Demo video (enhanced edition)
+## 📹 Demo video (enhanced & motion-maxxed edition)
 
-A narrated 3:42 walkthrough recorded from the running system: a compressor
-failure is injected, the twin fails the truck live, the diagnosis agent scores
+A narrated 3:42 walkthrough **re-recorded completely from scratch** against the live running system: a compressor
+failure is injected into `TRUCK-1824-00`, the twin fails the truck live, the diagnosis agent scores
 root causes, a human operator approves the diversion, a service truck executes
 the repair, and recovery is verified against the cargo's temperature band —
-with animated callouts, captions, and a full sound design.
+with animated callouts, captions, dynamic camera dollies, and organic Live Cursor UI (LCU) physics.
 
 [![Watch the demo](docs/demo/final/screenshot_fleet.jpg)](docs/demo/final/ColdChain_Rescue_Demo_Enhanced.mp4)
 
-**▶ [`docs/demo/final/ColdChain_Rescue_Demo_Enhanced.mp4`](docs/demo/final/ColdChain_Rescue_Demo_Enhanced.mp4)** — 1920×1080, 3:42, narration + captions
+- **▶ [`docs/demo/final/ColdChain_Rescue_Demo_Enhanced.mp4`](docs/demo/final/ColdChain_Rescue_Demo_Enhanced.mp4)** — 1920×1080 @ 30fps, 3:42, 33MB fast-start web-optimized cut
+- **Master Render:** [`docs/demo/final/ColdChain_Rescue_Demo_Maxxed.mp4`](docs/demo/final/ColdChain_Rescue_Demo_Maxxed.mp4) — 74.9MB master render
+- **Automated Scratch Recorder:** [`docs/demo/record_scratch.py`](docs/demo/record_scratch.py) — Playwright recorder with organic cubic ease-in-out cursor trajectory physics and DOM assertions
 
 Chapters: `0:00` hook · `0:20` product · `0:40` live fleet map · `1:00` fault
 injection · `1:20` diagnosis · `1:41` human approval · `2:05` execution ·
@@ -201,7 +203,7 @@ Recorded rather than hidden — see `docs/ARCHITECTURE.md` §8 and
 - Simulation only — no real telematics hardware
 - SQLite, single-node
 - **Authentication:** fail-closed JWT auth now gates the API (Phase 1 of the
-  security hardening — 138 tests, database-isolated). The JWT layer *refuses to
+  security hardening — 143 tests, database-isolated). The JWT layer *refuses to
   start* outside development without an explicit secret. WebSocket telemetry
   uses single-use, short-lived tickets. Full detail in
   [`FINAL_ENGINEERING_AND_SECURITY_REPORT.md`](FINAL_ENGINEERING_AND_SECURITY_REPORT.md).
@@ -222,7 +224,7 @@ history. Current status:
 |---|---|
 | Rotated at the provider | ✅ Done — owner confirmed |
 | Removed from source | ✅ `config.py` reads env vars only |
-| Removed from **all git history** | ✅ 0 credential-shaped values across 443 blobs |
+| Removed from **all git history** | ✅ 0 credential-shaped values across 622 blobs |
 | `backend/.env` tracked | ❌ No — gitignored |
 | `backend/.env.example` | ✅ Committable template, no real values |
 | Working tree | ✅ Clean — verified by shape scan |
