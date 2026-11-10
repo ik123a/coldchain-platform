@@ -21,7 +21,7 @@ with animated callouts, captions, dynamic camera dollies, and organic Live Curso
 [![Watch the demo](docs/demo/final/screenshot_fleet.jpg)](docs/demo/final/ColdChain_Rescue_Demo_Enhanced.mp4)
 
 - **▶ [`docs/demo/final/ColdChain_Rescue_Demo_Enhanced.mp4`](docs/demo/final/ColdChain_Rescue_Demo_Enhanced.mp4)** — 1920×1080 @ 30fps, 3:42, 33MB fast-start web-optimized cut
-- **Master Render:** [`docs/demo/final/ColdChain_Rescue_Demo_Maxxed.mp4`](docs/demo/final/ColdChain_Rescue_Demo_Maxxed.mp4) — 74.9MB master render
+- **Historical local master:** earlier production notes mention `ColdChain_Rescue_Demo_Maxxed.mp4`; that master is not included in this checkout. Use the enhanced demo linked above.
 - **Automated Scratch Recorder:** [`docs/demo/record_scratch.py`](docs/demo/record_scratch.py) — Playwright recorder with organic cubic ease-in-out cursor trajectory physics and DOM assertions
 
 Chapters: `0:00` hook · `0:20` product · `0:40` live fleet map · `1:00` fault
@@ -230,9 +230,9 @@ history. Current status:
 | Working tree | ✅ Clean — verified by shape scan |
 
 The rewrite used `git filter-repo` with a blob callback
-([`tools/redact_blobs.py`](tools/redact_blobs.py)). Redaction rules are in
-[`tools/redact_secrets.txt`](tools/redact_secrets.txt) and
-[`tools/scan_history_secrets.py`](tools/scan_history_secrets.py) re-verifies the
+([`tools/redact_blobs.py`](tools/redact_blobs.py)). Its historical local-only
+redaction-rule file, `tools/redact_secrets.txt`, is not included in this checkout.
+[`tools/scan_history_secrets.py`](tools/scan_history_secrets.py) can re-verify the
 whole history.
 
 > Cleaned history is what this repository serves. `scan_history_secrets.py`
