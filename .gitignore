@@ -80,3 +80,6 @@ docs/demo/final/enhanced/audio_design/
 .run/
 *.pids.json
 .hermes-tmp.*
+
+# Next.js alternate output directories used for isolated local builds
+.next-*/
