@@ -2,9 +2,9 @@
 
 **CBCA301 Capstone Project — Bennett University, BCA Semester V**
 
-A live operational **digital twin for cold-chain logistics**: it detects
+An educational **digital-twin simulation for cold-chain logistics**: it detects simulated
 temperature excursions *while a vehicle is moving*, explains the cause, and
-drives a verified recovery — rather than reporting the loss after delivery.
+models a recovery verified against its simulation rules. It is not connected to a physical fleet and does not establish food-safety outcomes.
 
 ![ColdChain Rescue](docs/demo/final/thumbnail.png)
 
@@ -116,7 +116,7 @@ Then open <http://localhost:3000/live-map>.
 ## Verify everything
 
 ```powershell
-python .loop/judge.py        # 6 goals + 3 boundaries. Exit 0 = releasable
+python .loop/judge.py        # 6 goals + 3 boundaries. Exit 0 = the configured local gates passed
 python tools/rubric_audit.py # self-audit against the CBCA301 rubric
 ```
 
@@ -243,3 +243,29 @@ whole history.
 Next.js was upgraded 15.3.2 → **15.5.27** (patched for the Windows RCE and
 AVIF advisories) and the full build + acceptance sweep re-verified — see
 [`FINAL_ENGINEERING_AND_SECURITY_REPORT.md`](FINAL_ENGINEERING_AND_SECURITY_REPORT.md).
+
+## November 2026 source and runtime audit
+
+![Local simulation sign-in screen](docs/screenshots/local-audit.png)
+
+Captured from the actual localhost frontend on 2026-11-10 at 1440×1000 in a fresh browser context. External browser requests were blocked and no operator session or physical fleet was connected. This shows the public sign-in screen; historical fleet/demo media above remains historical project evidence.
+
+```mermaid
+flowchart LR
+  UI[Next.js operations UI] --> REST[FastAPI routes and authorization]
+  UI --> WS[Ticket-authenticated WebSocket]
+  REST --> Sim[Deterministic fleet simulation]
+  Sim --> Agents[Detection, diagnosis and coordination rules]
+  Agents --> Gate[Operator approval]
+  Gate --> Actions[Simulated diversion / dispatch / transfer]
+  Actions --> Verify[Simulation recovery verification]
+  Sim <--> DB[SQLAlchemy and SQLite]
+  Sim --> WS
+```
+
+The core operational path is deterministic Python. Optional Gemini reference-media endpoints are separate and were not called. Real hardware, food science, physical actuation, fleet alerts, and production deployment were not tested. Registration currently permits a client to choose an operator role, so the demo signup flow must not be treated as a production administrator provisioning system.
+
+For a fresh checkout, install backend requirements into an isolated Python environment, and run `npm ci --ignore-scripts` inside `frontend`. Then follow the two-terminal quick start. The frontend's `next/font` build downloads declared Google Fonts; sandbox DNS failed locally, and a network-enabled retry was required. A successful frontend build skips TypeScript and ESLint by existing configuration, so use `npx --no-install tsc --noEmit` as a separate check. Keep development and build output separate with `NEXT_DIST_DIR` when both are needed, and discard tool-generated audit paths in `tsconfig.json` before committing.
+
+The November audit changed documentation and captured a local screen; it did not change fleet decisions. Revert the audit commit to roll back documentation/media changes.
+Validation: the full backend suite passed 143 tests (3 deprecation warnings) using a temporary SQLite database and synthetic accounts; provider transports were mocked. The 17-route frontend build and the separate TypeScript check passed. These checks do not validate physical logistics or real provider integrations.
